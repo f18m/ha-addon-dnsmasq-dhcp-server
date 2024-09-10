@@ -4,16 +4,19 @@
 
 Follow these steps to get the add-on installed on your system:
 
-1. Navigate in your Home Assistant frontend to **Settings** -> **Add-ons** -> **Add-on store**.
-2. Find the "Dnsmasq" add-on and click it.
+1. Add Francesco Montorsi HA addons store, see info at https://github.com/f18m/ha-addons-repo
+2. Find the "Dnsmasq-DHCP" add-on and click it.
 3. Click on the "INSTALL" button.
 
 ## How to use
 
-The add-on has a couple of options available. For more detailed instructions
-see below. The basic thing to get the add-on running would be:
+You need to make sure you don't have other DHCP servers running already in your network.
+You will also need all details about the network where the DHCP server should be running:
 
-1. Start the add-on.
+* the netmask
+* the gateway IP address (your Internet router typically)
+* the DNS server IP addresses (you may use e.g. Google DNS servers)
+* an IP address range free to be used to provision addresses to DHCP dynamic clients
 
 ## Configuration
 
@@ -23,13 +26,19 @@ describes each of the add-on configuration options.
 Example add-on configuration:
 
 ```yaml
-defaults:
+dns:
   - 8.8.8.8
   - 8.8.4.4
 ```
 
-### Option: `defaults` (required)
+### Option: `dns` (required)
 
 The defaults are upstream DNS servers, where DNS requests that can't
 be handled locally, are forwarded to. By default it is configured to have
 Google's public DNS servers: `"8.8.8.8", "8.8.4.4"`.
+
+TO BE WRITTEN
+
+## Links
+
+- [dnsmasq manual page](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html)

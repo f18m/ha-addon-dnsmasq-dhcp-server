@@ -20,9 +20,9 @@ options:
     - 8.8.8.8
     - 8.8.4.4
   hosts: 
-    - mac: 9C:6B:00:09:ED:3E
-      name: computer-new-studio
-      ip: 192.168.1.4
+    - mac: aa:bb:cc:dd:ee:ff
+      name: an-important-host-with-static-ip
+      ip: 192.168.1.15
   network:
     broadcast: 192.168.1.255
     gateway: 192.168.1.254
