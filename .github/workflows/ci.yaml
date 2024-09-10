@@ -9,11 +9,13 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
+        with:
+          path: ./myaddon
       - name: Test build
         uses: home-assistant/builder@master
         with:
           args: |
             --test \
             --all \
-            --target $GITHUB_WORKSPACE \
+            --target ./myaddon \
             --branch main
