@@ -13,3 +13,11 @@ Setup and manage a Dnsmasq instance as a DHCP server (despite the name 'dnsmasq'
 [armhf-shield]: https://img.shields.io/badge/armhf-yes-green.svg
 [armv7-shield]: https://img.shields.io/badge/armv7-yes-green.svg
 [i386-shield]: https://img.shields.io/badge/i386-yes-green.svg
+
+## Development
+
+See [Home Assistant addon guide](https://developers.home-assistant.io/docs/add-ons)
+
+This addon is based on other 2 addons maintained by Home Assistant team:
+* https://github.com/home-assistant/addons/tree/master/dnsmasq
+* https://github.com/home-assistant/addons/tree/master/dhcp_server
