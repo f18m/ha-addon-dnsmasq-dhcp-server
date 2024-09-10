@@ -17,5 +17,5 @@ jobs:
           args: |
             --test \
             --all \
-            --target ./myaddon \
+            --target myaddon \
             --branch main
