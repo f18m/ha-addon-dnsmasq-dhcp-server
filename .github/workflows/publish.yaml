@@ -26,4 +26,4 @@ jobs:
           args: |
             --all \
             --target myaddon \
-            --docker-hub f18m
+            --docker-hub ghcr.io/f18m
