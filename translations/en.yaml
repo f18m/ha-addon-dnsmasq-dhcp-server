@@ -1,0 +1,5 @@
+---
+configuration:
+  defaults:
+    name: Upstream Servers
+    description: The defaults are upstream DNS servers.
