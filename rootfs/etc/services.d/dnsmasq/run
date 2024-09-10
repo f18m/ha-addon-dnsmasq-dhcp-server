@@ -9,3 +9,6 @@ ulimit -n 1024
 
 exec dnsmasq -C "${CONFIG}" -z < /dev/null
 
+# useful for debug, to launch a container doing nothing to inspect templating results:
+#exec sleep 10000
+

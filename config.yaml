@@ -15,10 +15,43 @@ host_network: true
 #image: homeassistant/{arch}-addon-dnsmasq
 init: false
 options:
-  defaults:
+  default_lease: 12h
+  dns:
     - 8.8.8.8
     - 8.8.4.4
+  hosts: 
+    - mac: 9C:6B:00:09:ED:3E
+      name: computer-new-studio
+      ip: 192.168.1.4
+  network:
+    broadcast: 192.168.1.255
+    gateway: 192.168.1.254
+    interface: enp1s0
+    netmask: 255.255.255.0
+    range_end: 192.168.1.250
+    range_start: 192.168.1.50
+    subnet: 192.168.1.0
 schema:
-  defaults:
+  default_lease: str
+  dns:
     - str
+  hosts:
+    - ip: str
+      mac: str
+      name: str
+  network:
+    broadcast: str
+    gateway: str
+    interface: str
+    netmask: str
+    range_end: str
+    range_start: str
+    subnet: str
 startup: system
+privileged:
+  - NET_ADMIN
+  - SYS_ADMIN
+  - NET_RAW
+  - SYS_RAWIO
+  - SYS_RESOURCE
+full_access: true

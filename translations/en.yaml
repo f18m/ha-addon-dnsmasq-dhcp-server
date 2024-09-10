@@ -1,5 +1,8 @@
 ---
 configuration:
-  defaults:
-    name: Upstream Servers
-    description: The defaults are upstream DNS servers.
+  default_lease:
+    name: Default DHCP lease time 
+    description: This can be given in seconds, minutes (m) or hours (h)
+  dns:
+    name: List of DNS servers 
+    description: DNS servers to advertise inside DHCP OFFER messages
