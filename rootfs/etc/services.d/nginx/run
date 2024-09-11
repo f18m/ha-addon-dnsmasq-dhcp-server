@@ -1,0 +1,5 @@
+#!/usr/bin/with-contenv bashio
+
+# Run nginx
+bashio::log.info "Starting nginx..."
+exec nginx
