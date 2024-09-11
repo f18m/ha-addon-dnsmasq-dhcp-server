@@ -51,8 +51,3 @@ schema:
 startup: system
 privileged:
   - NET_ADMIN
-  - SYS_ADMIN
-  - NET_RAW
-  - SYS_RAWIO
-  - SYS_RESOURCE
-full_access: true
