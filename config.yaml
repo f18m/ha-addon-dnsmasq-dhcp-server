@@ -16,6 +16,7 @@ host_network: true
 init: false
 ingress: true
 options:
+  log_queries: false
   default_lease: 12h
   dns:
     - 8.8.8.8
@@ -33,6 +34,7 @@ options:
     range_start: 192.168.1.50
     subnet: 192.168.1.0
 schema:
+  log_queries: bool
   default_lease: str
   dns:
     - str
@@ -55,4 +57,4 @@ privileged:
   - NET_RAW
   - SYS_RAWIO
   - SYS_RESOURCE
-full_access: true
+#full_access: true

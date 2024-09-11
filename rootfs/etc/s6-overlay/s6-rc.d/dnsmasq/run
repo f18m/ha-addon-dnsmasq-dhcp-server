@@ -1,4 +1,6 @@
 #!/usr/bin/with-contenv bashio
+CONFIG="/etc/dnsmasq.conf"
+
 # ==============================================================================
 # DNSMASQ config
 # ==============================================================================
@@ -9,4 +11,16 @@ tempio \
     -conf /data/options.json \
     -template /usr/share/tempio/dnsmasq.config \
     -out "${CONFIG}"
+
+
+# Run dnsmasq
+bashio::log.info "Starting dnsmasq..."
+
+# Set max open file limit to speed up startup
+ulimit -n 1024
+
+exec dnsmasq -C "${CONFIG}" -z < /dev/null
+
+# useful for debug, to launch a container doing nothing to inspect templating results:
+#exec sleep 10000
 
