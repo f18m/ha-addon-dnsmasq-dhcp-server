@@ -1,6 +1,10 @@
 #!/usr/bin/with-contenv bashio
 CONFIG="/etc/dnsmasq.conf"
 
+# Run nginx
+bashio::log.info "Starting nginx..."
+nginx -g "daemon off;error_log /dev/stdout debug;" &
+
 # Run dnsmasq
 bashio::log.info "Starting dnsmasq..."
 
