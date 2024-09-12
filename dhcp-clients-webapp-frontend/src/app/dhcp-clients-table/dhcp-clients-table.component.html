@@ -1,0 +1,15 @@
+<h2>Tabella di Indirizzi IP e MAC</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Indirizzo IP</th>
+      <th>Indirizzo MAC</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let entry of ipMacList">
+      <td>{{ entry.ip }}</td>
+      <td>{{ entry.mac }}</td>
+    </tr>
+  </tbody>
+</table>
