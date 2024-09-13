@@ -24,4 +24,11 @@ build-backend:
 
 # non-containerized build of the frontend -- requires you to have npm/angular installed:
 build-frontend:
-	cd dhcp-clients-webapp-frontend && npm run build --prod
+	cd dhcp-clients-webapp-frontend && ng build --configuration=production
+	@echo
+	@echo
+	@echo "Now starting an nginx instance to simulate Hassio Ingress"
+	@echo
+	@echo
+	sed 's@__ROOT__@$(shell pwd)@g' testing/nginx.conf.template >/tmp/nginx.conf
+	sudo nginx -c /tmp/nginx.conf

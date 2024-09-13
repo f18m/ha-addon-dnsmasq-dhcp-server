@@ -21,7 +21,7 @@ events {
 }
 
 http {
-    include  /etc/nginx/includes/mime.types;
+    include  /etc/nginx/mime.types;
     default_type        application/octet-stream;
     sendfile            on;
     keepalive_timeout   65;
@@ -36,21 +36,21 @@ http {
 
     # Ingress
     server {
-        listen %%interface%%:8099 default_server;
+        listen 8099 default_server;
 
-        allow   172.30.32.2;
-        deny    all;
+        #allow   172.30.32.2;
+        #deny    all;
 
         server_name _;
         access_log /dev/stdout combined;
 
-        root    /opt/www;
+        root    __ROOT__/dhcp-clients-webapp-frontend/dist/dhcp-clients-webapp-frontend/browser;
         
         #location %%ingress_entry%% {
         #    rewrite  ^%%ingress_entry%%/(.*)  /$1 break;
         #    try_files $uri$args $uri$args/ $uri/ /index.html;
         #}
-
+        
         # specify the configuration for the '/' location
         location / {
             # try to serve the requested URI. if that fails then try to

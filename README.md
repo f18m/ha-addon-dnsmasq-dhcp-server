@@ -22,6 +22,10 @@ This addon is based on other 2 addons maintained by Home Assistant team:
 * https://github.com/home-assistant/addons/tree/master/dnsmasq
 * https://github.com/home-assistant/addons/tree/master/dhcp_server
 
+A lot of help came from:
+* https://github.com/albertogeniola/angular-hello-addon
+* https://stackademic.com/blog/how-to-serve-an-angular-application-with-nginx
+
 To build the docker image, go to the folder where you checked out this repo and run:
 
 ```

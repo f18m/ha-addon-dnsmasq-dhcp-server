@@ -14,4 +14,4 @@ CONFIG=/etc/nginx/nginx.conf
 sed -i "s#%%ingress_entry%%#${ingress_entry}#g" ${CONFIG}
 sed -i "s/%%interface%%/${ingress_interface}/g" ${CONFIG}
 
-bashio::log.info "Dnsmasq template successfully rendered as ${CONFIG}"
+bashio::log.info "Nginx template successfully rendered as ${CONFIG}"
