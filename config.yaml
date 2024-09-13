@@ -1,5 +1,5 @@
 ---
-version: 0.0.1
+version: feature-test-nginx
 slug: dnsmasq-dhcp
 name: Dnsmasq-DHCP
 description: A simple DHCP server based on dnsmasq
