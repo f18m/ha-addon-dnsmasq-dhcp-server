@@ -3,7 +3,9 @@ name: "Publish"
 #on:
 #  release:
 #    types: [published]
-on: [push, pull_request]
+#on: [push, pull_request]
+on: push
+
 
 jobs:
   publish-docker-image:
@@ -19,6 +21,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: ./myaddon
+      - name: Extract Branch Name
+        shell: bash
+        run: |
+          branchName=${GITHUB_REF#refs/heads/}
+          if [ $branchName = 'develop' ]; then additionalImageName='-develop'; else additionalImageName=''; fi
+          echo "::set-output name=additionalImageName::$(echo $additionalImageName)"
+        id: extract_branch
+      - name: Get Branch
+        run: |
+          branch=$(git branch -r --contains ${{ github.ref }} --format "%(refname:lstrip=3)")
+          echo ::set-env name=BRANCH::$branch
+      - run: |
+          echo foo ${{ env.BRANCH }}
+          echo bar ${{ steps.extract_branch.outputs.additionalImageName }}
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3.3.0
         with:
@@ -31,4 +48,4 @@ jobs:
           args: |
             --all \
             --target myaddon \
-            --docker-hub ghcr.io/f18m
+            --docker-hub ghcr.io/f18m 

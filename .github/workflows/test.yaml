@@ -1,6 +1,6 @@
 name: "Test Addon Build"
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
   test-docker-build:
