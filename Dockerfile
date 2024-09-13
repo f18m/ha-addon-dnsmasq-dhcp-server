@@ -18,9 +18,11 @@ FROM node:18 AS builder-angular
 WORKDIR /app/frontend
 COPY dhcp-clients-webapp-frontend/package*.json ./
 
+RUN npm install -g @angular/cli
 RUN npm install
 COPY dhcp-clients-webapp-frontend/ .
-RUN npm run build --prod
+#RUN npm run build --prod
+RUN ng build --configuration=production
     
 
 
