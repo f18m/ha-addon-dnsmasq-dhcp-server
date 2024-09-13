@@ -39,7 +39,7 @@ COPY rootfs /
 
 # Copy backend and frontend
 COPY --from=builder-go /dhcp-clients-webapp-backend /opt/bin/
-COPY --from=builder-angular /app/frontend/dist /app/frontend
+COPY --from=builder-angular /app/frontend/dist/dhcp-clients-webapp-frontend/browser/ /opt/www/
 
 LABEL org.opencontainers.image.source=https://github.com/f18m/ha-addon-dnsmasq-dhcp-server
 
