@@ -34,7 +34,10 @@ FROM $BUILD_FROM
 ENV LANG C.UTF-8
 
 # Setup base
-RUN apk add --no-cache dnsmasq nginx && mkdir -p /run/nginx
+RUN apk add --no-cache \
+    dnsmasq=2.90 \
+    nginx=1.24.0 && \
+        rm -fr /tmp/* /etc/nginx
 
 # Copy data
 COPY rootfs /

@@ -6,7 +6,6 @@
 ingress_port=$(bashio::addon.ingress_port)
 ingress_entry=$(bashio::addon.ingress_entry)
 ingress_interface=$(bashio::addon.ip_address)
-dns_host=$(bashio::dns.host)
 
 # Retrieve the ingress_entry query path so that nginx can perform rewrites accordingly
 bashio::log.info "Configuring nginx with ingress_entry=${ingress_entry} and ingress_interface=${ingress_interface}"
