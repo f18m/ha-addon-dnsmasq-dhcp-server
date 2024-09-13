@@ -21,11 +21,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: ./myaddon
-      - name: Docker meta
+
+      # get a good docker tag, which can be used to differentiate the 
+      - name: Docker tag creation
         id: meta
         uses: docker/metadata-action@v5
       - run: |
-          echo tags: ${{ steps.meta.outputs.tags }}
+          echo "Docker image will be tagged as: ${{ steps.meta.outputs.tags }}"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3.3.0
@@ -33,7 +35,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish
+
+      - name: Docker build and push (main branch)
+        uses: home-assistant/builder@master
+        with:
+          args: |
+            --amd64 \
+            --target myaddon \
+            --docker-hub ghcr.io/f18m
+        if: ${{ github.ref == 'refs/heads/main' }}
+
+        # notice the additional --version and --no-latest flags:
+      - name: Docker build and push (non-main branch)
         uses: home-assistant/builder@master
         with:
           args: |
@@ -41,3 +54,5 @@ jobs:
             --target myaddon \
             --docker-hub ghcr.io/f18m \
             --version ${{ steps.meta.outputs.tags }}
+            --no-latest
+        if: ${{ github.ref != 'refs/heads/main' }}
