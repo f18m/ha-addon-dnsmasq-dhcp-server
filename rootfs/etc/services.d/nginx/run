@@ -2,4 +2,4 @@
 
 # Run nginx
 bashio::log.info "Starting nginx..."
-exec nginx
+exec nginx-debug
