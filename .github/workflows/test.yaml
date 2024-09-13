@@ -1,21 +1,25 @@
-name: "Test Addon Build"
+#
+# This action is currently disabled because the 'publish.yaml' CI
+# already does a full build of the docker image anyhow
+#
 
-on: [push]
+# name: "Test Addon Build"
+# on: [push]
 
-jobs:
-  test-docker-build:
-    name: Test build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v4
-        with:
-          path: ./myaddon
-      - name: Test build
-        uses: home-assistant/builder@master
-        with:
-          args: |
-            --test \
-            --amd64 \
-            --target myaddon \
-            --branch main
+# jobs:
+#   test-docker-build:
+#     name: Test build
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout the repository
+#         uses: actions/checkout@v4
+#         with:
+#           path: ./myaddon
+#       - name: Test build
+#         uses: home-assistant/builder@master
+#         with:
+#           args: |
+#             --test \
+#             --amd64 \
+#             --target myaddon \
+#             --branch main
