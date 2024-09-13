@@ -21,3 +21,9 @@ See [Home Assistant addon guide](https://developers.home-assistant.io/docs/add-o
 This addon is based on other 2 addons maintained by Home Assistant team:
 * https://github.com/home-assistant/addons/tree/master/dnsmasq
 * https://github.com/home-assistant/addons/tree/master/dhcp_server
+
+To build the docker image, go to the folder where you checked out this repo and run:
+
+```
+make build
+```

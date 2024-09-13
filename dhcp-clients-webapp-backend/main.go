@@ -37,6 +37,8 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close()
 
+	log.Println("Estabilished websocket connection")
+
 	for {
 		ip := generateRandomIP()
 		mac := generateRandomMAC()
@@ -48,10 +50,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 		err = ws.WriteJSON(data)
 		if err != nil {
-			log.Println("Error writing JSON:", err)
+			log.Println("Error writing JSON to websocket:", err)
 			break
 		}
 
+		log.Println("Pushed update on the websocket")
 		time.Sleep(5 * time.Second)
 	}
 }
@@ -59,9 +62,9 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/ws", handleConnections)
 
-	log.Println("Server WebSocket avviato su :8080")
+	log.Println("DHCP Clients WebSocket server started on port :8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		log.Fatal("ListenAndServe error: ", err)
 	}
 }
