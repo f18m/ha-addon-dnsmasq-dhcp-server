@@ -26,10 +26,11 @@ jobs:
         run: |
           branchName=${GITHUB_REF#refs/heads/}
           if [ $branchName = 'develop' ]; then additionalImageName='-develop'; else additionalImageName=''; fi
-          echo "::set-output name=additionalImageName::$(echo $additionalImageName)"
+          echo "additionalImageName=$(echo $additionalImageName)" >>$GITHUB_OUTPUT
         id: extract_branch
       - name: Get Branch
         run: |
+          cd ./myaddon
           branch=$(git branch -r --contains ${{ github.ref }} --format "%(refname:lstrip=3)")
           echo ::set-env name=BRANCH::$branch
       - run: |
