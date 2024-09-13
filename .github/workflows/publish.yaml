@@ -32,10 +32,11 @@ jobs:
         run: |
           cd ./myaddon
           branch=$(git branch -r --contains ${{ github.ref }} --format "%(refname:lstrip=3)")
-          echo ::set-env name=BRANCH::$branch
+          echo "branchName=$(echo $branch)" >>$GITHUB_OUTPUT
+        id: extract_branch2
       - run: |
-          echo foo ${{ env.BRANCH }}
-          echo bar ${{ steps.extract_branch.outputs.additionalImageName }}
+          echo foo ${{ steps.extract_branch.outputs.additionalImageName }}
+          echo bar ${{ steps.extract_branch2.outputs.branchName }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3.3.0
