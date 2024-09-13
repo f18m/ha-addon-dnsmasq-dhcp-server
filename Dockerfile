@@ -6,12 +6,8 @@ FROM golang:1.23 AS builder-go
 WORKDIR /app/backend
 #COPY backend/go.mod backend/go.sum ./
 #RUN go mod download
-
-# Copia tutto il codice Go
 COPY dhcp-clients-webapp-backend .
-
-# Compila l'applicazione Go
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /dhcp-clients-webapp-backend .
+RUN CGO_ENABLED=0 go build -o /dhcp-clients-webapp-backend .
 
 
 
@@ -44,3 +40,6 @@ COPY rootfs /
 # Copy backend and frontend
 COPY --from=builder-go /dhcp-clients-webapp-backend /opt/bin/
 COPY --from=builder-angular /app/frontend/dist /app/frontend
+
+LABEL org.opencontainers.image.source=https://github.com/f18m/ha-addon-dnsmasq-dhcp-server
+
