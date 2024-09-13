@@ -12,7 +12,7 @@ arch:
   - amd64
   - i386
 host_network: true
-#image: ghcr.io/f18m/{arch}-addon-dnsmasq-dhcp
+image: ghcr.io/f18m/{arch}-addon-dnsmasq-dhcp
 init: false
 ingress: true
 options:
