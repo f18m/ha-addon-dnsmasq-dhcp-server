@@ -22,7 +22,7 @@ RUN apk add --no-cache dnsmasq nginx && mkdir -p /run/nginx
 
 # Copy data
 COPY rootfs /
-COPY dhcp-clients-webapp-backend/templates/ /opt/bin/
+COPY dhcp-clients-webapp-backend/templates/ /opt/web/
 
 # Copy backend and frontend
 COPY --from=builder-go /dhcp-clients-webapp-backend /opt/bin/

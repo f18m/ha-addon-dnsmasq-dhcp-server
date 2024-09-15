@@ -93,7 +93,7 @@ func handleMessages() {
 
 // Pagina HTML servita
 func renderPage(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("templates/index.templ.html"))
+	tmpl := template.Must(template.ParseFiles("/opt/web/templates/index.templ.html"))
 	tmpl.Execute(w, nil)
 }
 
