@@ -10,7 +10,7 @@ declare certfile
 declare keyfile
 
 # General values
-port=2342
+port=8081
 sed -i "s|%%port%%|$port|g" /etc/nginx/servers/ssl.conf
 sed -i "s|%%interface%%|$(bashio::addon.ip_address)|g" /etc/nginx/servers/ssl.conf
 
