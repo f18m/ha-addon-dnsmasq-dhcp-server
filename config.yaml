@@ -1,5 +1,5 @@
 ---
-version: 0.0.1
+version: feature-test-templ
 slug: dnsmasq-dhcp
 name: Dnsmasq-DHCP
 description: A simple DHCP server based on dnsmasq
@@ -51,8 +51,3 @@ schema:
 startup: system
 privileged:
   - NET_ADMIN
-  - SYS_ADMIN
-  - NET_RAW
-  - SYS_RAWIO
-  - SYS_RESOURCE
-full_access: true

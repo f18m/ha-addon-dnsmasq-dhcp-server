@@ -1,3 +1,15 @@
+# --- BACKEND BUILD
+FROM golang:1.23 AS builder-go
+
+WORKDIR /app/backend
+#COPY backend/go.mod backend/go.sum ./
+#RUN go mod download
+COPY dhcp-clients-webapp-backend .
+RUN CGO_ENABLED=0 go build -o /dhcp-clients-webapp-backend .
+
+
+# --- Actual ADDON layer
+
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
@@ -9,3 +21,8 @@ RUN apk add --no-cache dnsmasq nginx && mkdir -p /run/nginx
 
 # Copy data
 COPY rootfs /
+
+# Copy backend and frontend
+COPY --from=builder-go /dhcp-clients-webapp-backend /opt/bin/
+
+LABEL org.opencontainers.image.source=https://github.com/f18m/ha-addon-dnsmasq-dhcp-server
