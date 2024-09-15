@@ -5,6 +5,8 @@ set -e
 #################
 # NGINX SETTING #
 #################
+bashio::log.info "Configuring nginx ingress..."
+
 declare ingress_interface
 declare ingress_port
 

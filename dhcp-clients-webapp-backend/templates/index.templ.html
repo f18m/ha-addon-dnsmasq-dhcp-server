@@ -3,7 +3,7 @@
 <head>
     <title>IP & MAC Table</title>
     <script type="text/javascript">
-        var ws = new WebSocket("ws://localhost:8080/ws");
+        var ws = new WebSocket("wss://__ADDON_SERVER__/ws");
         ws.onmessage = function(event) {
             var data = JSON.parse(event.data);
             var tableBody = document.getElementById("tableBody");

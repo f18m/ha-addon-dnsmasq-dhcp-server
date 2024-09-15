@@ -16,6 +16,9 @@ sed -i "s|%%interface%%|$(bashio::addon.ip_address)|g" /etc/nginx/servers/ssl.co
 
 # Ssl values
 if bashio::config.true 'ssl'; then
+
+    bashio::log.info "Configuring nginx SSL..."
+
     echo "Defining ssl configuration"
     bashio::config.require.ssl
     certfile=$(bashio::config 'certfile')
