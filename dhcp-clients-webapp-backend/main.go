@@ -101,6 +101,6 @@ func main() {
 	go handleMessages()
 	go simulateData()
 
-	fmt.Println("Server in ascolto su :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("Server in ascolto su :8099")
+	log.Fatal(http.ListenAndServe(":8099", nil))
 }
