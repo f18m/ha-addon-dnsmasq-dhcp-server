@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -27,6 +28,9 @@ var upgrader = websocket.Upgrader{
 
 var mu sync.Mutex
 
+var XFwdHost string
+var XIngressPath string
+
 // Middleware per loggare le richieste HTTP GET
 func logRequestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +43,13 @@ func logRequestMiddleware(next http.Handler) http.Handler {
 			for name, values := range r.Header {
 				for _, value := range values {
 					fmt.Printf("%s: %s\n", name, value)
+				}
+
+				if name == "X-Forwarded-Host" {
+					XFwdHost = values[0]
+				}
+				if name == "X-Ingress-Path" {
+					XIngressPath = values[0]
 				}
 			}
 			fmt.Println("----")
@@ -94,19 +105,29 @@ func handleMessages() {
 // Pagina HTML servita
 func renderPage(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("/opt/web/templates/index.templ.html"))
-	tmpl.Execute(w, nil)
+
+	data := struct {
+		WebSocketHost string
+	}{
+		WebSocketHost: XFwdHost + XIngressPath,
+	}
+
+	tmpl.Execute(w, data)
 }
 
 // Simulazione di aggiornamenti degli indirizzi IP/MAC
 func simulateData() {
+	i := 0
 	for {
 		time.Sleep(5 * time.Second)
 		newData := []Data{
 			{IP: "192.168.1.1", MAC: "AA:BB:CC:DD:EE:01"},
 			{IP: "192.168.1.2", MAC: "AA:BB:CC:DD:EE:02"},
+			{IP: "192.168.1." + strconv.Itoa(i), MAC: "AA:BB:CC:DD:EE:02"},
 			// Aggiorna questi dati con qualsiasi informazione reale o simulata
 		}
 		broadcast <- newData
+		i += 1
 	}
 }
 
