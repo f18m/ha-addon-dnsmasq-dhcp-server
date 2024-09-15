@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -27,6 +26,27 @@ var upgrader = websocket.Upgrader{
 }
 
 var mu sync.Mutex
+
+// Middleware per loggare le richieste HTTP GET
+func logRequestMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			// Stampa il metodo e l'URL
+			fmt.Printf("Metodo: %s, URL: %s\n", r.Method, r.URL.String())
+
+			// Stampa tutti gli header
+			fmt.Println("Headers:")
+			for name, values := range r.Header {
+				for _, value := range values {
+					fmt.Printf("%s: %s\n", name, value)
+				}
+			}
+			fmt.Println("----")
+		}
+		// Prosegui con la richiesta
+		next.ServeHTTP(w, r)
+	})
+}
 
 // Handler per la connessione WebSocket
 func handleConnections(w http.ResponseWriter, r *http.Request) {
@@ -79,28 +99,31 @@ func renderPage(w http.ResponseWriter, r *http.Request) {
 
 // Simulazione di aggiornamenti degli indirizzi IP/MAC
 func simulateData() {
-	i := 0
 	for {
 		time.Sleep(5 * time.Second)
 		newData := []Data{
-			{IP: "192.168.1." + strconv.Itoa(i), MAC: "AA:BB:CC:DD:EE:01"},
+			{IP: "192.168.1.1", MAC: "AA:BB:CC:DD:EE:01"},
+			{IP: "192.168.1.2", MAC: "AA:BB:CC:DD:EE:02"},
 			// Aggiorna questi dati con qualsiasi informazione reale o simulata
 		}
 		broadcast <- newData
-		i += 1
 	}
 }
 
 func main() {
+	// File statici per la pagina web
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	http.HandleFunc("/", renderPage)
+	// Wrappa il middleware di log per le richieste GET
+	http.Handle("/", logRequestMiddleware(http.HandlerFunc(renderPage)))
 	http.HandleFunc("/ws", handleConnections)
 
+	// Gestione dei messaggi e simulazione dati
 	go handleMessages()
 	go simulateData()
 
+	// Avvio del server
 	fmt.Println("Server in ascolto su :8100")
 	log.Fatal(http.ListenAndServe(":8100", nil))
 }
