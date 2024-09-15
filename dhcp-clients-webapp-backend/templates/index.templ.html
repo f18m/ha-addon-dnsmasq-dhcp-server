@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IP & MAC Table</title>
+    <script type="text/javascript">
+        var ws = new WebSocket("ws://localhost:8080/ws");
+        ws.onmessage = function(event) {
+            var data = JSON.parse(event.data);
+            var tableBody = document.getElementById("tableBody");
+            tableBody.innerHTML = "";
+
+            data.forEach(function(item) {
+                var row = document.createElement("tr");
+                var ipCell = document.createElement("td");
+                var macCell = document.createElement("td");
+
+                ipCell.textContent = item.IP;
+                macCell.textContent = item.MAC;
+
+                row.appendChild(ipCell);
+                row.appendChild(macCell);
+                tableBody.appendChild(row);
+            });
+        };
+    </script>
+</head>
+<body>
+    <h1>IP & MAC Table</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>IP Address</th>
+                <th>MAC Address</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- I dati saranno inseriti qui -->
+        </tbody>
+    </table>
+</body>
+</html>
