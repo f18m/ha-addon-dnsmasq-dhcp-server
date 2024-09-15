@@ -15,7 +15,8 @@ host_network: true
 image: ghcr.io/f18m/{arch}-addon-dnsmasq-dhcp
 init: false
 ingress: true
-ingress_stream: true
+#ingress_stream: true
+ingress_port: 8100
 options:
   default_lease: 12h
   dns:
