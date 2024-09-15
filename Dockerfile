@@ -1,3 +1,5 @@
+ARG BUILD_FROM
+
 # --- BACKEND BUILD
 FROM golang:1.23 AS builder-go
 
@@ -10,7 +12,6 @@ RUN CGO_ENABLED=0 go build -o /dhcp-clients-webapp-backend .
 
 # --- Actual ADDON layer
 
-ARG BUILD_FROM
 FROM $BUILD_FROM
 
 # Add env
