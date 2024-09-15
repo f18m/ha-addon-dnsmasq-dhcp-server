@@ -31,3 +31,11 @@ To build the docker image, go to the folder where you checked out this repo and 
 ```
 make build
 ```
+
+
+FIXME: 
+check the ingress configs for:
+* https://github.com/alexbelgium/hassio-addons/blob/master/battybirdnet-pi/rootfs/etc/nginx/servers/ingress.conf
+* https://github.com/alexbelgium/hassio-addons/blob/master/autobrr/rootfs/etc/nginx/servers/ingress.conf
+
+sub_filter is used to rewrite links inside the page to contain the Hassio %%ingress_entry%%
