@@ -180,7 +180,7 @@ func (b *UIBackend) processLeaseUpdates() {
 
 		log.Default().Printf("Processing DHCP client lease updates... received %d clients\n", len(updatedLeases))
 
-		b.dhcpClientData = make([]DhcpClientData, len(updatedLeases))
+		b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
 		for _, lease := range updatedLeases {
 			b.dhcpClientData = append(b.dhcpClientData, DhcpClientData{Lease: *lease})
 		}

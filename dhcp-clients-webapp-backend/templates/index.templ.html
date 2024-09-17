@@ -10,18 +10,24 @@
             var tableBody = document.getElementById("tableBody");
             tableBody.innerHTML = "";
 
-            data.forEach(function(item) {
-                var row = document.createElement("tr");
-                var ipCell = document.createElement("td");
-                var macCell = document.createElement("td");
 
-                ipCell.textContent = item.IP;
-                macCell.textContent = item.MAC;
+            if (data === null) {
+                console.log("failed to parse the received event data: " + event.data)
+            }else {
+                console.log("received " + data.length + " items from websocket")
+                data.forEach(function(item) {
+                    var row = document.createElement("tr");
+                    var ipCell = document.createElement("td");
+                    var macCell = document.createElement("td");
 
-                row.appendChild(ipCell);
-                row.appendChild(macCell);
-                tableBody.appendChild(row);
-            });
+                    ipCell.textContent = item.IP;
+                    macCell.textContent = item.MAC;
+
+                    row.appendChild(ipCell);
+                    row.appendChild(macCell);
+                    tableBody.appendChild(row);
+                });
+            }
         };
     </script>
 </head>
