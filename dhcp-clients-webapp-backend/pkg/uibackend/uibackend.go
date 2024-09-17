@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/gorilla/websocket"
@@ -38,12 +37,16 @@ type UIBackend struct {
 
 	// ch used to broadcast tabular data from backend->frontend
 	broadcastCh chan []DhcpClientData
+
+	// ch used to link a goroutine watching for DHCP lease file changes and the lease file processor
+	leasesCh chan []*dnsmasq.Lease
 }
 
 func NewUIBackend() UIBackend {
 	return UIBackend{
 		clients:     make(map[*websocket.Conn]bool),
 		broadcastCh: make(chan []DhcpClientData),
+		leasesCh:    make(chan []*dnsmasq.Lease),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true
@@ -148,17 +151,17 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// FIXME
-func (b *UIBackend) simulateData() {
+// Read from the leasesCh and push to broadcastCh
+func (b *UIBackend) processLeaseUpdates() {
 	i := 0
 	for {
-		time.Sleep(5 * time.Second)
-		newData := []DhcpClientData{
-			//{Lease: dnsmasq.Lease{Hostname: "test"}, IP: "192.168.1.1", MAC: "AA:BB:CC:DD:EE:01"},
-			//{IP: "192.168.1.2", MAC: "AA:BB:CC:DD:EE:02"},
-			//{IP: "192.168.1." + strconv.Itoa(i), MAC: "AA:BB:CC:DD:EE:02"},
-			// Aggiorna questi dati con qualsiasi informazione reale o simulata
+		updatedLeases := <-b.leasesCh
+
+		newData := make([]DhcpClientData, len(updatedLeases))
+		for _, lease := range updatedLeases {
+			newData = append(newData, DhcpClientData{Lease: *lease})
 		}
+
 		b.broadcastCh <- newData
 		i += 1
 	}
@@ -178,16 +181,15 @@ func (b *UIBackend) ListenAndServe() error {
 	// Serve Websocket requests
 	mux.HandleFunc("/ws", b.handleWebSocketConns)
 
-	// Sync the broadcastCh chan with all clients
-	go b.broadcastUpdatesToClients()
+	// Read from the leasesCh and push to broadcastCh
+	go b.processLeaseUpdates()
 
-	// FIXME
-	go b.simulateData()
+	// Read from the broadcastCh chan and push to all Websocket clients
+	go b.broadcastUpdatesToClients()
 
 	// Watch for updates on DHCP leases file
 	ctx := context.Background()
-	leases := make(chan []*dnsmasq.Lease)
-	go dnsmasq.WatchLeases(ctx, defaultDnsmasqLeasesFile, leases)
+	go dnsmasq.WatchLeases(ctx, defaultDnsmasqLeasesFile, b.leasesCh)
 
 	// Start server
 	log.Default().Printf("Server listening on %s\n", bindAddress)

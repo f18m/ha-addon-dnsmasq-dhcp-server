@@ -4,6 +4,7 @@
     <title>DHCP Clients</title>
     <script type="text/javascript">
         var ws = new WebSocket("wss://{{.WebSocketHost}}/ws");
+        console.log("Websocket started successfully")
         ws.onmessage = function(event) {
             var data = JSON.parse(event.data);
             var tableBody = document.getElementById("tableBody");
@@ -34,7 +35,7 @@
             </tr>
         </thead>
         <tbody id="tableBody">
-            <!-- I dati saranno inseriti qui -->
+            <!-- data is dynamically populated here -->
         </tbody>
     </table>
 </body>
