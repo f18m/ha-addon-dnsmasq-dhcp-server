@@ -81,7 +81,7 @@ func (b *UIBackend) logRequestMiddleware(next http.Handler) http.Handler {
 func (b *UIBackend) handleWebSocketConns(w http.ResponseWriter, r *http.Request) {
 	ws, err := b.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Default().Fatal(err)
 	}
 	defer ws.Close()
 
@@ -94,12 +94,13 @@ func (b *UIBackend) handleWebSocketConns(w http.ResponseWriter, r *http.Request)
 		var msg []DhcpClientData
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			log.Printf("error: %v", err)
+			log.Default().Printf("Error while reading JSON from WebSocket: %v", err)
 			b.clientsLock.Lock()
 			delete(b.clients, ws)
 			b.clientsLock.Unlock()
 			break
 		}
+		log.Default().Printf("Received data from the websocket: %v", msg)
 	}
 }
 
@@ -111,9 +112,11 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 		for client := range b.clients {
 			err := client.WriteJSON(msg)
 			if err != nil {
-				log.Printf("error: %v", err)
+				log.Default().Printf("Error while writing JSON to WebSocket: %v", err)
 				client.Close()
 				delete(b.clients, client)
+			} else {
+				log.Default().Printf("Successfully pushed data to WebSocket: %v", msg)
 			}
 		}
 		b.clientsLock.Unlock()
@@ -128,6 +131,7 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	XIngressPath, ok2 := r.Header["X-Ingress-Path"]
 	var WebSocketHost string
 	if !ok1 || !ok2 || len(XFwdHost) == 0 || len(XIngressPath) == 0 {
+		log.Default().Printf("WARN: missing headers in HTTP GET")
 		http.Error(w, "The request does not have the 'X-Forwarded-Host' and 'X-Ingress-Path' headers", http.StatusBadRequest)
 		return
 		//log.Default().Printf("The request does not have the 'X-Forwarded-Host' and 'X-Ingress-Path' headers")
@@ -157,6 +161,7 @@ func (b *UIBackend) processLeaseUpdates() {
 	for {
 		updatedLeases := <-b.leasesCh
 
+		log.Default().Printf("Processing DHCP client lease updates... received %d clients\n", len(updatedLeases))
 		newData := make([]DhcpClientData, len(updatedLeases))
 		for _, lease := range updatedLeases {
 			newData = append(newData, DhcpClientData{Lease: *lease})
