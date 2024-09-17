@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
@@ -177,18 +178,24 @@ func (b *UIBackend) processLeaseUpdates() {
 	i := 0
 	for {
 		updatedLeases := <-b.leasesCh
-
 		log.Default().Printf("Processing DHCP client lease updates... received %d clients\n", len(updatedLeases))
-
-		b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
-		for _, lease := range updatedLeases {
-			b.dhcpClientData = append(b.dhcpClientData, DhcpClientData{Lease: *lease})
-		}
+		b.processLeaseUpdatesFromArray(updatedLeases)
 
 		// once the new list of DHCP client data entries is ready, push it in broadcast
 		b.broadcastCh <- b.dhcpClientData
 		i += 1
 	}
+}
+
+func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) error {
+	b.dhcpClientDataLock.Lock()
+	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
+	for _, lease := range updatedLeases {
+		b.dhcpClientData = append(b.dhcpClientData, DhcpClientData{Lease: *lease})
+	}
+	b.dhcpClientDataLock.Unlock()
+
+	return nil
 }
 
 func (b *UIBackend) ListenAndServe() error {
@@ -204,6 +211,18 @@ func (b *UIBackend) ListenAndServe() error {
 
 	// Serve Websocket requests
 	mux.HandleFunc("/ws", b.handleWebSocketConns)
+
+	// Read current DHCP leases
+	leaseFile, errOpen := os.OpenFile(defaultDnsmasqLeasesFile, os.O_RDONLY|os.O_CREATE, 0644)
+	if errOpen != nil {
+		return errOpen
+	}
+	defer leaseFile.Close()
+	leases, errRead := dnsmasq.ReadLeases(leaseFile)
+	if errRead != nil {
+		return errRead
+	}
+	b.processLeaseUpdatesFromArray(leases)
 
 	// Read from the leasesCh and push to broadcastCh
 	go b.processLeaseUpdates()
