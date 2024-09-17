@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>IP & MAC Table</title>
+    <title>DHCP Clients</title>
     <script type="text/javascript">
         var ws = new WebSocket("wss://{{.WebSocketHost}}/ws");
         ws.onmessage = function(event) {
@@ -25,7 +25,7 @@
     </script>
 </head>
 <body>
-    <h1>IP & MAC Table</h1>
+    <h1>DHCP Clients</h1>
     <table border="1">
         <thead>
             <tr>

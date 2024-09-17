@@ -2,7 +2,7 @@
 version: feature-test-templ
 slug: dnsmasq-dhcp
 name: Dnsmasq-DHCP
-description: A simple DHCP server based on dnsmasq
+description: A DHCP server based on dnsmasq
 url: https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/tree/main
 advanced: true
 arch:

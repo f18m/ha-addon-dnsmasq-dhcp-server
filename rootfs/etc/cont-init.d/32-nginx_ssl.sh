@@ -8,11 +8,18 @@ set -e
 declare port
 declare certfile
 declare keyfile
+declare ingress_interface
 
 # General values
 port=8081
+
+ingress_interface=$(bashio::addon.ip_address)
+if [ -z "$ingress_interface" ]; then
+    ingress_interface=0.0.0.0
+fi
+
 sed -i "s|%%port%%|$port|g" /etc/nginx/servers/ssl.conf
-sed -i "s|%%interface%%|$(bashio::addon.ip_address)|g" /etc/nginx/servers/ssl.conf
+sed -i "s|%%interface%%|$ingress_interface|g" /etc/nginx/servers/ssl.conf
 
 # Ssl values
 if bashio::config.true 'ssl'; then
