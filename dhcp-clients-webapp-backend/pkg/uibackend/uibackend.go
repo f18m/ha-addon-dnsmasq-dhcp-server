@@ -35,6 +35,10 @@ type UIBackend struct {
 	clients     map[*websocket.Conn]bool
 	clientsLock sync.Mutex
 
+	// the most updated view on DHCP clients currently available
+	dhcpClientData     []DhcpClientData
+	dhcpClientDataLock sync.Mutex
+
 	// ch used to broadcast tabular data from backend->frontend
 	broadcastCh chan []DhcpClientData
 
@@ -44,9 +48,10 @@ type UIBackend struct {
 
 func NewUIBackend() UIBackend {
 	return UIBackend{
-		clients:     make(map[*websocket.Conn]bool),
-		broadcastCh: make(chan []DhcpClientData),
-		leasesCh:    make(chan []*dnsmasq.Lease),
+		clients:        make(map[*websocket.Conn]bool),
+		dhcpClientData: nil,
+		broadcastCh:    make(chan []DhcpClientData),
+		leasesCh:       make(chan []*dnsmasq.Lease),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true
@@ -85,8 +90,18 @@ func (b *UIBackend) handleWebSocketConns(w http.ResponseWriter, r *http.Request)
 	}
 	defer ws.Close()
 
+	// get a copy of latest status
+	var updatedStatus []DhcpClientData
+	b.dhcpClientDataLock.Lock()
+	copy(updatedStatus, b.dhcpClientData)
+	b.dhcpClientDataLock.Unlock()
+
+	log.Default().Printf("Received new websocket client: pushing %d DHCP clients to it", len(updatedStatus))
+
+	// register new client
 	b.clientsLock.Lock()
 	b.clients[ws] = true
+	ws.WriteJSON(updatedStatus) // push the current status on the websocket
 	b.clientsLock.Unlock()
 
 	// listen till the end of the websocket
@@ -108,6 +123,8 @@ func (b *UIBackend) handleWebSocketConns(w http.ResponseWriter, r *http.Request)
 func (b *UIBackend) broadcastUpdatesToClients() {
 	for {
 		msg := <-b.broadcastCh
+
+		// loop over all clients
 		b.clientsLock.Lock()
 		for client := range b.clients {
 			err := client.WriteJSON(msg)
@@ -162,12 +179,14 @@ func (b *UIBackend) processLeaseUpdates() {
 		updatedLeases := <-b.leasesCh
 
 		log.Default().Printf("Processing DHCP client lease updates... received %d clients\n", len(updatedLeases))
-		newData := make([]DhcpClientData, len(updatedLeases))
+
+		b.dhcpClientData = make([]DhcpClientData, len(updatedLeases))
 		for _, lease := range updatedLeases {
-			newData = append(newData, DhcpClientData{Lease: *lease})
+			b.dhcpClientData = append(b.dhcpClientData, DhcpClientData{Lease: *lease})
 		}
 
-		b.broadcastCh <- newData
+		// once the new list of DHCP client data entries is ready, push it in broadcast
+		b.broadcastCh <- b.dhcpClientData
 		i += 1
 	}
 }
