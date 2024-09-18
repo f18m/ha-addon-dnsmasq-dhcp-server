@@ -187,15 +187,37 @@ func (b *UIBackend) processLeaseUpdates() {
 	}
 }
 
+// Process a slice of dnsmasq.Lease and store that into the UIBackend object
 func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) error {
 	b.dhcpClientDataLock.Lock()
 	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
 	for _, lease := range updatedLeases {
+		// FIXME: fill DhcpClientData completely
 		b.dhcpClientData = append(b.dhcpClientData, DhcpClientData{Lease: *lease})
 	}
 	b.dhcpClientDataLock.Unlock()
 
+	log.Default().Printf("Updated DHCP client lease status with %d entries\n", len(b.dhcpClientData))
+
 	return nil
+}
+
+func (b *UIBackend) readCurrentLeaseFile() error {
+
+	log.Default().Printf("Reading DHCP client lease file '%s'\n", defaultDnsmasqLeasesFile)
+
+	// Read current DHCP leases
+	leaseFile, errOpen := os.OpenFile(defaultDnsmasqLeasesFile, os.O_RDONLY|os.O_CREATE, 0644)
+	if errOpen != nil {
+		return errOpen
+	}
+	defer leaseFile.Close()
+	leases, errRead := dnsmasq.ReadLeases(leaseFile)
+	if errRead != nil {
+		return errRead
+	}
+
+	return b.processLeaseUpdatesFromArray(leases)
 }
 
 func (b *UIBackend) ListenAndServe() error {
@@ -212,17 +234,8 @@ func (b *UIBackend) ListenAndServe() error {
 	// Serve Websocket requests
 	mux.HandleFunc("/ws", b.handleWebSocketConns)
 
-	// Read current DHCP leases
-	leaseFile, errOpen := os.OpenFile(defaultDnsmasqLeasesFile, os.O_RDONLY|os.O_CREATE, 0644)
-	if errOpen != nil {
-		return errOpen
-	}
-	defer leaseFile.Close()
-	leases, errRead := dnsmasq.ReadLeases(leaseFile)
-	if errRead != nil {
-		return errRead
-	}
-	b.processLeaseUpdatesFromArray(leases)
+	// Initialize current DHCP client data table
+	b.readCurrentLeaseFile()
 
 	// Read from the leasesCh and push to broadcastCh
 	go b.processLeaseUpdates()
