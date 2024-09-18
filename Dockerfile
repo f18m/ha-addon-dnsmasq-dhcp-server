@@ -23,7 +23,7 @@ RUN apk add --no-cache dnsmasq nginx-debug && mv /etc/nginx /etc/nginx-orig
 # Copy data
 COPY rootfs /
 COPY dhcp-clients-webapp-backend/templates/ /opt/web/templates/
-RUN mkdir -p /opt/web/static
+COPY hcp-clients-webapp-backend/static/ /opt/web/static/
 
 # Copy backend and frontend
 COPY --from=builder-go /dhcp-clients-webapp-backend /opt/bin/
