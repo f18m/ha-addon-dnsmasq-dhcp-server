@@ -84,7 +84,7 @@ func (b *UIBackend) logRequestMiddleware(next http.Handler) http.Handler {
 }
 
 // WebSocket connection handler
-func (b *UIBackend) handleWebSocketConns(w http.ResponseWriter, r *http.Request) {
+func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) {
 	ws, err := b.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Default().Fatal(err)
@@ -102,7 +102,11 @@ func (b *UIBackend) handleWebSocketConns(w http.ResponseWriter, r *http.Request)
 	// register new client
 	b.clientsLock.Lock()
 	b.clients[ws] = true
-	ws.WriteJSON(updatedStatus) // push the current status on the websocket
+	if err := ws.WriteJSON(updatedStatus); err != nil { // push the current status on the websocket
+		log.Default().Printf("WARN: failed to push initial data to the new websocket: %s", err.Error())
+		// keep going, we will delete the client connection shortly in the loop below if the error
+		// keeps popping up
+	}
 	b.clientsLock.Unlock()
 
 	// listen till the end of the websocket
@@ -197,7 +201,7 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 	}
 	b.dhcpClientDataLock.Unlock()
 
-	log.Default().Printf("Updated DHCP client lease status with %d entries\n", len(b.dhcpClientData))
+	log.Default().Printf("Updated DHCP clients internal status with %d entries\n", len(b.dhcpClientData))
 
 	return nil
 }
@@ -232,10 +236,21 @@ func (b *UIBackend) ListenAndServe() error {
 	mux.Handle("/", b.logRequestMiddleware(http.HandlerFunc(b.renderPage)))
 
 	// Serve Websocket requests
-	mux.HandleFunc("/ws", b.handleWebSocketConns)
+	mux.HandleFunc("/ws", b.handleWebSocketConn)
 
 	// Initialize current DHCP client data table
-	b.readCurrentLeaseFile()
+	if err := b.readCurrentLeaseFile(); err != nil {
+		log.Default().Fatalf("FATAL: error while reading DHCP leases file: %s\n", err.Error())
+	}
+
+	// Watch for updates on DHCP leases file and push to leasesCh
+	ctx := context.Background()
+	go func() {
+		err := dnsmasq.WatchLeases(ctx, defaultDnsmasqLeasesFile, b.leasesCh)
+		if err != nil {
+			log.Default().Fatalf("FATAL: error while watching DHCP leases file: %s\n", err.Error())
+		}
+	}()
 
 	// Read from the leasesCh and push to broadcastCh
 	go b.processLeaseUpdates()
@@ -243,12 +258,8 @@ func (b *UIBackend) ListenAndServe() error {
 	// Read from the broadcastCh chan and push to all Websocket clients
 	go b.broadcastUpdatesToClients()
 
-	// Watch for updates on DHCP leases file
-	ctx := context.Background()
-	go dnsmasq.WatchLeases(ctx, defaultDnsmasqLeasesFile, b.leasesCh)
-
 	// Start server
-	log.Default().Printf("Server listening on %s\n", bindAddress)
+	log.Default().Printf("Starting server to listen on %s\n", bindAddress)
 	b.server.Handler = mux
 	return b.server.ListenAndServe()
 }

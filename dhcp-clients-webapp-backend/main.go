@@ -7,7 +7,6 @@ import (
 )
 
 func main() {
-
 	fmt.Println("Web backend starting")
 
 	ui := uibackend.NewUIBackend()
