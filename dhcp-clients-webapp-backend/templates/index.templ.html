@@ -4,18 +4,31 @@
     <title>DHCP Clients</title>
     <script type="text/javascript">
         var ws = new WebSocket("wss://{{.WebSocketHost}}/ws");
-        console.log("Websocket started successfully")
+
+        ws.onopen = function(event) {
+            console.log("Websocket started successfully");
+        };
+
         ws.onmessage = function(event) {
-            var data = JSON.parse(event.data);
+
+            try {
+                var data = JSON.parse(event.data);
+            } catch (error) {
+                console.error('Error while parsing JSON:', error);
+            }
+
             var tableBody = document.getElementById("tableBody");
             tableBody.innerHTML = "";
 
 
             if (data === null) {
-                console.log("failed to parse the received event data: " + event.data)
-            }else {
-                console.log("received " + data.length + " items from websocket")
-                data.forEach(function(item) {
+                console.error("failed to parse the received event data: " + event.data);
+            } else if (!Array.isArray(data)) {
+                console.error("expecting a JSON array: " + event.data);
+            } else {
+                console.log("received " + data.length + " items from websocket");
+                data.forEach(function(item, index) {
+                    console.log(`Item ${index + 1}:`, item);
                     var row = document.createElement("tr");
                     var ipCell = document.createElement("td");
                     var macCell = document.createElement("td");
