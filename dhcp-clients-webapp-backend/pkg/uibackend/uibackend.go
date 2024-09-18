@@ -14,7 +14,7 @@ import (
 )
 
 var bindAddress = ":8080"
-var defaultDnsmasqLeasesFile = "/var/lib/misc/dnsmasq.leases"
+var defaultDnsmasqLeasesFile = "/data/dnsmasq.leases"
 
 // These absolute paths must be in sync with the Dockerfile
 var staticWebFilesDir = "/opt/web/static"
