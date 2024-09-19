@@ -48,14 +48,22 @@
                 data.forEach(function(item, index) {
                     console.log(`Item ${index + 1}:`, item);
                     var row = document.createElement("tr");
+                    
+                    var hostnameCell = document.createElement("td");
                     var ipCell = document.createElement("td");
                     var macCell = document.createElement("td");
+                    var expireCell = document.createElement("td");
 
-                    ipCell.textContent = item.IP;
-                    macCell.textContent = item.MAC;
+                    hostnameCell.textContent = item.Lease.Hostname;
+                    ipCell.textContent = item.Lease.IPAddr;
+                    macCell.textContent = item.Lease.MacAddr;
+                    expireCell.textContent = item.Lease.Expires;
 
+                    row.appendChild(hostnameCell);
                     row.appendChild(ipCell);
                     row.appendChild(macCell);
+                    row.appendChild(expireCell);
+                    
                     tableBody.appendChild(row);
                 });
             }
@@ -65,14 +73,16 @@
 <body>
     <h1>DHCP Clients</h1>
     <p id="message"></p>
-    <table id="tableDhcp">
+    <table id="tableDhcp" class="solidBorder">
         <thead>
-            <tr>
-                <th>IP Address</th>
-                <th>MAC Address</th>
+            <tr class="solidBorder">
+                <th class="solidBorder">Hostname</th>
+                <th class="solidBorder">IP Address</th>
+                <th class="solidBorder">MAC Address</th>
+                <th class="solidBorder">Expires at</th>
             </tr>
         </thead>
-        <tbody id="tableBody">
+        <tbody id="tableBody" class="solidBorder">
             <!-- data is dynamically populated here -->
         </tbody>
     </table>
