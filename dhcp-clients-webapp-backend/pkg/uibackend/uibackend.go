@@ -1,10 +1,15 @@
+// This package implements an HTML/Websocket server that provides a tabular view of
+// all DHCP clients served by the dnsmasq instance that lives into this HomeAssistant addon
 package uibackend
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -15,6 +20,7 @@ import (
 
 var bindAddress = ":8080"
 var defaultDnsmasqLeasesFile = "/data/dnsmasq.leases"
+var defaultHomeAssistantConfigFile = "/data/options.json"
 
 // These absolute paths must be in sync with the Dockerfile
 var staticWebFilesDir = "/opt/web/static"
@@ -22,12 +28,21 @@ var templatesDir = "/opt/web/templates"
 
 // DhcpClientData holds all the information the backend has about a particular DHCP client
 type DhcpClientData struct {
-	Lease       dnsmasq.Lease
-	HasStaticIP bool
-	PrettyName  string
+	Lease        dnsmasq.Lease
+	HasStaticIP  bool
+	FriendlyName string
+}
+
+// DhcpClientFriendlyName
+type DhcpClientFriendlyName struct {
+	MacAddress   net.HardwareAddr
+	FriendlyName string
 }
 
 type UIBackend struct {
+	// DHCP client friendly names, as read from the configuration
+	friendlyNames []DhcpClientFriendlyName
+
 	// the actual HTTP server
 	server   http.Server
 	upgrader websocket.Upgrader
@@ -208,7 +223,6 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 
 // Reads the current DNS masq lease file, before any INotify hook gets installed, to get a baseline
 func (b *UIBackend) readCurrentLeaseFile() error {
-
 	log.Default().Printf("Reading DHCP client lease file '%s'\n", defaultDnsmasqLeasesFile)
 
 	// Read current DHCP leases
@@ -225,6 +239,56 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 	return b.processLeaseUpdatesFromArray(leases)
 }
 
+// dummy struct used to unmarshal HomeAssistant option file correctly
+type DhcpClients struct {
+	Clients []struct {
+		Name string `json:"name"`
+		Mac  string `json:"mac"`
+	} `json:"dhcp_clients_friendly_names"`
+}
+
+func (b *UIBackend) readAddonFriendlyNames() error {
+	log.Default().Printf("Reading addon config file '%s'\n", defaultHomeAssistantConfigFile)
+
+	optionFile, errOpen := os.OpenFile(defaultHomeAssistantConfigFile, os.O_RDONLY|os.O_CREATE, 0644)
+	if errOpen != nil {
+		return errOpen
+	}
+	defer optionFile.Close()
+
+	// read whole file
+	data, err := io.ReadAll(optionFile)
+	if err != nil {
+		return err
+	}
+
+	// JSON parse
+	var dhcpClients DhcpClients
+	err = json.Unmarshal(data, &dhcpClients)
+	if err != nil {
+		return err
+	}
+
+	// convert to a slice of DhcpClientFriendlyName
+	var result []DhcpClientFriendlyName
+	for _, client := range dhcpClients.Clients {
+		macAddr, err := net.ParseMAC(client.Mac)
+		if err != nil {
+			log.Default().Fatalf("Invalid MAC address found inside 'dhcp_clients_friendly_names': %s", client.Mac)
+			continue
+		}
+		result = append(result, DhcpClientFriendlyName{
+			MacAddress:   macAddr,
+			FriendlyName: client.Name,
+		})
+	}
+
+	b.friendlyNames = result
+	log.Default().Printf("Acquired %d friendly names\n", len(b.friendlyNames))
+
+	return nil
+}
+
 func (b *UIBackend) ListenAndServe() error {
 
 	mux := http.NewServeMux()
@@ -238,6 +302,11 @@ func (b *UIBackend) ListenAndServe() error {
 
 	// Serve Websocket requests
 	mux.HandleFunc("/ws", b.handleWebSocketConn)
+
+	// Read friendly names from the HomeAssistant addon config
+	if err := b.readAddonFriendlyNames(); err != nil {
+		log.Default().Fatalf("FATAL: error while reading HomeAssistant addon options: %s\n", err.Error())
+	}
 
 	// Initialize current DHCP client data table
 	if err := b.readCurrentLeaseFile(); err != nil {

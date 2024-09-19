@@ -77,7 +77,7 @@
                     var macCell = document.createElement("td");
                     var expireCell = document.createElement("td");
 
-                    friendlyName.textContent = item.PrettyName;
+                    friendlyName.textContent = item.FriendlyName;
                     hostnameCell.textContent = item.Lease.Hostname;
                     ipCell.textContent = item.Lease.IPAddr;
                     macCell.textContent = base64ToHex(item.Lease.MacAddr);
