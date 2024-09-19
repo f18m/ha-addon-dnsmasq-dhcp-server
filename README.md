@@ -1,6 +1,8 @@
 # Home Assistant Add-on: Dnsmasq as DHCP server
 
-A simple DHCP server, more feature-complete than the ISC DHCP server.
+A DHCP server based on the [dnsmasq](https://thekelleys.org.uk/dnsmasq/doc.html) utility rather than the [ISC dhcpd](https://www.isc.org/dhcp/) utility.
+Dnsmasq is on many aspects more feature-complete than the ISC DHCP server. Moreover ISC DHCP is discontinued.
+This addon also implements a UI webpage to view the list of DHCP clients with all relevant information that can be obtained through DHCP.
 
 ![Supports aarch64 Architecture][aarch64-shield] ![Supports amd64 Architecture][amd64-shield] ![Supports armhf Architecture][armhf-shield] ![Supports armv7 Architecture][armv7-shield] ![Supports i386 Architecture][i386-shield]
 
@@ -21,3 +23,6 @@ See [Home Assistant addon guide](https://developers.home-assistant.io/docs/add-o
 This addon is based on other 2 addons maintained by Home Assistant team:
 * https://github.com/home-assistant/addons/tree/master/dnsmasq
 * https://github.com/home-assistant/addons/tree/master/dhcp_server
+
+The UI nginx reverse-proxy configuration has been adapted from:
+* https://github.com/alexbelgium/hassio-addons/tree/master/photoprism/

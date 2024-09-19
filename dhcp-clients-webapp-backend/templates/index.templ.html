@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DHCP Clients</title>
+
+    <style>
+        .solidBorder {
+            border: 1px solid;
+        }
+    </style>
+
+    <script type="text/javascript">
+        function base64ToHex(base64) {
+            // Decode the base64 string into a binary string
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+
+            // Convert the binary string into an array of bytes
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            // Convert each byte to hexadecimal and concatenate
+            const hexString = Array.from(bytes)
+                .map(byte => byte.toString(16).padStart(2, '0')) // Convert each byte to hex
+                .join(':'); // Join all hex values with ":" as a separator
+
+            return hexString;
+        }
+
+        var ws = new WebSocket("wss://{{.WebSocketHost}}/ws");
+
+        ws.onopen = function(event) {
+            console.log("Websocket started successfully");
+        };
+
+        ws.onclose = function(event) {
+            console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
+        }
+
+        ws.onerror = function(event) {
+            console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
+        }
+
+        ws.onmessage = function(event) {
+
+            try {
+                var data = JSON.parse(event.data);
+            } catch (error) {
+                console.error('Error while parsing JSON:', error);
+            }
+
+            var tableDhcp = document.getElementById("tableDhcp");
+            var tableBody = document.getElementById("tableBody");
+            var message = document.getElementById("message");
+
+            tableBody.innerHTML = "";
+            if (data === null) {
+                console.log("Websocket connection: received an empty JSON");
+                tableDhcp.style.display = 'none';
+                message.innerText = "No DHCP clients so far."
+                message.style.display = 'block';
+            } else if (!Array.isArray(data)) {
+                console.error("Websocket connection: expecting a JSON array, received something else", event.data);
+            } else {
+                tableDhcp.style.display = 'block';
+                message.style.display = 'none';
+
+                console.log("Websocket connection: received " + data.length + " items from websocket");
+                data.forEach(function(item, index) {
+                    console.log(`Item ${index + 1}:`, item);
+                    var row = document.createElement("tr");
+                    
+                    var friendlyName = document.createElement("td");
+                    var hostnameCell = document.createElement("td");
+                    var ipCell = document.createElement("td");
+                    var macCell = document.createElement("td");
+                    var expireCell = document.createElement("td");
+
+                    friendlyName.textContent = item.PrettyName;
+                    hostnameCell.textContent = item.Lease.Hostname;
+                    ipCell.textContent = item.Lease.IPAddr;
+                    macCell.textContent = base64ToHex(item.Lease.MacAddr);
+                    expireCell.textContent = item.Lease.Expires;
+
+                    row.appendChild(friendlyName);
+                    row.appendChild(hostnameCell);
+                    row.appendChild(ipCell);
+                    row.appendChild(macCell);
+                    row.appendChild(expireCell);
+
+                    tableBody.appendChild(row);
+                });
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>DHCP Clients</h1>
+    <p id="message"></p>
+    <table id="tableDhcp" class="solidBorder">
+        <thead>
+            <tr class="solidBorder">
+                <th class="solidBorder">Friendly Name</th>
+                <th class="solidBorder">Hostname</th>
+                <th class="solidBorder">IP Address</th>
+                <th class="solidBorder">MAC Address</th>
+                <th class="solidBorder">Expires at</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody" class="solidBorder">
+            <!-- data is dynamically populated here -->
+        </tbody>
+    </table>
+
+    <p>Notes:</p>
+    <ul>
+    <li>An asterisk * in the 'Hostname' column indicates that the DHCP client did not advertise his own hostname to the DHCP server.</li>
+    <li>The 'Friendly Name' column is populated using this addon configuration options.</li>
+    </ul>
+</body>
+</html>

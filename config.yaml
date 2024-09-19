@@ -1,8 +1,8 @@
 ---
-version: 0.0.1
+version: feature-test-templ
 slug: dnsmasq-dhcp
 name: Dnsmasq-DHCP
-description: A simple DHCP server based on dnsmasq
+description: A DHCP server based on dnsmasq
 url: https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/tree/main
 advanced: true
 arch:
@@ -15,44 +15,47 @@ host_network: true
 image: ghcr.io/f18m/{arch}-addon-dnsmasq-dhcp
 init: false
 ingress: true
+#ingress_stream: true
+ingress_port: 8100
 options:
   default_lease: 12h
-  dns:
-    - 8.8.8.8
-    - 8.8.4.4
-  hosts: 
-    - mac: aa:bb:cc:dd:ee:ff
-      name: an-important-host-with-static-ip
-      ip: 192.168.1.15
   network:
     broadcast: 192.168.1.255
     gateway: 192.168.1.254
     interface: enp1s0
     netmask: 255.255.255.0
-    range_end: 192.168.1.250
-    range_start: 192.168.1.50
-    subnet: 192.168.1.0
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+  dhcp_range:
+    start_ip: 192.168.1.50
+    end_ip: 192.168.1.250
+  ip_address_reservations: 
+    - mac: aa:bb:cc:dd:ee:ff
+      name: an-important-host-with-static-ip
+      ip: 192.168.1.15
+  dhcp_clients_friendly_names:
+    - mac: dd:ee:aa:dd:bb:ee
+      name: "This is a friendly name to label this host, even if its get a dynamic IP"
 schema:
   default_lease: str
-  dns:
-    - str
-  hosts:
-    - ip: str
-      mac: str
-      name: str
   network:
     broadcast: str
     gateway: str
     interface: str
     netmask: str
-    range_end: str
-    range_start: str
-    subnet: str
+    dns:
+      - str
+  dhcp_range:
+    start_ip: str
+    end_ip: str
+  ip_address_reservations:
+    - ip: str
+      mac: str
+      name: str
+  dhcp_clients_friendly_names:
+    - mac: str
+      name: str
 startup: system
 privileged:
   - NET_ADMIN
-  - SYS_ADMIN
-  - NET_RAW
-  - SYS_RAWIO
-  - SYS_RESOURCE
-full_access: true
