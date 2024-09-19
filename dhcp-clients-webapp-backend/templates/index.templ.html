@@ -71,16 +71,19 @@
                     console.log(`Item ${index + 1}:`, item);
                     var row = document.createElement("tr");
                     
+                    var friendlyName = document.createElement("td");
                     var hostnameCell = document.createElement("td");
                     var ipCell = document.createElement("td");
                     var macCell = document.createElement("td");
                     var expireCell = document.createElement("td");
 
+                    friendlyName.textContent = item.PrettyName;
                     hostnameCell.textContent = item.Lease.Hostname;
                     ipCell.textContent = item.Lease.IPAddr;
                     macCell.textContent = base64ToHex(item.Lease.MacAddr);
                     expireCell.textContent = item.Lease.Expires;
 
+                    row.appendChild(friendlyName);
                     row.appendChild(hostnameCell);
                     row.appendChild(ipCell);
                     row.appendChild(macCell);
@@ -98,6 +101,7 @@
     <table id="tableDhcp" class="solidBorder">
         <thead>
             <tr class="solidBorder">
+                <th class="solidBorder">Friendly Name</th>
                 <th class="solidBorder">Hostname</th>
                 <th class="solidBorder">IP Address</th>
                 <th class="solidBorder">MAC Address</th>
@@ -108,5 +112,11 @@
             <!-- data is dynamically populated here -->
         </tbody>
     </table>
+
+    <p>Notes:</p>
+    <ul>
+    <li>An asterisk * in the 'Hostname' column indicates that the DHCP client did not advertise his own hostname to the DHCP server.</li>
+    <li>The 'Friendly Name' column is populated using this addon configuration options.</li>
+    </ul>
 </body>
 </html>
