@@ -3,9 +3,31 @@
 <head>
     <title>DHCP Clients</title>
 
-    <link rel="stylesheet" href="index.css" />
+    <style>
+        .solidBorder {
+            border: 1px solid;
+        }
+    </style>
 
     <script type="text/javascript">
+        function base64ToHex(base64) {
+            // Decode the base64 string into a binary string
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+
+            // Convert the binary string into an array of bytes
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            // Convert each byte to hexadecimal and concatenate
+            const hexString = Array.from(bytes)
+                .map(byte => byte.toString(16).padStart(2, '0')) // Convert each byte to hex
+                .join(':'); // Join all hex values with ":" as a separator
+
+            return hexString;
+        }
+
         var ws = new WebSocket("wss://{{.WebSocketHost}}/ws");
 
         ws.onopen = function(event) {
@@ -56,14 +78,14 @@
 
                     hostnameCell.textContent = item.Lease.Hostname;
                     ipCell.textContent = item.Lease.IPAddr;
-                    macCell.textContent = item.Lease.MacAddr;
+                    macCell.textContent = base64ToHex(item.Lease.MacAddr);
                     expireCell.textContent = item.Lease.Expires;
 
                     row.appendChild(hostnameCell);
                     row.appendChild(ipCell);
                     row.appendChild(macCell);
                     row.appendChild(expireCell);
-                    
+
                     tableBody.appendChild(row);
                 });
             }
