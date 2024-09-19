@@ -41,7 +41,8 @@ type DhcpClientFriendlyName struct {
 
 type UIBackend struct {
 	// DHCP client friendly names, as read from the configuration
-	friendlyNames []DhcpClientFriendlyName
+	// The key of this map is the MAC address formatted as string (since net.HardwareAddr is not a valid map key type)
+	friendlyNames map[string]DhcpClientFriendlyName
 
 	// the actual HTTP server
 	server   http.Server
@@ -64,6 +65,7 @@ type UIBackend struct {
 
 func NewUIBackend() UIBackend {
 	return UIBackend{
+		friendlyNames:  make(map[string]DhcpClientFriendlyName),
 		clients:        make(map[*websocket.Conn]bool),
 		dhcpClientData: nil,
 		broadcastCh:    make(chan []DhcpClientData),
@@ -211,8 +213,16 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 	b.dhcpClientDataLock.Lock()
 	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
 	for _, lease := range updatedLeases {
-		// FIXME: fill DhcpClientData completely
-		b.dhcpClientData = append(b.dhcpClientData, DhcpClientData{Lease: *lease})
+
+		d := DhcpClientData{Lease: *lease}
+
+		metadata, ok := b.friendlyNames[lease.MacAddr.String()]
+		if ok {
+			// enrich with some metadata this DHCP client entry
+			d.FriendlyName = metadata.FriendlyName
+		}
+
+		b.dhcpClientData = append(b.dhcpClientData, d)
 	}
 	b.dhcpClientDataLock.Unlock()
 
@@ -270,20 +280,19 @@ func (b *UIBackend) readAddonFriendlyNames() error {
 	}
 
 	// convert to a slice of DhcpClientFriendlyName
-	var result []DhcpClientFriendlyName
 	for _, client := range dhcpClients.Clients {
 		macAddr, err := net.ParseMAC(client.Mac)
 		if err != nil {
 			log.Default().Fatalf("Invalid MAC address found inside 'dhcp_clients_friendly_names': %s", client.Mac)
 			continue
 		}
-		result = append(result, DhcpClientFriendlyName{
+
+		b.friendlyNames[macAddr.String()] = DhcpClientFriendlyName{
 			MacAddress:   macAddr,
 			FriendlyName: client.Name,
-		})
+		}
 	}
 
-	b.friendlyNames = result
 	log.Default().Printf("Acquired %d friendly names\n", len(b.friendlyNames))
 
 	return nil
