@@ -91,9 +91,9 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 	}
 	defer ws.Close()
 
-	// get a copy of latest status
-	var updatedStatus []DhcpClientData
+	// get a copy of latest status so we can release the lock ASAP
 	b.dhcpClientDataLock.Lock()
+	updatedStatus := make([]DhcpClientData, len(b.dhcpClientData))
 	copy(updatedStatus, b.dhcpClientData)
 	b.dhcpClientDataLock.Unlock()
 
@@ -182,7 +182,7 @@ func (b *UIBackend) processLeaseUpdates() {
 	i := 0
 	for {
 		updatedLeases := <-b.leasesCh
-		log.Default().Printf("Processing DHCP client lease updates... received %d clients\n", len(updatedLeases))
+		log.Default().Printf("INotify detected a change to the DHCP client lease file... updated list contains %d clients\n", len(updatedLeases))
 		b.processLeaseUpdatesFromArray(updatedLeases)
 
 		// once the new list of DHCP client data entries is ready, push it in broadcast
@@ -206,6 +206,7 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 	return nil
 }
 
+// Reads the current DNS masq lease file, before any INotify hook gets installed, to get a baseline
 func (b *UIBackend) readCurrentLeaseFile() error {
 
 	log.Default().Printf("Reading DHCP client lease file '%s'\n", defaultDnsmasqLeasesFile)

@@ -12,6 +12,14 @@
             console.log("Websocket started successfully");
         };
 
+        ws.onclose = function(event) {
+            console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
+        }
+
+        ws.onerror = function(event) {
+            console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
+        }
+
         ws.onmessage = function(event) {
 
             try {
@@ -26,16 +34,17 @@
 
             tableBody.innerHTML = "";
             if (data === null) {
+                console.log("Websocket connection: received an empty JSON");
                 tableDhcp.style.display = 'none';
                 message.innerText = "No DHCP clients so far."
                 message.style.display = 'block';
             } else if (!Array.isArray(data)) {
-                console.error("expecting a JSON array: " + event.data);
+                console.error("Websocket connection: expecting a JSON array, received something else", event.data);
             } else {
                 tableDhcp.style.display = 'block';
                 message.style.display = 'none';
 
-                console.log("received " + data.length + " items from websocket");
+                console.log("Websocket connection: received " + data.length + " items from websocket");
                 data.forEach(function(item, index) {
                     console.log(`Item ${index + 1}:`, item);
                     var row = document.createElement("tr");
