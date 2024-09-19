@@ -1,5 +1,5 @@
 ---
-version: feature-test-templ
+version: feature-friendly-names
 slug: dnsmasq-dhcp
 name: Dnsmasq-DHCP
 description: A DHCP server based on dnsmasq
