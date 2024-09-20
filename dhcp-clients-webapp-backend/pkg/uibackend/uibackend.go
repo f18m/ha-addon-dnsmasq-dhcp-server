@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/gorilla/websocket"
@@ -28,9 +29,68 @@ var templatesDir = "/opt/web/templates"
 
 // DhcpClientData holds all the information the backend has about a particular DHCP client
 type DhcpClientData struct {
-	Lease        dnsmasq.Lease
+	// the lease as it is parsed from dnsmasq LEASE file:
+	Lease dnsmasq.Lease
+
+	// metadata associated with the DHCP client (obtained from configuration):
 	HasStaticIP  bool
 	FriendlyName string
+}
+
+func LeaseTimeToString(t time.Time) string {
+
+	if t.IsZero() {
+		return "Never expires"
+	}
+
+	now := time.Now()
+	duration := t.Sub(now)
+	if duration < 0 {
+		return "Expired"
+	}
+
+	// compute hours, min, secs
+	days := int(duration.Hours()) / 24
+	hours := int(duration.Hours()) % 24
+	minutes := int(duration.Minutes()) % 60
+	seconds := int(duration.Seconds()) % 60
+
+	if days > 0 {
+		return fmt.Sprintf("%02dd, %02dh, %02dm, %02ds", days, hours, minutes, seconds)
+	} else if hours > 0 {
+		return fmt.Sprintf("%02dh, %02dm, %02ds", hours, minutes, seconds)
+	} else {
+		return fmt.Sprintf("%02dm, %02ds", minutes, seconds)
+	}
+}
+
+// MarshalJSON customizes the JSON serialization for DhcpClientData
+func (d DhcpClientData) MarshalJSON() ([]byte, error) {
+	//type Alias DhcpClientData
+	return json.Marshal(&struct {
+		Lease struct {
+			Expires  string `json:"expires"`
+			MacAddr  string `json:"mac_addr"`
+			IPAddr   string `json:"ip_addr"`
+			Hostname string `json:"hostname"`
+		} `json:"lease"`
+		HasStaticIP  bool   `json:"has_static_ip"`
+		FriendlyName string `json:"friendly_name"`
+	}{
+		Lease: struct {
+			Expires  string `json:"expires"`
+			MacAddr  string `json:"mac_addr"`
+			IPAddr   string `json:"ip_addr"`
+			Hostname string `json:"hostname"`
+		}{
+			Expires:  LeaseTimeToString(d.Lease.Expires), // Serializzazione in formato RFC3339
+			MacAddr:  d.Lease.MacAddr.String(),           // Serializzazione dell'indirizzo MAC come stringa
+			IPAddr:   d.Lease.IPAddr.String(),            // Serializzazione dell'indirizzo IP come stringa
+			Hostname: d.Lease.Hostname,
+		},
+		HasStaticIP:  d.HasStaticIP,
+		FriendlyName: d.FriendlyName,
+	})
 }
 
 // DhcpClientFriendlyName

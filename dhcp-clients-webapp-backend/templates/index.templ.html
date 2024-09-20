@@ -125,7 +125,7 @@
                     console.log(`Item ${index + 1}:`, item);
 
                     // append new row
-                    tableData.push([index + 1, item.FriendlyName, item.Lease.Hostname, item.Lease.IPAddr, base64ToHex(item.Lease.MacAddr), item.Lease.Expires]);
+                    tableData.push([index + 1, item.friendly_name, item.lease.hostname, item.lease.ip_addr, item.lease.mac_addr, item.lease.expires]);
                 });
 
                 // rerender the table
