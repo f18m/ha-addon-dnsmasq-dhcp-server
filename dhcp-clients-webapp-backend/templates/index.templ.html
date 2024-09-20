@@ -3,6 +3,10 @@
 <head>
     <title>DHCP Clients</title>
 
+    <!-- Include la libreria Grid.js -->
+    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+
     <style>
         .solidBorder {
             border: 1px solid;
@@ -29,6 +33,19 @@
         }
 
         var ws = new WebSocket("wss://{{.WebSocketHost}}/ws");
+
+        // Inizializza la tabella con Grid.js
+        let tableData = [];
+        const grid = new gridjs.Grid({
+            columns: ['ID', 'Friendly Name', 'Hostname', 'IP Address', 'MAC Address', 'Expires at'], // Definisci le colonne
+            data: tableData,
+            search: true, // Abilita la ricerca
+            pagination: {
+                limit: 20 // Imposta il limite di righe per pagina
+            }
+        }).render(document.getElementById('table-wrapper'));
+
+
 
         ws.onopen = function(event) {
             console.log("Websocket started successfully");
@@ -67,9 +84,13 @@
                 message.style.display = 'none';
 
                 console.log("Websocket connection: received " + data.length + " items from websocket");
+                
+                tableData = [];
                 data.forEach(function(item, index) {
                     console.log(`Item ${index + 1}:`, item);
-                    var row = document.createElement("tr");
+                    
+                    
+                    /*var row = document.createElement("tr");
                     
                     var friendlyName = document.createElement("td");
                     var hostnameCell = document.createElement("td");
@@ -89,8 +110,16 @@
                     row.appendChild(macCell);
                     row.appendChild(expireCell);
 
-                    tableBody.appendChild(row);
+                    tableBody.appendChild(row);*/
+
+                    // Aggiungi i nuovi dati alla tabella
+                    tableData.push([index, item.FriendlyName, item.Lease.Hostname, item.Lease.IPAddr, base64ToHex(item.Lease.MacAddr), item.Lease.Expires]);
                 });
+
+                // Rerender della tabella con i nuovi dati
+                grid.updateConfig({
+                    data: tableData
+                }).forceRender();
             }
         };
     </script>
@@ -98,6 +127,8 @@
 <body>
     <h1>DHCP Clients</h1>
     <p id="message"></p>
+
+    <!--
     <table id="tableDhcp" class="solidBorder">
         <thead>
             <tr class="solidBorder">
@@ -109,9 +140,13 @@
             </tr>
         </thead>
         <tbody id="tableBody" class="solidBorder">
-            <!-- data is dynamically populated here -->
+            <!-- data is dynamically populated here 
         </tbody>
     </table>
+    -->
+
+    <!-- Div che conterrà la tabella Grid.js -->
+    <div id="table-wrapper"></div>
 
     <p>Notes:</p>
     <ul>
