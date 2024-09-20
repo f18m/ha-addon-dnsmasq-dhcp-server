@@ -1,5 +1,5 @@
 ---
-version: feature-friendly-names
+version: 1.0.0
 slug: dnsmasq-dhcp
 name: Dnsmasq-DHCP
 description: A DHCP server based on dnsmasq
@@ -15,7 +15,6 @@ host_network: true
 image: ghcr.io/f18m/{arch}-addon-dnsmasq-dhcp
 init: false
 ingress: true
-#ingress_stream: true
 ingress_port: 8100
 options:
   default_lease: 12h
@@ -32,7 +31,7 @@ options:
     end_ip: 192.168.1.250
   ip_address_reservations: 
     - mac: aa:bb:cc:dd:ee:ff
-      name: an-important-host-with-static-ip
+      name: "An important host with a static IP address assigned"
       ip: 192.168.1.15
   dhcp_clients_friendly_names:
     - mac: dd:ee:aa:dd:bb:ee
