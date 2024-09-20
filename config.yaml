@@ -1,5 +1,5 @@
 ---
-version: feature-test-templ
+version: feature-friendly-names
 slug: dnsmasq-dhcp
 name: Dnsmasq-DHCP
 description: A DHCP server based on dnsmasq
@@ -36,7 +36,7 @@ options:
       ip: 192.168.1.15
   dhcp_clients_friendly_names:
     - mac: dd:ee:aa:dd:bb:ee
-      name: "This is a friendly name to label this host, even if its get a dynamic IP"
+      name: "This is a friendly name to label this host, even if it gets a dynamic IP"
 schema:
   default_lease: str
   network:

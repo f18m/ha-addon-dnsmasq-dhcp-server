@@ -3,6 +3,10 @@
 <head>
     <title>DHCP Clients</title>
 
+    <!-- add Grid.js library -->
+    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+
     <style>
         .solidBorder {
             border: 1px solid;
@@ -28,6 +32,47 @@
             return hexString;
         }
 
+        // Compare function for IP addresses
+        function compareIPs(ip1, ip2) {
+            const ipToNum = (ip) => {
+                return ip.split('.').reduce((acc, octet) => {
+                    return (acc << 8) + parseInt(octet, 10);
+                }, 0);
+            };
+
+            const num1 = ipToNum(ip1);
+            const num2 = ipToNum(ip2);
+
+            if (num1 < num2) return -1;
+            if (num1 > num2) return 1;
+            return 0;
+        }
+
+        var grid = null;
+
+        function initTable() {
+            console.log("Initializing grid.js table");
+            grid = new gridjs.Grid({
+                columns: [
+                    { name: 'ID', sort: true }, 
+                    { name: 'Friendly Name', sort: true }, 
+                    { name: 'Hostname', sort: true }, 
+                    { name: 'IP Address',  sort: { compare: compareIPs } }, 
+                    { name: 'MAC Address', sort: true }, 
+                    { name: 'Expires in', sort: true }
+                ],
+                data: [],
+                sort: true,
+                search: true,
+                pagination: { limit: 20 }
+            }).render(document.getElementById('table-wrapper'));
+        }
+
+        document.addEventListener('DOMContentLoaded', initTable, false);
+
+
+        // websocket
+
         var ws = new WebSocket("wss://{{.WebSocketHost}}/ws");
 
         ws.onopen = function(event) {
@@ -50,47 +95,45 @@
                 console.error('Error while parsing JSON:', error);
             }
 
-            var tableDhcp = document.getElementById("tableDhcp");
-            var tableBody = document.getElementById("tableBody");
             var message = document.getElementById("message");
 
-            tableBody.innerHTML = "";
             if (data === null) {
                 console.log("Websocket connection: received an empty JSON");
-                tableDhcp.style.display = 'none';
-                message.innerText = "No DHCP clients so far."
-                message.style.display = 'block';
+
+                // clear the table
+                grid.updateConfig({
+                    data: []
+                }).forceRender();
+
+                message.innerText = "No DHCP clients so far.";
+
             } else if (!Array.isArray(data)) {
                 console.error("Websocket connection: expecting a JSON array, received something else", event.data);
-            } else {
-                tableDhcp.style.display = 'block';
-                message.style.display = 'none';
 
+                // clear the table
+                grid.updateConfig({
+                    data: []
+                }).forceRender();
+
+                message.innerText = "Internal error. Please report upstream together with Javascript logs.";
+
+            } else {
                 console.log("Websocket connection: received " + data.length + " items from websocket");
+                
+                tableData = [];
                 data.forEach(function(item, index) {
                     console.log(`Item ${index + 1}:`, item);
-                    var row = document.createElement("tr");
-                    
-                    var friendlyName = document.createElement("td");
-                    var hostnameCell = document.createElement("td");
-                    var ipCell = document.createElement("td");
-                    var macCell = document.createElement("td");
-                    var expireCell = document.createElement("td");
 
-                    friendlyName.textContent = item.PrettyName;
-                    hostnameCell.textContent = item.Lease.Hostname;
-                    ipCell.textContent = item.Lease.IPAddr;
-                    macCell.textContent = base64ToHex(item.Lease.MacAddr);
-                    expireCell.textContent = item.Lease.Expires;
-
-                    row.appendChild(friendlyName);
-                    row.appendChild(hostnameCell);
-                    row.appendChild(ipCell);
-                    row.appendChild(macCell);
-                    row.appendChild(expireCell);
-
-                    tableBody.appendChild(row);
+                    // append new row
+                    tableData.push([index + 1, item.friendly_name, item.lease.hostname, item.lease.ip_addr, item.lease.mac_addr, item.lease.expires]);
                 });
+
+                // rerender the table
+                grid.updateConfig({
+                    data: tableData
+                }).forceRender();
+
+                message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server:";
             }
         };
     </script>
@@ -98,20 +141,9 @@
 <body>
     <h1>DHCP Clients</h1>
     <p id="message"></p>
-    <table id="tableDhcp" class="solidBorder">
-        <thead>
-            <tr class="solidBorder">
-                <th class="solidBorder">Friendly Name</th>
-                <th class="solidBorder">Hostname</th>
-                <th class="solidBorder">IP Address</th>
-                <th class="solidBorder">MAC Address</th>
-                <th class="solidBorder">Expires at</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody" class="solidBorder">
-            <!-- data is dynamically populated here -->
-        </tbody>
-    </table>
+
+    <!-- the Grid.js table will be attached to this DIV element -->
+    <div id="table-wrapper"></div>
 
     <p>Notes:</p>
     <ul>
