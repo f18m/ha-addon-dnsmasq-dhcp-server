@@ -3,7 +3,7 @@
 <head>
     <title>DHCP Clients</title>
 
-    <!-- Include la libreria Grid.js -->
+    <!-- add Grid.js library -->
     <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
     <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
 
@@ -37,12 +37,18 @@
         function initTable() {
             console.log("Initializing grid.js table");
             grid = new gridjs.Grid({
-                columns: ['ID', 'Friendly Name', 'Hostname', 'IP Address', 'MAC Address', 'Expires at'], // Definisci le colonne
+                columns: [
+                    { name: 'ID', sort: true }, 
+                    { name: 'Friendly Name', sort: true }, 
+                    { name: 'Hostname', sort: true }, 
+                    { name: 'IP Address', sort: true }, 
+                    { name: 'MAC Address', sort: true }, 
+                    { name: 'Expires at', sort: true }
+                ],
                 data: [],
-                search: true, // Abilita la ricerca
-                pagination: {
-                    limit: 20 // Imposta il limite di righe per pagina
-                }
+                sort: true,
+                search: true,
+                pagination: { limit: 20 }
             }).render(document.getElementById('table-wrapper'));
         }
 
@@ -103,7 +109,7 @@
                     console.log(`Item ${index + 1}:`, item);
 
                     // append new row
-                    tableData.push([index, item.FriendlyName, item.Lease.Hostname, item.Lease.IPAddr, base64ToHex(item.Lease.MacAddr), item.Lease.Expires]);
+                    tableData.push([index + 1, item.FriendlyName, item.Lease.Hostname, item.Lease.IPAddr, base64ToHex(item.Lease.MacAddr), item.Lease.Expires]);
                 });
 
                 // rerender the table
