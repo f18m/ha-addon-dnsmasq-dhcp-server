@@ -32,9 +32,11 @@
             return hexString;
         }
 
+        var grid = null;
+
         function initTable() {
-            // Inizializza la tabella con Grid.js
-            const grid = new gridjs.Grid({
+            console.log("Initializing grid.js table");
+            grid = new gridjs.Grid({
                 columns: ['ID', 'Friendly Name', 'Hostname', 'IP Address', 'MAC Address', 'Expires at'], // Definisci le colonne
                 data: [],
                 search: true, // Abilita la ricerca
