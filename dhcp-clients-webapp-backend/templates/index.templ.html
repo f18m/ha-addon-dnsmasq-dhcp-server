@@ -32,6 +32,22 @@
             return hexString;
         }
 
+        // Compare function for IP addresses
+        function compareIPs(ip1, ip2) {
+            const ipToNum = (ip) => {
+                return ip.split('.').reduce((acc, octet) => {
+                    return (acc << 8) + parseInt(octet, 10);
+                }, 0);
+            };
+
+            const num1 = ipToNum(ip1);
+            const num2 = ipToNum(ip2);
+
+            if (num1 < num2) return -1;
+            if (num1 > num2) return 1;
+            return 0;
+        }
+
         var grid = null;
 
         function initTable() {
@@ -41,7 +57,7 @@
                     { name: 'ID', sort: true }, 
                     { name: 'Friendly Name', sort: true }, 
                     { name: 'Hostname', sort: true }, 
-                    { name: 'IP Address', sort: true }, 
+                    { name: 'IP Address',  sort: { compare: compareIPs } }, 
                     { name: 'MAC Address', sort: true }, 
                     { name: 'Expires at', sort: true }
                 ],
