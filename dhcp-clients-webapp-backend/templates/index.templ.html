@@ -32,20 +32,24 @@
             return hexString;
         }
 
+        function initTable() {
+            // Inizializza la tabella con Grid.js
+            const grid = new gridjs.Grid({
+                columns: ['ID', 'Friendly Name', 'Hostname', 'IP Address', 'MAC Address', 'Expires at'], // Definisci le colonne
+                data: [],
+                search: true, // Abilita la ricerca
+                pagination: {
+                    limit: 20 // Imposta il limite di righe per pagina
+                }
+            }).render(document.getElementById('table-wrapper'));
+        }
+
+        document.addEventListener('DOMContentLoaded', initTable, false);
+
+
+        // websocket
+
         var ws = new WebSocket("wss://{{.WebSocketHost}}/ws");
-
-        // Inizializza la tabella con Grid.js
-        let tableData = [];
-        const grid = new gridjs.Grid({
-            columns: ['ID', 'Friendly Name', 'Hostname', 'IP Address', 'MAC Address', 'Expires at'], // Definisci le colonne
-            data: tableData,
-            search: true, // Abilita la ricerca
-            pagination: {
-                limit: 20 // Imposta il limite di righe per pagina
-            }
-        }).render(document.getElementById('table-wrapper'));
-
-
 
         ws.onopen = function(event) {
             console.log("Websocket started successfully");
