@@ -31,10 +31,10 @@ jobs:
         fi
     - run: |
         echo "This is a TAG build"
-      if: ${{ steps.check.outputs.is_tag }}
+      if: ${{ steps.check.outputs.is_tag == 'true' }}
     - run: |
         echo "This is a non-TAG build"
-      if: ${{ ! steps.check.outputs.is_tag }}
+      if: ${{ steps.check.outputs.is_tag == 'false' }}
 
   publish-docker-image:
     name: Publish
@@ -59,24 +59,24 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # build & push for TAG builds
-      - name: Docker build and push (tags)
+      - name: Docker build and push (tag builds)
         uses: home-assistant/builder@master
         with:
           args: |
             --amd64 \
             --target myaddon \
             --docker-hub ghcr.io/f18m
-        if: ${{ needs.check_tag.outputs.is_tag }}
+        if: ${{ needs.check_tag.outputs.is_tag == 'true' }}
 
       # build & push for non-TAG builds
       - name: Metadata extraction
         id: meta
         uses: docker/metadata-action@v5
-        if: ${{ ! needs.check_tag.outputs.is_tag }}
+        if: ${{ needs.check_tag.outputs.is_tag == 'false' }}
 
       - run: |
           echo "Docker image will be versioned as: ${{ steps.meta.outputs.version }}"
-        if: ${{ ! needs.check_tag.outputs.is_tag }}
+        if: ${{ needs.check_tag.outputs.is_tag == 'false' }}
 
       # notice the additional --version and --no-latest flags
       # compared to the variant for TAG builds:
@@ -89,4 +89,4 @@ jobs:
             --docker-hub ghcr.io/f18m \
             --version ${{ steps.meta.outputs.version }} \
             --no-latest
-        if: ${{ ! needs.check_tag.outputs.is_tag }}
+        if: ${{ needs.check_tag.outputs.is_tag == 'false' }}
