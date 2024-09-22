@@ -23,18 +23,18 @@ jobs:
         if [[ -n "${GITHUB_REF##*refs/tags/*}" ]]; then
           echo "This looks like a non-TAG build"
           echo "is_tag=false" >> $GITHUB_ENV
-          echo "{is_tag}={false}" >> $GITHUB_OUTPUT
+          echo "is_tag=false" >> $GITHUB_OUTPUT
         else
           echo "This looks like a TAG build"
           echo "is_tag=true" >> $GITHUB_ENV
-          echo "{is_tag}={true}" >> $GITHUB_OUTPUT
+          echo "is_tag=true" >> $GITHUB_OUTPUT
         fi
     - run: |
         echo "This is a TAG build"
-      if: ${{ steps.check.outputs.is_tag == 'true' }}
+      if: ${{ steps.check.outputs.is_tag }}
     - run: |
         echo "This is a non-TAG build"
-      if: ${{ steps.check.outputs.is_tag != 'true' }}
+      if: ${{ ! steps.check.outputs.is_tag }}
 
   publish-docker-image:
     name: Publish
@@ -66,17 +66,17 @@ jobs:
             --amd64 \
             --target myaddon \
             --docker-hub ghcr.io/f18m
-        if: ${{ needs.check_tag.outputs.is_tag == 'true' }}
+        if: ${{ needs.check_tag.outputs.is_tag }}
 
       # build & push for non-TAG builds
       - name: Metadata extraction
         id: meta
         uses: docker/metadata-action@v5
-        if: ${{ needs.check_tag.outputs.is_tag != 'true' }}
+        if: ${{ ! needs.check_tag.outputs.is_tag }}
 
       - run: |
           echo "Docker image will be versioned as: ${{ steps.meta.outputs.version }}"
-        if: ${{ needs.check_tag.outputs.is_tag != 'true' }}
+        if: ${{ ! needs.check_tag.outputs.is_tag }}
 
       # notice the additional --version and --no-latest flags
       # compared to the variant for TAG builds:
@@ -89,4 +89,4 @@ jobs:
             --docker-hub ghcr.io/f18m \
             --version ${{ steps.meta.outputs.version }} \
             --no-latest
-        if: ${{ needs.check_tag.outputs.is_tag != 'true' }}
+        if: ${{ ! needs.check_tag.outputs.is_tag }}
