@@ -59,6 +59,27 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # build & push for TAG builds
+      - name: Check coherency between tag and config.yaml
+        run: |
+          git_tag=${GITHUB_REF##*/}
+          echo "Git tag is [${git_tag}]"
+
+          # now get the version declared in config.yaml
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && \
+            chmod +x /usr/bin/yq
+          config_tag=$(yq .version ./myaddon/config.yaml)
+          echo "Config YAML tag is [${config_tag}]"
+          
+          # compare
+          if [[ "${git_tag}" != "${config_tag}" ]]; then
+            echo "MISMATCH DETECTED between Git and config.yaml. Please remember to bump the version"
+            echo "inside config.yaml before releasing a new tag."
+            exit 123
+          else
+            echo "Git and config.yaml are coherent! Proceeding."
+          fi
+        if: ${{ needs.check_tag.outputs.is_tag == 'true' }}
+        
       - name: Docker build and push (tag builds)
         uses: home-assistant/builder@master
         with:
