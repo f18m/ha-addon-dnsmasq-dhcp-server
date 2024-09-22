@@ -26,3 +26,15 @@ This addon is based on other 2 addons maintained by Home Assistant team:
 
 The UI nginx reverse-proxy configuration has been adapted from:
 * https://github.com/alexbelgium/hassio-addons/tree/master/photoprism/
+
+
+## Features
+
+* **Web-based UI** integrate in Home Assistant to view the list of all DHCP clients
+* **UI Instant update**: no need to refresh the UI, whenever a new DHCP client connects to or leaves the network
+  the UI gets instantly updated.
+* **IP address reservation** using the MAC address: you can associate a specific IP address (even outside
+  the DHCP address pool) to particular hosts.
+* **Friendly name configuration**: you can provide your own friendly-name to any host (using its MAC address
+  as identifier); this is particularly useful to identify the DHCP clients that provide unhelpful hostnames
+  in their DHCP requests.

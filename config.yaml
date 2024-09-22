@@ -18,6 +18,8 @@ ingress: true
 ingress_port: 8100
 options:
   default_lease: 12h
+  # the address reservation lease might also be 'infinite'
+  address_reservation_lease: 12h
   network:
     broadcast: 192.168.1.255
     gateway: 192.168.1.254
@@ -38,6 +40,7 @@ options:
       name: "This is a friendly name to label this host, even if it gets a dynamic IP"
 schema:
   default_lease: str
+  address_reservation_lease: str
   network:
     broadcast: str
     gateway: str

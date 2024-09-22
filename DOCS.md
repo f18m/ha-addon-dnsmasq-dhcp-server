@@ -1,4 +1,4 @@
-# Home Assistant Add-on: Dnsmasq
+# Home Assistant Add-on: Dnsmasq-DHCP
 
 ## Installation
 
@@ -20,24 +20,9 @@ You will also need all details about the network where the DHCP server should be
 
 ## Configuration
 
-The Dnsmasq add-on can be tweaked to your likings. This section
-describes each of the add-on configuration options.
-
-Example add-on configuration:
-
-```yaml
-dns:
-  - 8.8.8.8
-  - 8.8.4.4
-```
-
-### Option: `dns` (required)
-
-The defaults are upstream DNS servers, where DNS requests that can't
-be handled locally, are forwarded to. By default it is configured to have
-Google's public DNS servers: `"8.8.8.8", "8.8.4.4"`.
-
-TO BE WRITTEN
+The Dnsmasq-DHCP addon configuration is documented in the 'Configuration' tab of this
+addon page. 
+Alternatively check out the [./config.yaml](addon configuration file).
 
 ## Links
 
