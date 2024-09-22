@@ -1,13 +1,11 @@
 name: "Publish"
 
-#on:
-#  release:
-#    types: [published]
-#on: [push, pull_request]
 on: 
   push:
     branches:
       - '**'
+    tags:
+      - '*'
 
 
 jobs:
