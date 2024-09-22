@@ -23,13 +23,6 @@ jobs:
         with:
           path: ./myaddon
 
-      # get a good docker tag, which can be used to differentiate the 
-      - name: Docker tag creation
-        id: meta
-        uses: docker/metadata-action@v5
-      - run: |
-          echo "Docker image will be versioned as: ${{ steps.meta.outputs.version }}"
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3.3.0
         with:
@@ -49,6 +42,16 @@ jobs:
 
       # build & push for FEATURE branches
       # notice the additional --version and --no-latest flags:
+      # get a good docker tag, which can be used to differentiate the 
+      - name: Metadata extraction
+        id: meta
+        uses: docker/metadata-action@v5
+        if: ${{ github.ref != 'refs/heads/main' }}
+
+      - run: |
+          echo "Docker image will be versioned as: ${{ steps.meta.outputs.version }}"
+        if: ${{ github.ref != 'refs/heads/main' }}
+
       - name: Docker build and push (non-main branch)
         uses: home-assistant/builder@master
         with:
