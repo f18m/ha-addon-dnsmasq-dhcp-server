@@ -4,7 +4,10 @@ name: "Publish"
 #  release:
 #    types: [published]
 #on: [push, pull_request]
-on: push
+on: 
+  push:
+    branches:
+      - '**'
 
 
 jobs:
@@ -27,7 +30,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
       - run: |
-          echo "Docker image will be tagged as: ${{ steps.meta.outputs.tags }}"
+          echo "Docker image will be versioned as: ${{ steps.meta.outputs.version }}"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3.3.0
@@ -36,6 +39,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # build & push for MAIN branch
       - name: Docker build and push (main branch)
         uses: home-assistant/builder@master
         with:
@@ -45,7 +49,8 @@ jobs:
             --docker-hub ghcr.io/f18m
         if: ${{ github.ref == 'refs/heads/main' }}
 
-        # notice the additional --version and --no-latest flags:
+      # build & push for FEATURE branches
+      # notice the additional --version and --no-latest flags:
       - name: Docker build and push (non-main branch)
         uses: home-assistant/builder@master
         with:
@@ -53,6 +58,6 @@ jobs:
             --amd64 \
             --target myaddon \
             --docker-hub ghcr.io/f18m \
-            --version ${{ steps.meta.outputs.tags }} \
+            --version ${{ steps.meta.outputs.version }} \
             --no-latest
         if: ${{ github.ref != 'refs/heads/main' }}
