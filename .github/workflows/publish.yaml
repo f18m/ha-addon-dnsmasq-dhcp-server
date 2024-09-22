@@ -10,6 +10,7 @@ on:
 
 jobs:
   check_tag:
+    name: Check if Tag Build
     runs-on: ubuntu-latest
     outputs:
       is_tag: ${{ steps.check.outputs.is_tag }}
@@ -18,12 +19,15 @@ jobs:
     - name: Check if it's a tagged release
       id: check
       run: |
+        echo "GITHUB_REF is: ${GITHUB_REF}"
         if [[ -n "${GITHUB_REF##*refs/tags/*}" ]]; then
+          echo "This looks like a non-TAG build"
           echo "is_tag=false" >> $GITHUB_ENV
-          echo "::set-output name=is_tag::false"
+          echo "{is_tag}={false}" >> $GITHUB_OUTPUT
         else
+          echo "This looks like a TAG build"
           echo "is_tag=true" >> $GITHUB_ENV
-          echo "::set-output name=is_tag::true"
+          echo "{is_tag}={true}" >> $GITHUB_OUTPUT
         fi
 
   publish-docker-image:
