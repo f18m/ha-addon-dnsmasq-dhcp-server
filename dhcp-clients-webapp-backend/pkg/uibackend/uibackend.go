@@ -22,6 +22,7 @@ import (
 var bindAddress = ":8080"
 var defaultDnsmasqLeasesFile = "/data/dnsmasq.leases"
 var defaultHomeAssistantConfigFile = "/data/options.json"
+var dnsmasqMarkerForMissingHostname = "*"
 
 // These absolute paths must be in sync with the Dockerfile
 var staticWebFilesDir = "/opt/web/static"
@@ -280,6 +281,11 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 		if ok {
 			// enrich with some metadata this DHCP client entry
 			d.FriendlyName = metadata.FriendlyName
+		} else {
+			if lease.Hostname != dnsmasqMarkerForMissingHostname {
+				// dnsmasq DHCP server has received an hostname so use that to create a "friendly name"
+				d.FriendlyName = "Hostname: " + lease.Hostname
+			}
 		}
 
 		b.dhcpClientData = append(b.dhcpClientData, d)
