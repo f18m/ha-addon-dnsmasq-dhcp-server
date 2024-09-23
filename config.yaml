@@ -3,7 +3,7 @@
 # as reported by the Github Action workflow 'publish.yaml', so that you can force HomeAssistant
 # to use the docker image of that feature branch instead of the docker image of 'main', by pointing
 # HomeAssistant to that feature branch
-version: 1.0.7
+version: 1.0.8
 slug: dnsmasq-dhcp
 name: Dnsmasq-DHCP
 description: A DHCP server based on dnsmasq
@@ -21,7 +21,7 @@ init: false
 ingress: true
 ingress_port: 8100
 panel_icon: mdi:ip-network-outline
-panel_title: Grafana
+panel_title: DHCP
 options:
   default_lease: 12h
   # the address reservation lease might also be 'infinite'
