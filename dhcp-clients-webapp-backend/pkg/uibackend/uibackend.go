@@ -104,6 +104,9 @@ type UIBackend struct {
 	// The key of this map is the MAC address formatted as string (since net.HardwareAddr is not a valid map key type)
 	friendlyNames map[string]DhcpClientFriendlyName
 
+	// Log this backend activities
+	logWebUI bool
+
 	// the actual HTTP server
 	server   http.Server
 	upgrader websocket.Upgrader
@@ -144,16 +147,20 @@ func NewUIBackend() UIBackend {
 
 func (b *UIBackend) logRequestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Default().Printf("Method: %s, URL: %s, Host: %s, RemoteAddr: %s\n", r.Method, r.URL.String(), r.Host, r.RemoteAddr)
 
-		// print headers
-		fmt.Println("Headers:")
-		for name, values := range r.Header {
-			for _, value := range values {
-				fmt.Printf("  %s: %s\n", name, value)
+		// this logging is quite verbose, enable only if explicitly asked so
+		if b.logWebUI {
+			log.Default().Printf("Method: %s, URL: %s, Host: %s, RemoteAddr: %s\n", r.Method, r.URL.String(), r.Host, r.RemoteAddr)
+
+			// print headers
+			fmt.Println("Headers:")
+			for name, values := range r.Header {
+				for _, value := range values {
+					fmt.Printf("  %s: %s\n", name, value)
+				}
 			}
+			fmt.Println("----")
 		}
-		fmt.Println("----")
 
 		// keep serving the request
 		next.ServeHTTP(w, r)
@@ -215,7 +222,12 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 				client.Close()
 				delete(b.clients, client)
 			} else {
-				log.Default().Printf("Successfully pushed data to WebSocket: %v", msg)
+				if b.logWebUI {
+					jsonData, err := json.Marshal(msg)
+					if err != nil {
+						log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
+					}
+				}
 			}
 		}
 		b.clientsLock.Unlock()
@@ -315,14 +327,17 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 }
 
 // dummy struct used to unmarshal HomeAssistant option file correctly
-type DhcpClients struct {
-	Clients []struct {
+type AddonConfig struct {
+	DhcpClientsFriendlyNames []struct {
 		Name string `json:"name"`
 		Mac  string `json:"mac"`
 	} `json:"dhcp_clients_friendly_names"`
+
+	LogDHCP  bool `json:"log_dhcp"`
+	LogWebUI bool `json:"log_web_ui"`
 }
 
-func (b *UIBackend) readAddonFriendlyNames() error {
+func (b *UIBackend) readAddonConfig() error {
 	log.Default().Printf("Reading addon config file '%s'\n", defaultHomeAssistantConfigFile)
 
 	optionFile, errOpen := os.OpenFile(defaultHomeAssistantConfigFile, os.O_RDONLY|os.O_CREATE, 0644)
@@ -338,14 +353,14 @@ func (b *UIBackend) readAddonFriendlyNames() error {
 	}
 
 	// JSON parse
-	var dhcpClients DhcpClients
-	err = json.Unmarshal(data, &dhcpClients)
+	var cfg AddonConfig
+	err = json.Unmarshal(data, &cfg)
 	if err != nil {
 		return err
 	}
 
-	// convert to a slice of DhcpClientFriendlyName
-	for _, client := range dhcpClients.Clients {
+	// convert to a slice of DhcpClientFriendlyName instances
+	for _, client := range cfg.DhcpClientsFriendlyNames {
 		macAddr, err := net.ParseMAC(client.Mac)
 		if err != nil {
 			log.Default().Fatalf("Invalid MAC address found inside 'dhcp_clients_friendly_names': %s", client.Mac)
@@ -359,6 +374,9 @@ func (b *UIBackend) readAddonFriendlyNames() error {
 	}
 
 	log.Default().Printf("Acquired %d friendly names\n", len(b.friendlyNames))
+
+	b.logWebUI = cfg.LogWebUI
+	log.Default().Printf("Web UI logging enabled=%t\n", b.logWebUI)
 
 	return nil
 }
@@ -378,7 +396,7 @@ func (b *UIBackend) ListenAndServe() error {
 	mux.HandleFunc("/ws", b.handleWebSocketConn)
 
 	// Read friendly names from the HomeAssistant addon config
-	if err := b.readAddonFriendlyNames(); err != nil {
+	if err := b.readAddonConfig(); err != nil {
 		log.Default().Fatalf("FATAL: error while reading HomeAssistant addon options: %s\n", err.Error())
 	}
 

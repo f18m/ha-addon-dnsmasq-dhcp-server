@@ -1,5 +1,3 @@
 # Changelog
 
-## 0.0.1
-
-First release
+For the changelog please check https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/releases

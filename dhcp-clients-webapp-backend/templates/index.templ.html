@@ -68,6 +68,10 @@
         }
 
         function formatTimeLeft(unixTimestamp) {
+            if (unixTimestamp == 0){
+                return "Never expires";
+            }
+
             // Calculate the difference in milliseconds between the timestamp and the current time
             const now = new Date();
             const timestampInMillis = unixTimestamp * 1000;

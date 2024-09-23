@@ -42,6 +42,9 @@ options:
   dhcp_clients_friendly_names:
     - mac: dd:ee:aa:dd:bb:ee
       name: "This is a friendly name to label this host, even if it gets a dynamic IP"
+
+  log_dhcp: true
+  log_web_ui: false
 schema:
   default_lease: str
   address_reservation_lease: str
@@ -62,6 +65,8 @@ schema:
   dhcp_clients_friendly_names:
     - mac: str
       name: str
+  log_dhcp: bool
+  log_web_ui: bool
 startup: system
 privileged:
   - NET_ADMIN
