@@ -48,6 +48,45 @@
             return 0;
         }
 
+        function formatTimestamp(unixTimestamp) {
+            // Convert the timestamp to milliseconds and create new Date object
+            const timestampInMillis = unixTimestamp * 1000;
+            const date = new Date(timestampInMillis);
+
+            // Format the date as a string (e.g., "YYYY-MM-DD HH:MM:SS")
+            const formattedDate = date.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }) + ' ' + date.toLocaleTimeString(undefined, {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            return formattedDate;
+        }
+
+        function formatTimeLeft(unixTimestamp) {
+            // Calculate the difference in milliseconds between the timestamp and the current time
+            const now = new Date();
+            const timestampInMillis = unixTimestamp * 1000;
+            const timeDifference = timestampInMillis - now.getTime();
+
+            // If the time has already passed, return 0
+            if (timeDifference <= 0) {
+                return "Already expired";
+            }
+
+            // Calculate the remaining time in hours, minutes, and seconds
+            const hoursLeft = Math.floor(timeDifference / (1000 * 60 * 60));
+            const minutesLeft = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+            const secondsLeft = Math.floor((timeDifference % (1000 * 60)) / 1000);
+
+            // Format the remaining time as a string "HH:MM:SS"
+            return `${hoursLeft.toString().padStart(2, '0')}:${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`;
+        }
+
         var grid = null;
 
         function initTable() {
@@ -125,7 +164,9 @@
                     console.log(`Item ${index + 1}:`, item);
 
                     // append new row
-                    tableData.push([index + 1, item.friendly_name, item.lease.hostname, item.lease.ip_addr, item.lease.mac_addr, item.lease.expires]);
+                    tableData.push([index + 1, 
+                                    item.friendly_name, item.lease.hostname, item.lease.ip_addr, 
+                                    item.lease.mac_addr, formatTimeLeft(item.lease.expires)]);
                 });
 
                 // rerender the table

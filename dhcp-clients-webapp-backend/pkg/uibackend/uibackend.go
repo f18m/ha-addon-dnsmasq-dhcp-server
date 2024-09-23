@@ -67,10 +67,9 @@ func LeaseTimeToString(t time.Time) string {
 
 // MarshalJSON customizes the JSON serialization for DhcpClientData
 func (d DhcpClientData) MarshalJSON() ([]byte, error) {
-	//type Alias DhcpClientData
 	return json.Marshal(&struct {
 		Lease struct {
-			Expires  string `json:"expires"`
+			Expires  int64  `json:"expires"`
 			MacAddr  string `json:"mac_addr"`
 			IPAddr   string `json:"ip_addr"`
 			Hostname string `json:"hostname"`
@@ -79,14 +78,14 @@ func (d DhcpClientData) MarshalJSON() ([]byte, error) {
 		FriendlyName string `json:"friendly_name"`
 	}{
 		Lease: struct {
-			Expires  string `json:"expires"`
+			Expires  int64  `json:"expires"`
 			MacAddr  string `json:"mac_addr"`
 			IPAddr   string `json:"ip_addr"`
 			Hostname string `json:"hostname"`
 		}{
-			Expires:  LeaseTimeToString(d.Lease.Expires), // Serializzazione in formato RFC3339
-			MacAddr:  d.Lease.MacAddr.String(),           // Serializzazione dell'indirizzo MAC come stringa
-			IPAddr:   d.Lease.IPAddr.String(),            // Serializzazione dell'indirizzo IP come stringa
+			Expires:  d.Lease.Expires.Unix(), // unix time, the number of seconds elapsed since January 1, 1970 UTC
+			MacAddr:  d.Lease.MacAddr.String(),
+			IPAddr:   d.Lease.IPAddr.String(),
 			Hostname: d.Lease.Hostname,
 		},
 		HasStaticIP:  d.HasStaticIP,
