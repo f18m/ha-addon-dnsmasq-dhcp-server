@@ -1,7 +1,3 @@
-github.com/b0ch3nski/go-dnsmasq-utils v0.1.0 h1:SfUaYFNCp9t0Vh5uy3E84j4Ok8O/isUC0h7F/N0AxqQ=
-github.com/b0ch3nski/go-dnsmasq-utils v0.1.0/go.mod h1:vdD5vOfYL0GDBSvWk/+YXJo8SAXOrcY0Ey8E7BoupgM=
-github.com/b0ch3nski/go-dnsmasq-utils v0.1.1-0.20240920072747-86fdb4624c7f h1:HSuBZjQrg6rh3HkuCBBiH9JFYzRZacDhminhbwCHUHs=
-github.com/b0ch3nski/go-dnsmasq-utils v0.1.1-0.20240920072747-86fdb4624c7f/go.mod h1:vdD5vOfYL0GDBSvWk/+YXJo8SAXOrcY0Ey8E7BoupgM=
 github.com/b0ch3nski/go-dnsmasq-utils v0.1.1 h1:dHra9Hyq4HDUuA7nolJyVNUA5I+rchI300cZ2FTDlEE=
 github.com/b0ch3nski/go-dnsmasq-utils v0.1.1/go.mod h1:vdD5vOfYL0GDBSvWk/+YXJo8SAXOrcY0Ey8E7BoupgM=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
