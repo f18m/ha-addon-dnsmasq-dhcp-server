@@ -26,7 +26,7 @@ You will also need all details about the network where the DHCP server should be
 
 The Dnsmasq-DHCP addon configuration is documented in the 'Configuration' tab of the
 addon. 
-Alternatively check out the comments inside the [./config.yaml](addon configuration file).
+Alternatively check out the comments inside the [addon configuration file](config.yaml).
 
 ## Links
 
