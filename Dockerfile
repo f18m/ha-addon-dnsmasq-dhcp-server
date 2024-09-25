@@ -1,7 +1,8 @@
 ARG BUILD_FROM
 
 # --- BACKEND BUILD
-FROM golang:1.23 AS builder-go
+# About golang version: downgrade Go to 1.22.7 to avoid https://github.com/golang/go/issues/68976
+FROM golang:1.22.7 AS builder-go
 
 WORKDIR /app/backend
 COPY dhcp-clients-webapp-backend .

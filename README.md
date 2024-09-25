@@ -26,6 +26,7 @@ This addon setups and manages a Dnsmasq instance configured to run as a DHCP ser
 * **Friendly name configuration**: you can provide your own friendly-name to any host (using its MAC address
   as identifier); this is particularly useful to identify the DHCP clients that provide unhelpful hostnames
   in their DHCP requests.
+* **NTP and DNS server options**: you can advertise in DHCP OFFER packets whatever NTP and DNS server you want.
 
 ## Web UI
 
