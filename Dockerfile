@@ -4,8 +4,6 @@ ARG BUILD_FROM
 FROM golang:1.23 AS builder-go
 
 WORKDIR /app/backend
-#COPY backend/go.mod backend/go.sum ./
-#RUN go mod download
 COPY dhcp-clients-webapp-backend .
 RUN CGO_ENABLED=0 go build -o /dhcp-clients-webapp-backend .
 

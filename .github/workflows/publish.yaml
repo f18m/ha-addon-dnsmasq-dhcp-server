@@ -84,7 +84,7 @@ jobs:
         uses: home-assistant/builder@master
         with:
           args: |
-            --amd64 \
+            --all \
             --target myaddon \
             --docker-hub ghcr.io/f18m
         if: ${{ needs.check_tag.outputs.is_tag == 'true' }}
@@ -105,7 +105,7 @@ jobs:
         uses: home-assistant/builder@master
         with:
           args: |
-            --amd64 \
+            --all \
             --target myaddon \
             --docker-hub ghcr.io/f18m \
             --version ${{ steps.meta.outputs.version }} \
