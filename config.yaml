@@ -3,7 +3,7 @@
 # as reported by the Github Action workflow 'publish.yaml', so that you can force HomeAssistant
 # to use the docker image of that feature branch instead of the docker image of 'main', by pointing
 # HomeAssistant to that feature branch
-version: 1.0.8
+version: feature-ntp
 slug: dnsmasq-dhcp
 name: Dnsmasq-DHCP
 description: A DHCP server based on dnsmasq
