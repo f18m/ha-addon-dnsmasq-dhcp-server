@@ -7,6 +7,7 @@ configuration:
     name: DHCP lease time for IP address reservations
     description: This can be given in seconds, minutes (m) or hours (h) or you can use 'infinite'.
 
+  # FIXME: somehow the below syntax does not work
   # network:
   #   broadcast:
   #     name: Network Broadcast Address
