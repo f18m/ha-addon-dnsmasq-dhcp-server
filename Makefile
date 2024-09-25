@@ -41,5 +41,6 @@ test-docker-image:
 		--rm \
 		-v $(shell pwd)/test-options.json:/data/options.json \
 		--cap-add NET_ADMIN \
+		--network host \
 		-p 8100:8100 \
 		${IMAGETAG}:localtest

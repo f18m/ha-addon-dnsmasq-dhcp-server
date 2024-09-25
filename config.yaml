@@ -41,6 +41,10 @@ options:
       - 0.europe.pool.ntp.org
       - 1.europe.pool.ntp.org
       - 2.europe.pool.ntp.org
+      # another way to go is to use Google NTP:
+      - time1.google.com
+      - time2.google.com
+      - time3.google.com
   dhcp_range:
     start_ip: 192.168.1.50
     end_ip: 192.168.1.250

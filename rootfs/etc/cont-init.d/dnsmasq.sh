@@ -10,3 +10,5 @@ tempio \
     -template /usr/share/tempio/dnsmasq.config \
     -out "${CONFIG}"
 
+bashio::log.info "Full dnsmasq config:"
+cat -n $CONFIG
