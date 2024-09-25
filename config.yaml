@@ -35,16 +35,17 @@ options:
       - 8.8.8.8
       - 8.8.4.4
     ntp:
-      # the entry 0.0.0.0 means "the address of the machine running dnsmasq"
+      # define up to 3 NTP servers
+      # example1: the entry 0.0.0.0 means "the address of the machine running dnsmasq"
       #- 0.0.0.0
-      # online NTP servers: check https://www.ntppool.org/zone/@ for details about continental zones:
+      # example2: online NTP servers: check https://www.ntppool.org/zone/@ for details about continental zones:
       - 0.europe.pool.ntp.org
       - 1.europe.pool.ntp.org
       - 2.europe.pool.ntp.org
-      # another way to go is to use Google NTP:
-      - time1.google.com
-      - time2.google.com
-      - time3.google.com
+      # example3: another way to go is to use Google NTP:
+      #- time1.google.com
+      #- time2.google.com
+      #- time3.google.com
   dhcp_range:
     start_ip: 192.168.1.50
     end_ip: 192.168.1.250
