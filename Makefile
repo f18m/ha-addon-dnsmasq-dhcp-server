@@ -1,6 +1,7 @@
 all: build-docker-image
 
-ARCH:=--all
+# NOTE: the architecture "armhf" (ARM v6) is excluded from the list because Go toolchain is not available there
+ARCH:=--armv7 --amd64 --aarch64 --i386
 ifeq ($(FAST),1)
 # pick just 1 arch instead of all, to speedup
 ARCH:=--amd64
