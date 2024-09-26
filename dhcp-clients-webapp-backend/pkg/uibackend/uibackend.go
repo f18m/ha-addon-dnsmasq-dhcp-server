@@ -243,6 +243,16 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles(templatesDir + "/index.templ.html"))
 
+	//
+	// REVERSE PROXY LOGIC
+	//
+	// In order for the browser JS engine to estabilish the WebSocket connection successfully,
+	// we need to direct the browser to the Hassio Ingress endpoint. There, the request
+	// will be routed to the add-on nginx instance used as REVERSE PROXY which, finally,
+	// will route the request to this webserver.
+	// To get the Hassio ingress endpoint we can simply read some HTTP headers that the ingress
+	// is adding to any request that goes through:
+	//
 	XFwdHost, ok1 := r.Header["X-Forwarded-Host"]
 	XIngressPath, ok2 := r.Header["X-Ingress-Path"]
 	var WebSocketHost string
@@ -263,15 +273,16 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		WebSocketHost string
-		DhcpStartIP   string
-		DhcpEndIP     string
-		DhcpPoolSize  int
+		WebSocketURI string
+		DhcpStartIP  string
+		DhcpEndIP    string
+		DhcpPoolSize int
 	}{
-		WebSocketHost: WebSocketHost,
-		DhcpStartIP:   b.dhcpStartIP.String(),
-		DhcpEndIP:     b.dhcpEndIP.String(),
-		DhcpPoolSize:  dhcpPoolSize,
+		// Note that the path between browser and Hassio ingress is TLS, so we use WSS scheme
+		WebSocketURI: "wss://" + WebSocketHost + "/ws",
+		DhcpStartIP:  b.dhcpStartIP.String(),
+		DhcpEndIP:    b.dhcpEndIP.String(),
+		DhcpPoolSize: dhcpPoolSize,
 	}
 
 	err := tmpl.Execute(w, data)

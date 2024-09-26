@@ -25,6 +25,11 @@
     </style>
 
     <script type="text/javascript">
+        // these variables are rendered by the UI backend when serving this file to the client
+        // and that's why they might be highlighted as invalid Javascript syntax
+        var dhcpPoolSize = {{ .DhcpPoolSize }}
+        var webSocketURI = {{ .WebSocketURI }}
+
         function base64ToHex(base64) {
             // Decode the base64 string into a binary string
             const binaryString = atob(base64);
@@ -142,7 +147,7 @@
 
         // websocket
 
-        var ws = new WebSocket("wss://{{.WebSocketHost}}/ws");
+        var ws = new WebSocket(webSocketURI);
 
         ws.onopen = function (event) {
             console.log("Websocket started successfully");
@@ -205,7 +210,6 @@
                 }).forceRender();
 
                 // compute DHCP pool usage
-                var dhcpPoolSize = {{ .DhcpPoolSize }}
                 var usagePerc = 0
                 if (dhcpPoolSize > 0) {
                     usagePerc = 100 * data.length / dhcpPoolSize
