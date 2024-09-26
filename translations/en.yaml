@@ -10,6 +10,10 @@ configuration:
   network:
     name: Local Area Network settings
     description: Contains the definition of the network where the DHCP server will be listening
+  dhcp_range:
+    name: DHCP Server IP Pool
+    description: Defines the range of IP addresses to be served dynamically to the clients
+
   # FIXME: somehow the below syntax does not work
   # network:
   #   broadcast:
@@ -41,3 +45,10 @@ configuration:
   dhcp_clients_friendly_names:
     name: DHCP Clients Friendly Names
     description: List of MAC addresses / friendly-name pairs to help identify the DHCP clients in the Web UI.
+
+  log_dhcp:
+    name: Log DHCP
+    description: Log all details about DHCP requests served by the server
+  log_web_ui:
+    name: Log Web UI
+    description: Log all HTTP requests served by the add-on UI

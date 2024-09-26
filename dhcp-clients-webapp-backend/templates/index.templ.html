@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>DHCP Clients</title>
 
@@ -11,9 +12,15 @@
         .solidBorder {
             border: 1px solid;
         }
+
         .monoText {
             font-family: monospace;
             background-color: lightgrey;
+            padding: 3px;
+        }
+
+        .boldText {
+            font-weight: bold;
         }
     </style>
 
@@ -72,7 +79,7 @@
         }
 
         function formatTimeLeft(unixTimestamp) {
-            if (unixTimestamp == 0){
+            if (unixTimestamp == 0) {
                 return "Never expires";
             }
 
@@ -101,17 +108,32 @@
             console.log("Initializing grid.js table");
             grid = new gridjs.Grid({
                 columns: [
-                    { name: 'ID', sort: true }, 
-                    { name: 'Friendly Name', sort: true }, 
-                    { name: 'Hostname', sort: true }, 
-                    { name: 'IP Address',  sort: { compare: compareIPs } }, 
-                    { name: 'MAC Address', sort: true }, 
+                    { name: 'ID', sort: true },
+                    { name: 'Friendly Name', sort: true },
+                    { name: 'Hostname', sort: true },
+                    { name: 'IP Address', sort: { compare: compareIPs } },
+                    { name: 'MAC Address', sort: true },
                     { name: 'Expires in', sort: true }
                 ],
                 data: [],
                 sort: true,
                 search: true,
-                pagination: { limit: 20 }
+                resizable: true,
+                pagination: { limit: 20 },
+
+                // when hovering the mouse on a row, change background colour:
+                className: {
+                    table: css`
+                    tr:hover td {
+                        background-color: rgba(0, 0, 0, 0.1);
+                    }
+                    `,
+                    td: css`
+                    &:hover {
+                        color: #000;
+                    }
+                    `
+                }
             }).render(document.getElementById('table-wrapper'));
         }
 
@@ -122,19 +144,19 @@
 
         var ws = new WebSocket("wss://{{.WebSocketHost}}/ws");
 
-        ws.onopen = function(event) {
+        ws.onopen = function (event) {
             console.log("Websocket started successfully");
         };
 
-        ws.onclose = function(event) {
+        ws.onclose = function (event) {
             console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
         }
 
-        ws.onerror = function(event) {
+        ws.onerror = function (event) {
             console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
         }
 
-        ws.onmessage = function(event) {
+        ws.onmessage = function (event) {
 
             try {
                 var data = JSON.parse(event.data);
@@ -166,15 +188,15 @@
 
             } else {
                 console.log("Websocket connection: received " + data.length + " items from websocket");
-                
+
                 tableData = [];
-                data.forEach(function(item, index) {
+                data.forEach(function (item, index) {
                     console.log(`Item ${index + 1}:`, item);
 
                     // append new row
-                    tableData.push([index + 1, 
-                                    item.friendly_name, item.lease.hostname, item.lease.ip_addr, 
-                                    item.lease.mac_addr, formatTimeLeft(item.lease.expires)]);
+                    tableData.push([index + 1,
+                    item.friendly_name, item.lease.hostname, item.lease.ip_addr,
+                    item.lease.mac_addr, formatTimeLeft(item.lease.expires)]);
                 });
 
                 // rerender the table
@@ -182,31 +204,40 @@
                     data: tableData
                 }).forceRender();
 
-                var dhcpPoolSize = {{ .DhcpPoolSize }}
-                var usagePerc = 0
-                if (dhcpPoolSize > 0) {
-                    usagePerc = 100 * data.length / dhcpPoolSize
-                }
-
-                message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server. DHCP pool usage is at " + usagePerc + "%.";
+                var dhcpPoolSize = {{ .DhcpPoolSize }
             }
+            var usagePerc = 0
+            if (dhcpPoolSize > 0) {
+                usagePerc = 100 * data.length / dhcpPoolSize
+
+                // truncate to only 1 digit accuracy
+                usagePerc = Math.round(usagePerc * 10) / 10
+            }
+
+            message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server. DHCP pool usage is at " + usagePerc + "%.";
+        }
         };
     </script>
 </head>
+
 <body>
     <h1>DHCP Clients</h1>
 
-    <p id="dhcp_range">The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }}-{{ .DhcpEndIP }}</span>.</p>
+    <p id="dhcp_range">The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }} - {{ .DhcpEndIP
+            }}</span>.</p>
 
     <p id="message"></p>
 
     <!-- the Grid.js table will be attached to this DIV element -->
     <div id="table-wrapper"></div>
 
-    <p>Notes:</p>
+    <p><span class="boldText">Notes:</span></p>
     <ul>
-    <li>An asterisk * in the 'Hostname' column indicates that the DHCP client did not advertise his own hostname to the DHCP server.</li>
-    <li>The 'Friendly Name' column is populated using this addon configuration options.</li>
+        <li>An asterisk * in the 'Hostname' column indicates that the DHCP client did not advertise his own hostname to
+            the DHCP server.</li>
+        <li>The 'Friendly Name' column is populated using the <span class="monoText">dhcp_clients_friendly_names</span>
+            addon configuration.</li>
     </ul>
 </body>
+
 </html>
