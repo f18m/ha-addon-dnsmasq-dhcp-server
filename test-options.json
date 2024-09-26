@@ -1,23 +1,34 @@
 {
-    "default_lease": "12h",
+  "default_lease": "12h",
+  "address_reservation_lease": "24h",
+  "ip_address_reservations": [
+    {
+      "mac": "aa:bb:cc:dd:ee:ff",
+      "name": "an-important-host-with-static-ip",
+      "ip": "192.168.1.15"
+    }
+  ],
+  "dhcp_range": {
+    "start_ip": "192.168.1.50",
+    "end_ip": "192.168.1.100"
+  },
+  "network": {
+    "broadcast": "192.168.1.255",
+    "gateway": "192.168.1.254",
+    "interface": "enp3s0",
+    "netmask": "255.255.255.0",
+    "subnet": "192.168.1.0",
     "dns": [
       "8.8.8.8",
       "8.8.4.4"
     ],
-    "hosts": [
-      {
-        "mac": "aa:bb:cc:dd:ee:ff",
-        "name": "an-important-host-with-static-ip",
-        "ip": "192.168.1.15"
-      }
-    ],
-    "network": {
-      "broadcast": "192.168.1.255",
-      "gateway": "192.168.1.254",
-      "interface": "enp1s0",
-      "netmask": "255.255.255.0",
-      "range_end": "192.168.1.250",
-      "range_start": "192.168.1.50",
-      "subnet": "192.168.1.0"
-    }
+    "ntp": [
+      "0.2.3.4",
+      "ntp.pool.org",
+      "0.europe.ntp.pool.org",
+      "1.europe.ntp.pool.org",
+      "2.europe.ntp.pool.org",
+      "1.2.3.4"
+    ]
+  }
 }

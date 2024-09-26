@@ -12,11 +12,13 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/gorilla/websocket"
+	"github.com/netdata/go.d.plugin/pkg/iprange"
 )
 
 var bindAddress = ":8080"
@@ -104,8 +106,12 @@ type UIBackend struct {
 	// The key of this map is the MAC address formatted as string (since net.HardwareAddr is not a valid map key type)
 	friendlyNames map[string]DhcpClientFriendlyName
 
-	// Log this backend activities
+	// Log this backend activities?
 	logWebUI bool
+
+	// DHCP range
+	dhcpStartIP net.IP
+	dhcpEndIP   net.IP
 
 	// the actual HTTP server
 	server   http.Server
@@ -211,19 +217,24 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 // Broadcast updater: any update posted on the broadcastCh is broadcasted to all clients
 func (b *UIBackend) broadcastUpdatesToClients() {
 	for {
-		msg := <-b.broadcastCh
+		dhcpClientsSlice := <-b.broadcastCh
+
+		// sort the slice by IP (the user can sort again later based on some other criteria):
+		slices.SortFunc(dhcpClientsSlice, func(a, b DhcpClientData) int {
+			return a.Lease.IPAddr.Compare(b.Lease.IPAddr)
+		})
 
 		// loop over all clients
 		b.clientsLock.Lock()
 		for client := range b.clients {
-			err := client.WriteJSON(msg)
+			err := client.WriteJSON(dhcpClientsSlice)
 			if err != nil {
 				log.Default().Printf("Error while writing JSON to WebSocket: %v", err)
 				client.Close()
 				delete(b.clients, client)
 			} else {
 				if b.logWebUI {
-					jsonData, err := json.Marshal(msg)
+					jsonData, err := json.Marshal(dhcpClientsSlice)
 					if err != nil {
 						log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
 					}
@@ -238,6 +249,16 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles(templatesDir + "/index.templ.html"))
 
+	//
+	// REVERSE PROXY LOGIC
+	//
+	// In order for the browser JS engine to estabilish the WebSocket connection successfully,
+	// we need to direct the browser to the Hassio Ingress endpoint. There, the request
+	// will be routed to the add-on nginx instance used as REVERSE PROXY which, finally,
+	// will route the request to this webserver.
+	// To get the Hassio ingress endpoint we can simply read some HTTP headers that the ingress
+	// is adding to any request that goes through:
+	//
 	XFwdHost, ok1 := r.Header["X-Forwarded-Host"]
 	XIngressPath, ok2 := r.Header["X-Ingress-Path"]
 	var WebSocketHost string
@@ -251,10 +272,23 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		WebSocketHost = XFwdHost[0] + XIngressPath[0]
 	}
 
+	// compute pool size:
+	dhcpPoolSize := 0
+	if b.dhcpStartIP != nil && b.dhcpEndIP != nil {
+		dhcpPoolSize = int(iprange.New(b.dhcpStartIP, b.dhcpEndIP).Size().Int64())
+	}
+
 	data := struct {
-		WebSocketHost string
+		WebSocketURI string
+		DhcpStartIP  string
+		DhcpEndIP    string
+		DhcpPoolSize int
 	}{
-		WebSocketHost: WebSocketHost,
+		// Note that the path between browser and Hassio ingress is TLS, so we use WSS scheme
+		WebSocketURI: "wss://" + WebSocketHost + "/ws",
+		DhcpStartIP:  b.dhcpStartIP.String(),
+		DhcpEndIP:    b.dhcpEndIP.String(),
+		DhcpPoolSize: dhcpPoolSize,
 	}
 
 	err := tmpl.Execute(w, data)
@@ -262,7 +296,7 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		log.Default().Printf("WARN: error while rendering template: %s\n", err.Error())
 		// keep going
 	} else {
-		log.Default().Printf("Successfully rendered web page template using WebSocketHost=%s\n", data.WebSocketHost)
+		log.Default().Printf("Successfully rendered web page template\n")
 	}
 }
 
@@ -333,6 +367,11 @@ type AddonConfig struct {
 		Mac  string `json:"mac"`
 	} `json:"dhcp_clients_friendly_names"`
 
+	DhcpRange struct {
+		StartIP string `json:"start_ip"`
+		EndIP   string `json:"end_ip"`
+	} `json:"dhcp_range"`
+
 	LogDHCP  bool `json:"log_dhcp"`
 	LogWebUI bool `json:"log_web_ui"`
 }
@@ -358,6 +397,10 @@ func (b *UIBackend) readAddonConfig() error {
 	if err != nil {
 		return err
 	}
+
+	// convert DHCP IP strings to net.IP
+	b.dhcpStartIP = net.ParseIP(cfg.DhcpRange.StartIP)
+	b.dhcpEndIP = net.ParseIP(cfg.DhcpRange.EndIP)
 
 	// convert to a slice of DhcpClientFriendlyName instances
 	for _, client := range cfg.DhcpClientsFriendlyNames {

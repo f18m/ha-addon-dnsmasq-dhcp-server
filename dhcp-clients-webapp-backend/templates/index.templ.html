@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>DHCP Clients</title>
 
@@ -11,9 +12,24 @@
         .solidBorder {
             border: 1px solid;
         }
+
+        .monoText {
+            font-family: monospace;
+            background-color: lightgrey;
+            padding: 3px;
+        }
+
+        .boldText {
+            font-weight: bold;
+        }
     </style>
 
     <script type="text/javascript">
+        // these variables are rendered by the UI backend when serving this file to the client
+        // and that's why they might be highlighted as invalid Javascript syntax
+        var dhcpPoolSize = {{ .DhcpPoolSize }}
+        var webSocketURI = {{ .WebSocketURI }}
+
         function base64ToHex(base64) {
             // Decode the base64 string into a binary string
             const binaryString = atob(base64);
@@ -68,7 +84,7 @@
         }
 
         function formatTimeLeft(unixTimestamp) {
-            if (unixTimestamp == 0){
+            if (unixTimestamp == 0) {
                 return "Never expires";
             }
 
@@ -97,16 +113,17 @@
             console.log("Initializing grid.js table");
             grid = new gridjs.Grid({
                 columns: [
-                    { name: 'ID', sort: true }, 
-                    { name: 'Friendly Name', sort: true }, 
-                    { name: 'Hostname', sort: true }, 
-                    { name: 'IP Address',  sort: { compare: compareIPs } }, 
-                    { name: 'MAC Address', sort: true }, 
+                    { name: 'ID', sort: true },
+                    { name: 'Friendly Name', sort: true },
+                    { name: 'Hostname', sort: true },
+                    { name: 'IP Address', sort: { compare: compareIPs } },
+                    { name: 'MAC Address', sort: true },
                     { name: 'Expires in', sort: true }
                 ],
                 data: [],
                 sort: true,
                 search: true,
+                resizable: true,
                 pagination: { limit: 20 }
             }).render(document.getElementById('table-wrapper'));
         }
@@ -116,21 +133,21 @@
 
         // websocket
 
-        var ws = new WebSocket("wss://{{.WebSocketHost}}/ws");
+        var ws = new WebSocket(webSocketURI);
 
-        ws.onopen = function(event) {
+        ws.onopen = function (event) {
             console.log("Websocket started successfully");
         };
 
-        ws.onclose = function(event) {
+        ws.onclose = function (event) {
             console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
         }
 
-        ws.onerror = function(event) {
+        ws.onerror = function (event) {
             console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
         }
 
-        ws.onmessage = function(event) {
+        ws.onmessage = function (event) {
 
             try {
                 var data = JSON.parse(event.data);
@@ -162,15 +179,15 @@
 
             } else {
                 console.log("Websocket connection: received " + data.length + " items from websocket");
-                
+
                 tableData = [];
-                data.forEach(function(item, index) {
+                data.forEach(function (item, index) {
                     console.log(`Item ${index + 1}:`, item);
 
                     // append new row
-                    tableData.push([index + 1, 
-                                    item.friendly_name, item.lease.hostname, item.lease.ip_addr, 
-                                    item.lease.mac_addr, formatTimeLeft(item.lease.expires)]);
+                    tableData.push([index + 1,
+                    item.friendly_name, item.lease.hostname, item.lease.ip_addr,
+                    item.lease.mac_addr, formatTimeLeft(item.lease.expires)]);
                 });
 
                 // rerender the table
@@ -178,25 +195,40 @@
                     data: tableData
                 }).forceRender();
 
-                message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server:";
+                // compute DHCP pool usage
+                var usagePerc = 0
+                if (dhcpPoolSize > 0) {
+                    usagePerc = 100 * data.length / dhcpPoolSize
+
+                    // truncate to only 1 digit accuracy
+                    usagePerc = Math.round(usagePerc * 10) / 10
+                }
+
+                // update the message
+                message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server. DHCP pool usage is at " + usagePerc + "%.";
             }
         };
     </script>
 </head>
+
 <body>
     <h1>DHCP Clients</h1>
-    <p><a href="/hassio/addon/79957c2e_dnsmasq-dhcp/info">Jump to this addon config page
-        <svg fill="none" role="img" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" width="15px" height="15px"> <title>External link icon</title> <path d="M38.375 24H37.125C36.7344 24 36.5 24.3125 36.5 24.625V40.25C36.5 40.9531 35.875 41.5 35.25 41.5H7.75C7.04687 41.5 6.5 40.9531 6.5 40.25V12.75C6.5 12.125 7.04687 11.5 7.75 11.5H23.375C23.6875 11.5 24 11.2656 24 10.875V9.625C24 9.3125 23.6875 9 23.375 9H7.75C5.64062 9 4 10.7187 4 12.75V40.25C4 42.3594 5.64062 44 7.75 44H35.25C37.2812 44 39 42.3594 39 40.25V24.625C39 24.3125 38.6875 24 38.375 24ZM41.5 4H41.4219L33.9219 4.07812C31.7344 4.07812 30.6406 6.73437 32.2031 8.29687L34.9375 11.1094L14.2344 31.8125C14.0781 31.9687 13.9219 32.2031 13.9219 32.4375C13.9219 32.6719 14.0781 32.9844 14.2344 33.1406L14.8594 33.7656C15.0156 33.9219 15.3281 34.0781 15.5625 34.0781C15.7969 34.0781 16.1094 33.9219 16.1875 33.7656L36.8906 13.0625L39.7031 15.7969C41.2656 17.3594 43.9219 16.2656 43.9219 14.0781L44 6.57812V6.5C44 5.17187 42.8281 4 41.5 4ZM41.4219 14.0781L33.9219 6.57812L41.5 6.5L41.4219 14.0781Z" fill="currentColor"></path> </svg>
-    </a></p>
+
+    <p id="dhcp_range">The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }} - {{ .DhcpEndIP
+            }}</span>.</p>
+
     <p id="message"></p>
 
     <!-- the Grid.js table will be attached to this DIV element -->
     <div id="table-wrapper"></div>
 
-    <p>Notes:</p>
+    <p><span class="boldText">Notes:</span></p>
     <ul>
-    <li>An asterisk * in the 'Hostname' column indicates that the DHCP client did not advertise his own hostname to the DHCP server.</li>
-    <li>The 'Friendly Name' column is populated using this addon configuration options.</li>
+        <li>An asterisk * in the 'Hostname' column indicates that the DHCP client did not advertise his own hostname to
+            the DHCP server.</li>
+        <li>The 'Friendly Name' column is populated using the <span class="monoText">dhcp_clients_friendly_names</span>
+            addon configuration.</li>
     </ul>
 </body>
+
 </html>
