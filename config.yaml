@@ -35,17 +35,17 @@ options:
       - 8.8.8.8
       - 8.8.4.4
     ntp:
-      # define up to 3 NTP servers
-      # example1: the entry 0.0.0.0 means "the address of the machine running dnsmasq"
-      #- 0.0.0.0
-      # example2: online NTP servers: check https://www.ntppool.org/zone/@ for details about continental zones:
+      # define NTP servers to provide to DHCP clients (not all clients will honor this setting though)
+      # example1: online NTP servers: check https://www.ntppool.org/zone/@ for details about continental zones:
       - 0.europe.pool.ntp.org
       - 1.europe.pool.ntp.org
       - 2.europe.pool.ntp.org
-      # example3: another way to go is to use Google NTP:
+      # example2: another way to go is to use Google NTP:
       #- time1.google.com
       #- time2.google.com
       #- time3.google.com
+      # example3: the entry 0.0.0.0 means "the address of the machine running dnsmasq"
+      #- 0.0.0.0
   dhcp_range:
     start_ip: 192.168.1.50
     end_ip: 192.168.1.250
@@ -56,7 +56,6 @@ options:
   dhcp_clients_friendly_names:
     - mac: dd:ee:aa:dd:bb:ee
       name: "This is a friendly name to label this host, even if it gets a dynamic IP"
-
   log_dhcp: true
   log_web_ui: false
 schema:

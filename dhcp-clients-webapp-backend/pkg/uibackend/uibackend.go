@@ -290,7 +290,7 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		log.Default().Printf("WARN: error while rendering template: %s\n", err.Error())
 		// keep going
 	} else {
-		log.Default().Printf("Successfully rendered web page template using WebSocketHost=%s\n", data.WebSocketHost)
+		log.Default().Printf("Successfully rendered web page template\n")
 	}
 }
 
