@@ -25,8 +25,6 @@
     </style>
 
     <script type="text/javascript">
-        import { css } from '@emotion/css';
-
         // these variables are rendered by the UI backend when serving this file to the client
         // and that's why they might be highlighted as invalid Javascript syntax
         var dhcpPoolSize = {{ .DhcpPoolSize }}
@@ -126,21 +124,7 @@
                 sort: true,
                 search: true,
                 resizable: true,
-                pagination: { limit: 20 },
-
-                // when hovering the mouse on a row, change background colour:
-                className: {
-                    table: `
-                    tr:hover td {
-                        background-color: rgba(0, 0, 0, 0.1);
-                    }
-                    `,
-                    td: `
-                    &:hover {
-                        color: #000;
-                    }
-                    `
-                }
+                pagination: { limit: 20 }
             }).render(document.getElementById('table-wrapper'));
         }
 
