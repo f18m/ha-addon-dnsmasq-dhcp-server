@@ -11,6 +11,10 @@
         .solidBorder {
             border: 1px solid;
         }
+        .monoText {
+            font-family: monospace;
+            background-color: lightgrey;
+        }
     </style>
 
     <script type="text/javascript">
@@ -192,7 +196,7 @@
 <body>
     <h1>DHCP Clients</h1>
 
-    <p id="dhcp_range">The configured DHCP range is: {{ .DhcpStartIP }}-{{ .DhcpEndIP }}.</p>
+    <p id="dhcp_range">The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }}-{{ .DhcpEndIP }}</span>.</p>
 
     <p id="message"></p>
 

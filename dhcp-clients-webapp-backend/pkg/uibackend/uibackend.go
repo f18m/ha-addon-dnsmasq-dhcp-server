@@ -266,12 +266,12 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		WebSocketHost string
 		DhcpStartIP   string
 		DhcpEndIP     string
-		DhcpPoolSize  string
+		DhcpPoolSize  int
 	}{
 		WebSocketHost: WebSocketHost,
 		DhcpStartIP:   b.dhcpStartIP.String(),
 		DhcpEndIP:     b.dhcpEndIP.String(),
-		DhcpPoolSize:  string(dhcpPoolSize),
+		DhcpPoolSize:  dhcpPoolSize,
 	}
 
 	err := tmpl.Execute(w, data)
