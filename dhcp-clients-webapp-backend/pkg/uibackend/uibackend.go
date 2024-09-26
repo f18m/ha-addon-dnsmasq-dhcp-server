@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -216,19 +217,24 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 // Broadcast updater: any update posted on the broadcastCh is broadcasted to all clients
 func (b *UIBackend) broadcastUpdatesToClients() {
 	for {
-		msg := <-b.broadcastCh
+		dhcpClientsSlice := <-b.broadcastCh
+
+		// sort the slice by IP (the user can sort again later based on some other criteria):
+		slices.SortFunc(dhcpClientsSlice, func(a, b DhcpClientData) int {
+			return a.Lease.IPAddr.Compare(b.Lease.IPAddr)
+		})
 
 		// loop over all clients
 		b.clientsLock.Lock()
 		for client := range b.clients {
-			err := client.WriteJSON(msg)
+			err := client.WriteJSON(dhcpClientsSlice)
 			if err != nil {
 				log.Default().Printf("Error while writing JSON to WebSocket: %v", err)
 				client.Close()
 				delete(b.clients, client)
 			} else {
 				if b.logWebUI {
-					jsonData, err := json.Marshal(msg)
+					jsonData, err := json.Marshal(dhcpClientsSlice)
 					if err != nil {
 						log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
 					}
