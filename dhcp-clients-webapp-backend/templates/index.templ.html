@@ -205,7 +205,7 @@
                 }).forceRender();
 
                 // compute DHCP pool usage
-                var dhcpPoolSize = {{ .DhcpPoolSize }
+                var dhcpPoolSize = {{ .DhcpPoolSize }}
                 var usagePerc = 0
                 if (dhcpPoolSize > 0) {
                     usagePerc = 100 * data.length / dhcpPoolSize
