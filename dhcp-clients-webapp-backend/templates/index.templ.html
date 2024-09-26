@@ -204,18 +204,19 @@
                     data: tableData
                 }).forceRender();
 
+                // compute DHCP pool usage
                 var dhcpPoolSize = {{ .DhcpPoolSize }
-            }
-            var usagePerc = 0
-            if (dhcpPoolSize > 0) {
-                usagePerc = 100 * data.length / dhcpPoolSize
+                var usagePerc = 0
+                if (dhcpPoolSize > 0) {
+                    usagePerc = 100 * data.length / dhcpPoolSize
 
-                // truncate to only 1 digit accuracy
-                usagePerc = Math.round(usagePerc * 10) / 10
-            }
+                    // truncate to only 1 digit accuracy
+                    usagePerc = Math.round(usagePerc * 10) / 10
+                }
 
-            message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server. DHCP pool usage is at " + usagePerc + "%.";
-        }
+                // update the message
+                message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server. DHCP pool usage is at " + usagePerc + "%.";
+            }
         };
     </script>
 </head>
