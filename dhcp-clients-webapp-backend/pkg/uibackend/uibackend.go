@@ -17,6 +17,7 @@ import (
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/gorilla/websocket"
+	"github.com/netdata/go.d.plugin/pkg/iprange"
 )
 
 var bindAddress = ":8080"
@@ -104,8 +105,12 @@ type UIBackend struct {
 	// The key of this map is the MAC address formatted as string (since net.HardwareAddr is not a valid map key type)
 	friendlyNames map[string]DhcpClientFriendlyName
 
-	// Log this backend activities
+	// Log this backend activities?
 	logWebUI bool
+
+	// DHCP range
+	dhcpStartIP net.IP
+	dhcpEndIP   net.IP
 
 	// the actual HTTP server
 	server   http.Server
@@ -251,10 +256,22 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		WebSocketHost = XFwdHost[0] + XIngressPath[0]
 	}
 
+	// compute pool size:
+	dhcpPoolSize := 0
+	if b.dhcpStartIP != nil && b.dhcpEndIP != nil {
+		dhcpPoolSize = int(iprange.New(b.dhcpStartIP, b.dhcpEndIP).Size().Int64())
+	}
+
 	data := struct {
 		WebSocketHost string
+		DhcpStartIP   string
+		DhcpEndIP     string
+		DhcpPoolSize  string
 	}{
 		WebSocketHost: WebSocketHost,
+		DhcpStartIP:   b.dhcpStartIP.String(),
+		DhcpEndIP:     b.dhcpEndIP.String(),
+		DhcpPoolSize:  string(dhcpPoolSize),
 	}
 
 	err := tmpl.Execute(w, data)
@@ -333,6 +350,11 @@ type AddonConfig struct {
 		Mac  string `json:"mac"`
 	} `json:"dhcp_clients_friendly_names"`
 
+	DhcpRange struct {
+		StartIP string `json:"start_ip"`
+		EndIP   string `json:"end_ip"`
+	} `json:"dhcp_range"`
+
 	LogDHCP  bool `json:"log_dhcp"`
 	LogWebUI bool `json:"log_web_ui"`
 }
@@ -358,6 +380,10 @@ func (b *UIBackend) readAddonConfig() error {
 	if err != nil {
 		return err
 	}
+
+	// convert DHCP IP strings to net.IP
+	b.dhcpStartIP = net.ParseIP(cfg.DhcpRange.StartIP)
+	b.dhcpEndIP = net.ParseIP(cfg.DhcpRange.EndIP)
 
 	// convert to a slice of DhcpClientFriendlyName instances
 	for _, client := range cfg.DhcpClientsFriendlyNames {

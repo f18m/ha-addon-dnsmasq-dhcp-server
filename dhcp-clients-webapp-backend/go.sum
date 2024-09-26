@@ -1,4 +1,8 @@
+github.com/apparentlymart/go-cidr v1.1.0 h1:2mAhrMoF+nhXqxTzSZMUzDHkLjmIHC+Zzn4tdgBZjnU=
+github.com/apparentlymart/go-cidr v1.1.0/go.mod h1:EBcsNrHc3zQeuaeCeCtQruQm+n9/YjEn/vI25Lg7Gwc=
 github.com/b0ch3nski/go-dnsmasq-utils v0.1.1 h1:dHra9Hyq4HDUuA7nolJyVNUA5I+rchI300cZ2FTDlEE=
 github.com/b0ch3nski/go-dnsmasq-utils v0.1.1/go.mod h1:vdD5vOfYL0GDBSvWk/+YXJo8SAXOrcY0Ey8E7BoupgM=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
+github.com/netdata/go.d.plugin v0.58.1 h1:X055mvxx6I+9V3hZnJ3bR30j/2P1ZT7Wa1thQYnEyB0=
+github.com/netdata/go.d.plugin v0.58.1/go.mod h1:+p64LKucOfaCby7r+59tcln8NDKeLxpzjEhx4wUwOMU=
