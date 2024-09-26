@@ -228,6 +228,12 @@
             the DHCP server.</li>
         <li>The 'Friendly Name' column is populated using the <span class="monoText">dhcp_clients_friendly_names</span>
             addon configuration.</li>
+        <li>The 'Hostname' column is populated with the hostname advertised by the DHCP client.</li>
+        <li>The 'IP Address' column might contain IP addresses located outside the DHCP range in the case 
+            the DHCP client has a special IP reservation assigned via the 
+            <span class="monoText">ip_address_reservations</span> addon configuration.</li>
+        <li>The 'Expires' column contains the count down to the next DHCP lease renewal formatted as 
+            <span class="monoText">HH:MM::SS</span>.</li>
     </ul>
 </body>
 
