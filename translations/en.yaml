@@ -52,3 +52,7 @@ configuration:
   log_web_ui:
     name: Log Web UI
     description: Log all HTTP requests served by the add-on UI
+
+  web_ui_port:
+    name: Web UI Port
+    description: Port used by the internal HTTP server

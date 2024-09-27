@@ -86,6 +86,7 @@ schema:
       name: str
   log_dhcp: bool
   log_web_ui: bool
+  web_ui_port: int
 startup: system
 privileged:
   - NET_ADMIN
