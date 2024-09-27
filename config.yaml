@@ -51,7 +51,7 @@ options:
     end_ip: 192.168.1.250
   ip_address_reservations: 
     - mac: aa:bb:cc:dd:ee:ff
-      name: "An important host with a static IP address assigned"
+      name: "An-important-host-with-reserved-IP"
       ip: 192.168.1.15
   dhcp_clients_friendly_names:
     - mac: dd:ee:aa:dd:bb:ee
@@ -79,10 +79,11 @@ schema:
     end_ip: str
   ip_address_reservations:
     - ip: str
-      mac: str
-      name: str
+      mac: match(^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$)
+      # the name in this case must be a valid hostname as per RFC 1123
+      name: match(^[a-zA-Z0-9\-.]*$)
   dhcp_clients_friendly_names:
-    - mac: str
+    - mac: match(^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$)
       name: str
   log_dhcp: bool
   log_web_ui: bool
