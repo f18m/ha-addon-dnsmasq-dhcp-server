@@ -41,10 +41,10 @@ configuration:
   #     description: The last IP address of the DHCP range that defines the DHCP address pool.
   ip_address_reservations:
     name: IP Address Reservations
-    description: List of MAC addresses / IP addresses pairs that are reserved.
+    description: List of MAC addresses / IP addresses pairs that are reserved. Strict regex validation is performed on MAC addresses and hostnames (use alphanumeric chars plus dot or hyphens only).
   dhcp_clients_friendly_names:
     name: DHCP Clients Friendly Names
-    description: List of MAC addresses / friendly-name pairs to help identify the DHCP clients in the Web UI.
+    description: List of MAC addresses / friendly-name pairs to help identify the DHCP clients in the Web UI. Strict regex validation is performed on MAC addresses.
 
   log_dhcp:
     name: Log DHCP
@@ -52,7 +52,6 @@ configuration:
   log_web_ui:
     name: Log Web UI
     description: Log all HTTP requests served by the add-on UI
-
   web_ui_port:
     name: Web UI Port
-    description: Port used by the internal HTTP server
+    description: Port used by the internal HTTP server. Change only if you get a conflict on the default port.

@@ -80,7 +80,8 @@ schema:
   ip_address_reservations:
     - ip: str
       mac: match(^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$)
-      # the name in this case must be a valid hostname as per RFC 1123
+      # the name in this case must be a valid hostname as per RFC 1123 since it is passed to dnsmasq
+      # that will refuse to start if an invalid hostname format is used
       name: match(^[a-zA-Z0-9\-.]*$)
   dhcp_clients_friendly_names:
     - mac: match(^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$)
