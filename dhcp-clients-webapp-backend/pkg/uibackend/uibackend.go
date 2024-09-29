@@ -21,7 +21,6 @@ import (
 	"github.com/netdata/go.d.plugin/pkg/iprange"
 )
 
-var bindAddress = ":8080"
 var defaultDnsmasqLeasesFile = "/data/dnsmasq.leases"
 var defaultHomeAssistantConfigFile = "/data/options.json"
 var dnsmasqMarkerForMissingHostname = "*"
@@ -114,8 +113,9 @@ type UIBackend struct {
 	dhcpEndIP   net.IP
 
 	// the actual HTTP server
-	server   http.Server
-	upgrader websocket.Upgrader
+	serverPort int
+	server     http.Server
+	upgrader   websocket.Upgrader
 
 	// map of connected websockets
 	clients     map[*websocket.Conn]bool
@@ -125,10 +125,10 @@ type UIBackend struct {
 	dhcpClientData     []DhcpClientData
 	dhcpClientDataLock sync.Mutex
 
-	// ch used to broadcast tabular data from backend->frontend
+	// channel used to broadcast tabular data from backend->frontend
 	broadcastCh chan []DhcpClientData
 
-	// ch used to link a goroutine watching for DHCP lease file changes and the lease file processor
+	// channel used to link a goroutine watching for DHCP lease file changes and the lease file processor
 	leasesCh chan []*dnsmasq.Lease
 }
 
@@ -145,7 +145,7 @@ func NewUIBackend() UIBackend {
 			},
 		},
 		server: http.Server{
-			Addr:    bindAddress,
+			Addr:    "",
 			Handler: nil,
 		},
 	}
@@ -374,6 +374,8 @@ type AddonConfig struct {
 
 	LogDHCP  bool `json:"log_dhcp"`
 	LogWebUI bool `json:"log_web_ui"`
+
+	WebUIPort int `json:"web_ui_port"`
 }
 
 func (b *UIBackend) readAddonConfig() error {
@@ -401,6 +403,17 @@ func (b *UIBackend) readAddonConfig() error {
 	// convert DHCP IP strings to net.IP
 	b.dhcpStartIP = net.ParseIP(cfg.DhcpRange.StartIP)
 	b.dhcpEndIP = net.ParseIP(cfg.DhcpRange.EndIP)
+	if b.dhcpStartIP == nil || b.dhcpEndIP == nil {
+		log.Default().Fatalf("Invalid DHCP range found in addon config file")
+		return os.ErrInvalid // I'm lazy, recycle a similar error type
+	}
+
+	// ensure we have a valid port for web UI
+	if cfg.WebUIPort <= 0 || cfg.WebUIPort > 32768 {
+		log.Default().Fatalf("Invalid Web UI port in addon config file")
+		return os.ErrInvalid // I'm lazy, recycle a similar error type
+	}
+	b.serverPort = cfg.WebUIPort
 
 	// convert to a slice of DhcpClientFriendlyName instances
 	for _, client := range cfg.DhcpClientsFriendlyNames {
@@ -464,7 +477,8 @@ func (b *UIBackend) ListenAndServe() error {
 	go b.broadcastUpdatesToClients()
 
 	// Start server
-	log.Default().Printf("Starting server to listen on %s\n", bindAddress)
+	log.Default().Printf("Starting server to listen on port %d\n", b.serverPort)
+	b.server.Addr = fmt.Sprintf(":%d", b.serverPort)
 	b.server.Handler = mux
 	return b.server.ListenAndServe()
 }
