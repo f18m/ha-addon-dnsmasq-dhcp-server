@@ -33,6 +33,9 @@ build-docker-image:
 build-backend:
 	cd dhcp-clients-webapp-backend && \
 		go build -o bin/backend . 
+	cd dhcp-clients-webapp-backend && \
+		go test -v ./...
+	
 
 test-docker-image: 
 	$(MAKE) FAST=1 .docker-image
