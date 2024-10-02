@@ -28,6 +28,24 @@ The Dnsmasq-DHCP addon configuration is documented in the 'Configuration' tab of
 addon. 
 Alternatively check out the comments inside the [addon configuration file](config.yaml).
 
+
+## Concepts
+
+### Static IP addresses
+
+The DHCP server may be configured to provide a specific IP address
+to a specific client (using its MAC address as identifier).
+These are IP address reservations.
+Note that static IP addresses do not need to be inside the DHCP range; indeed quite often the
+static IP address reserved lies outside the DHCP range.
+
+### Friendly Names
+
+Sometimes the hostname provided by the DHCP client to the DHCP server is really awkward and
+non-informative, so Dnsmasq-DHCP allow users to override that by specifying a human-friendly
+name for a particular DHCP client (using its MAC address as identifier).
+
+
 ## Links
 
 - [dnsmasq manual page](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html)

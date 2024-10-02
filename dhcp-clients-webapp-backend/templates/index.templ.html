@@ -182,8 +182,12 @@
                 console.log("Websocket connection: received " + data.length + " items from websocket");
 
                 tableData = [];
+                dhcp_addresses_used = 0;
                 data.forEach(function (item, index) {
                     console.log(`Item ${index + 1}:`, item);
+
+                    if (item.is_inside_dhcp_pool)
+                        dhcp_addresses_used += 1;
 
                     // append new row
                     tableData.push([index + 1,
@@ -199,14 +203,14 @@
                 // compute DHCP pool usage
                 var usagePerc = 0
                 if (dhcpPoolSize > 0) {
-                    usagePerc = 100 * data.length / dhcpPoolSize
+                    usagePerc = 100 * dhcp_addresses_used / dhcpPoolSize
 
                     // truncate to only 1 digit accuracy
                     usagePerc = Math.round(usagePerc * 10) / 10
                 }
 
                 // update the message
-                message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server. DHCP pool usage is at " + usagePerc + "%.";
+                message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server; " + dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.";
             }
         };
     </script>

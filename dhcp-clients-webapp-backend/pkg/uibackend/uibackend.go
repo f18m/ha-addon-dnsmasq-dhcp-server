@@ -36,7 +36,20 @@ type DhcpClientData struct {
 	Lease dnsmasq.Lease
 
 	// metadata associated with the DHCP client (obtained from configuration):
-	HasStaticIP  bool
+
+	// HasStaticIP indicates whether the DHCP server is configured to provide a specific IP address
+	// (i.e. has an IP address reservation) for this client.
+	// Note that static IP addresses do not need to be inside the DHCP range; indeed quite often the
+	// static IP address reserved lies outside the DHCP range
+	HasStaticIP bool
+
+	// IsInsideDHCPPool indicates whether this DHCP client has an IP that lies within the DHCP pool
+	// range and thus is consuming an IP address from that pool
+	// (note that this DHCP client might be a client with a static reservation or not)
+	IsInsideDHCPPool bool
+
+	// Sometimes the hostname provided by the DHCP client to the DHCP server is really awkward and
+	// non-informative, so we allow users to override that.
 	FriendlyName string
 }
 
@@ -76,8 +89,9 @@ func (d DhcpClientData) MarshalJSON() ([]byte, error) {
 			IPAddr   string `json:"ip_addr"`
 			Hostname string `json:"hostname"`
 		} `json:"lease"`
-		HasStaticIP  bool   `json:"has_static_ip"`
-		FriendlyName string `json:"friendly_name"`
+		HasStaticIP      bool   `json:"has_static_ip"`
+		IsInsideDHCPPool bool   `json:"is_inside_dhcp_pool"`
+		FriendlyName     string `json:"friendly_name"`
 	}{
 		Lease: struct {
 			Expires  int64  `json:"expires"`
@@ -90,8 +104,9 @@ func (d DhcpClientData) MarshalJSON() ([]byte, error) {
 			IPAddr:   d.Lease.IPAddr.String(),
 			Hostname: d.Lease.Hostname,
 		},
-		HasStaticIP:  d.HasStaticIP,
-		FriendlyName: d.FriendlyName,
+		HasStaticIP:      d.HasStaticIP,
+		IsInsideDHCPPool: d.IsInsideDHCPPool,
+		FriendlyName:     d.FriendlyName,
 	})
 }
 
@@ -332,6 +347,10 @@ func (b *UIBackend) processLeaseUpdates() {
 // Process a slice of dnsmasq.Lease and store that into the UIBackend object
 func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) error {
 
+	dhcpPool := iprange.Pool([]iprange.Range{
+		iprange.New(b.dhcpStartIP, b.dhcpEndIP),
+	})
+
 	b.dhcpClientDataLock.Lock()
 	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
 	for _, lease := range updatedLeases {
@@ -356,6 +375,9 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 
 		// has-static-ip metadata
 		_, d.HasStaticIP = b.ipAddressReservations[lease.IPAddr]
+
+		// is-inside-dhcp-pool metadata
+		d.IsInsideDHCPPool = dhcpPool.Contains(lease.IPAddr.AsSlice())
 
 		b.dhcpClientData = append(b.dhcpClientData, d)
 	}

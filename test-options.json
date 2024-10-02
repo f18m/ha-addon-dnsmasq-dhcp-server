@@ -30,5 +30,8 @@
       "2.europe.ntp.pool.org",
       "1.2.3.4"
     ]
-  }
+  },
+  "log_dhcp": true,
+  "log_web_ui": false,
+  "web_ui_port": 8976
 }
