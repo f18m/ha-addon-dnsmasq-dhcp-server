@@ -113,7 +113,7 @@
             console.log("Initializing grid.js table");
             grid = new gridjs.Grid({
                 columns: [
-                    { name: 'ID', sort: true, width: '5%' },
+                    { name: '#', sort: true, width: '5%' },
                     { name: 'Friendly Name', sort: true, width: '25%' },
                     { name: 'Hostname', sort: true, width: '25%' },
                     { name: 'IP Address', sort: { compare: compareIPs }, width: '15%' },
@@ -189,10 +189,14 @@
                     if (item.is_inside_dhcp_pool)
                         dhcp_addresses_used += 1;
 
+                    static_ip_str = "NO";
+                    if (item.item.has_static_ip)
+                        static_ip_str = "YES";
+
                     // append new row
                     tableData.push([index + 1,
                         item.friendly_name, item.lease.hostname, item.lease.ip_addr,
-                        item.lease.mac_addr, formatTimeLeft(item.lease.expires), item.has_static_ip]);
+                        item.lease.mac_addr, formatTimeLeft(item.lease.expires), static_ip_str]);
                 });
 
                 // rerender the table
