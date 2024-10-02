@@ -3,9 +3,14 @@
   "address_reservation_lease": "24h",
   "ip_address_reservations": [
     {
-      "mac": "aa:bb:cc:dd:ee:ff",
+      "mac": "aa:bb:cc:dd:ee:00",
       "name": "an-important-host-with-static-ip",
       "ip": "192.168.1.15"
+    },
+    {
+      "mac": "aa:bb:cc:dd:ee:01",
+      "name": "an-host-within-dhcp-range",
+      "ip": "192.168.1.55"
     }
   ],
   "dhcp_range": {

@@ -347,10 +347,6 @@ func (b *UIBackend) processLeaseUpdates() {
 // Process a slice of dnsmasq.Lease and store that into the UIBackend object
 func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) error {
 
-	dhcpPool := iprange.Pool([]iprange.Range{
-		iprange.New(b.dhcpStartIP, b.dhcpEndIP),
-	})
-
 	b.dhcpClientDataLock.Lock()
 	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
 	for _, lease := range updatedLeases {
@@ -369,7 +365,7 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 				// no: user didn't provide any friendly name but the dnsmasq DHCP server
 				// has received (over DHCP protocol) an hostname... better than nothing:
 				// use that to create a "friendly name"
-				d.FriendlyName = "Hostname: " + lease.Hostname
+				d.FriendlyName = lease.Hostname
 			}
 		}
 
@@ -377,7 +373,7 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 		_, d.HasStaticIP = b.ipAddressReservations[lease.IPAddr]
 
 		// is-inside-dhcp-pool metadata
-		d.IsInsideDHCPPool = dhcpPool.Contains(lease.IPAddr.AsSlice())
+		d.IsInsideDHCPPool = IpInRange(lease.IPAddr, b.dhcpStartIP, b.dhcpEndIP)
 
 		b.dhcpClientData = append(b.dhcpClientData, d)
 	}

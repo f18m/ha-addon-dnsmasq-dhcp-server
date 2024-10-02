@@ -40,6 +40,7 @@ test-docker-image:
 	docker run \
 		--rm \
 		-v $(shell pwd)/test-options.json:/data/options.json \
+		-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
 		--cap-add NET_ADMIN \
 		--network host \
 		-p 8100:8100 \

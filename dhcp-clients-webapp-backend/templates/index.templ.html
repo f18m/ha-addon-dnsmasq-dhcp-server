@@ -113,13 +113,13 @@
             console.log("Initializing grid.js table");
             grid = new gridjs.Grid({
                 columns: [
-                    { name: '#', sort: true, width: '5%' },
+                    { name: '#', sort: true, width: '10%' },
                     { name: 'Friendly Name', sort: true, width: '25%' },
                     { name: 'Hostname', sort: true, width: '25%' },
-                    { name: 'IP Address', sort: { compare: compareIPs }, width: '15%' },
-                    { name: 'MAC Address', sort: true, width: '15%' },
+                    { name: 'IP Address', sort: { compare: compareIPs }, width: '10%' },
+                    { name: 'MAC Address', sort: true, width: '10%' },
                     { name: 'Expires in', sort: true, width: '10%' },
-                    { name: 'Static IP?', sort: true, width: '5%' }
+                    { name: 'Static IP?', sort: true, width: '10%' }
                 ],
                 data: [],
                 sort: true,
@@ -190,7 +190,7 @@
                         dhcp_addresses_used += 1;
 
                     static_ip_str = "NO";
-                    if (item.item.has_static_ip)
+                    if (item.has_static_ip)
                         static_ip_str = "YES";
 
                     // append new row
