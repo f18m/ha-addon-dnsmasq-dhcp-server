@@ -148,11 +148,12 @@ type UIBackend struct {
 
 func NewUIBackend() UIBackend {
 	return UIBackend{
-		friendlyNames:  make(map[string]DhcpClientFriendlyName),
-		clients:        make(map[*websocket.Conn]bool),
-		dhcpClientData: nil,
-		broadcastCh:    make(chan []DhcpClientData),
-		leasesCh:       make(chan []*dnsmasq.Lease),
+		ipAddressReservations: make(map[netip.Addr]IpAddressReservation),
+		friendlyNames:         make(map[string]DhcpClientFriendlyName),
+		clients:               make(map[*websocket.Conn]bool),
+		dhcpClientData:        nil,
+		broadcastCh:           make(chan []DhcpClientData),
+		leasesCh:              make(chan []*dnsmasq.Lease),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true

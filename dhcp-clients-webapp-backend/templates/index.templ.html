@@ -113,12 +113,13 @@
             console.log("Initializing grid.js table");
             grid = new gridjs.Grid({
                 columns: [
-                    { name: 'ID', sort: true },
-                    { name: 'Friendly Name', sort: true },
-                    { name: 'Hostname', sort: true },
-                    { name: 'IP Address', sort: { compare: compareIPs } },
-                    { name: 'MAC Address', sort: true },
-                    { name: 'Expires in', sort: true }
+                    { name: 'ID', sort: true, width: '5%' },
+                    { name: 'Friendly Name', sort: true, width: '25%' },
+                    { name: 'Hostname', sort: true, width: '25%' },
+                    { name: 'IP Address', sort: { compare: compareIPs }, width: '15%' },
+                    { name: 'MAC Address', sort: true, width: '15%' },
+                    { name: 'Expires in', sort: true, width: '10%' },
+                    { name: 'Static IP?', sort: true, width: '5%' }
                 ],
                 data: [],
                 sort: true,
@@ -186,8 +187,8 @@
 
                     // append new row
                     tableData.push([index + 1,
-                    item.friendly_name, item.lease.hostname, item.lease.ip_addr,
-                    item.lease.mac_addr, formatTimeLeft(item.lease.expires)]);
+                        item.friendly_name, item.lease.hostname, item.lease.ip_addr,
+                        item.lease.mac_addr, formatTimeLeft(item.lease.expires), item.has_static_ip]);
                 });
 
                 // rerender the table
