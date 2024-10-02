@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"slices"
 	"sync"
@@ -94,13 +95,23 @@ func (d DhcpClientData) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// DhcpClientFriendlyName
+// DhcpClientFriendlyName is the 1:1 binding between a MAC address and a human-friendly name
 type DhcpClientFriendlyName struct {
 	MacAddress   net.HardwareAddr
 	FriendlyName string
 }
 
+// IpAddressReservation represents a static IP configuration loaded from the addon configuration file
+type IpAddressReservation struct {
+	Name string `json:"name"`
+	Mac  string `json:"mac"`
+	IP   string `json:"ip"`
+}
+
 type UIBackend struct {
+	// Static IP addresses, as read from the configuration
+	ipAddressReservations map[netip.Addr]IpAddressReservation
+
 	// DHCP client friendly names, as read from the configuration
 	// The key of this map is the MAC address formatted as string (since net.HardwareAddr is not a valid map key type)
 	friendlyNames map[string]DhcpClientFriendlyName
@@ -109,6 +120,9 @@ type UIBackend struct {
 	logWebUI bool
 
 	// DHCP range
+	// NOTE: if in the future we want to support more complex DHCP configurations where the DHCP pool
+	//       consists of multiple disjoint IP address ranges, then we should consider using:
+	//       the iprange.Pool object to represent that
 	dhcpStartIP net.IP
 	dhcpEndIP   net.IP
 
@@ -316,25 +330,40 @@ func (b *UIBackend) processLeaseUpdates() {
 
 // Process a slice of dnsmasq.Lease and store that into the UIBackend object
 func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) error {
+
 	b.dhcpClientDataLock.Lock()
 	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
 	for _, lease := range updatedLeases {
 
 		d := DhcpClientData{Lease: *lease}
 
+		// friendly-name metadata
+
+		// do we have a friendly-name registered for this MAC address?
 		metadata, ok := b.friendlyNames[lease.MacAddr.String()]
 		if ok {
-			// enrich with some metadata this DHCP client entry
+			// yes: enrich with some metadata this DHCP client entry
 			d.FriendlyName = metadata.FriendlyName
 		} else {
 			if lease.Hostname != dnsmasqMarkerForMissingHostname {
-				// dnsmasq DHCP server has received an hostname so use that to create a "friendly name"
+				// no: user didn't provide any friendly name but the dnsmasq DHCP server
+				// has received (over DHCP protocol) an hostname... better than nothing:
+				// use that to create a "friendly name"
 				d.FriendlyName = "Hostname: " + lease.Hostname
 			}
 		}
 
+		// has-static-ip metadata
+		_, d.HasStaticIP = b.ipAddressReservations[lease.IPAddr]
+
 		b.dhcpClientData = append(b.dhcpClientData, d)
 	}
+
+	// sort the slice by IP
+	slices.SortFunc(b.dhcpClientData, func(a, b DhcpClientData) int {
+		return a.Lease.IPAddr.Compare(b.Lease.IPAddr)
+	})
+
 	b.dhcpClientDataLock.Unlock()
 
 	log.Default().Printf("Updated DHCP clients internal status with %d entries\n", len(b.dhcpClientData))
@@ -362,6 +391,8 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 
 // dummy struct used to unmarshal HomeAssistant option file correctly
 type AddonConfig struct {
+	IpAddressReservations []IpAddressReservation `json:"ip_address_reservations"`
+
 	DhcpClientsFriendlyNames []struct {
 		Name string `json:"name"`
 		Mac  string `json:"mac"`
@@ -413,9 +444,23 @@ func (b *UIBackend) readAddonConfig() error {
 		log.Default().Fatalf("Invalid Web UI port in addon config file")
 		return os.ErrInvalid // I'm lazy, recycle a similar error type
 	}
+
+	// copy basic settings
 	b.serverPort = cfg.WebUIPort
 
-	// convert to a slice of DhcpClientFriendlyName instances
+	// convert IP address reservations to a map indexed by IP
+	for _, r := range cfg.IpAddressReservations {
+		ipAddr, err := netip.ParseAddr(r.IP)
+		if err != nil {
+			log.Default().Fatalf("Invalid IP address found inside 'ip_address_reservations': %s", r.IP)
+			continue
+		}
+
+		b.ipAddressReservations[ipAddr] = r
+	}
+	log.Default().Printf("Acquired %d IP address reservations\n", len(b.ipAddressReservations))
+
+	// convert friendly names to a map of DhcpClientFriendlyName instances indexed by MAC address
 	for _, client := range cfg.DhcpClientsFriendlyNames {
 		macAddr, err := net.ParseMAC(client.Mac)
 		if err != nil {
