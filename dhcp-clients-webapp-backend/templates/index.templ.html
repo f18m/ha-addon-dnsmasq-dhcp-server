@@ -113,12 +113,13 @@
             console.log("Initializing grid.js table");
             grid = new gridjs.Grid({
                 columns: [
-                    { name: 'ID', sort: true },
-                    { name: 'Friendly Name', sort: true },
-                    { name: 'Hostname', sort: true },
-                    { name: 'IP Address', sort: { compare: compareIPs } },
-                    { name: 'MAC Address', sort: true },
-                    { name: 'Expires in', sort: true }
+                    { name: '#', sort: true, width: '10%' },
+                    { name: 'Friendly Name', sort: true, width: '25%' },
+                    { name: 'Hostname', sort: true, width: '25%' },
+                    { name: 'IP Address', sort: { compare: compareIPs }, width: '10%' },
+                    { name: 'MAC Address', sort: true, width: '10%' },
+                    { name: 'Expires in', sort: true, width: '10%' },
+                    { name: 'Static IP?', sort: true, width: '10%' }
                 ],
                 data: [],
                 sort: true,
@@ -181,13 +182,21 @@
                 console.log("Websocket connection: received " + data.length + " items from websocket");
 
                 tableData = [];
+                dhcp_addresses_used = 0;
                 data.forEach(function (item, index) {
                     console.log(`Item ${index + 1}:`, item);
 
+                    if (item.is_inside_dhcp_pool)
+                        dhcp_addresses_used += 1;
+
+                    static_ip_str = "NO";
+                    if (item.has_static_ip)
+                        static_ip_str = "YES";
+
                     // append new row
                     tableData.push([index + 1,
-                    item.friendly_name, item.lease.hostname, item.lease.ip_addr,
-                    item.lease.mac_addr, formatTimeLeft(item.lease.expires)]);
+                        item.friendly_name, item.lease.hostname, item.lease.ip_addr,
+                        item.lease.mac_addr, formatTimeLeft(item.lease.expires), static_ip_str]);
                 });
 
                 // rerender the table
@@ -198,14 +207,14 @@
                 // compute DHCP pool usage
                 var usagePerc = 0
                 if (dhcpPoolSize > 0) {
-                    usagePerc = 100 * data.length / dhcpPoolSize
+                    usagePerc = 100 * dhcp_addresses_used / dhcpPoolSize
 
                     // truncate to only 1 digit accuracy
                     usagePerc = Math.round(usagePerc * 10) / 10
                 }
 
                 // update the message
-                message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server. DHCP pool usage is at " + usagePerc + "%.";
+                message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server; " + dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.";
             }
         };
     </script>

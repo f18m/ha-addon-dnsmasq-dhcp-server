@@ -23,6 +23,9 @@ fi
 if [ -z "$ingress_interface" ]; then
     ingress_interface=0.0.0.0
 fi
+if [ "$web_ui_port" = "null" ]; then
+    web_ui_port=8976
+fi
 
 sed -i "s/%%port%%/${ingress_port}/g" /etc/nginx/servers/ingress.conf
 sed -i "s/%%interface%%/${ingress_interface}/g" /etc/nginx/servers/ingress.conf

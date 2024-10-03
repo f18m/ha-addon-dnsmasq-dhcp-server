@@ -1,5 +1,3 @@
-// This package implements an HTML/Websocket server that provides a tabular view of
-// all DHCP clients served by the dnsmasq instance that lives into this HomeAssistant addon
 package uibackend
 
 import (
@@ -11,10 +9,10 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"slices"
 	"sync"
-	"time"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/gorilla/websocket"
@@ -29,78 +27,10 @@ var dnsmasqMarkerForMissingHostname = "*"
 var staticWebFilesDir = "/opt/web/static"
 var templatesDir = "/opt/web/templates"
 
-// DhcpClientData holds all the information the backend has about a particular DHCP client
-type DhcpClientData struct {
-	// the lease as it is parsed from dnsmasq LEASE file:
-	Lease dnsmasq.Lease
-
-	// metadata associated with the DHCP client (obtained from configuration):
-	HasStaticIP  bool
-	FriendlyName string
-}
-
-func LeaseTimeToString(t time.Time) string {
-
-	if t.IsZero() {
-		return "Never expires"
-	}
-
-	now := time.Now()
-	duration := t.Sub(now)
-	if duration < 0 {
-		return "Expired"
-	}
-
-	// compute hours, min, secs
-	days := int(duration.Hours()) / 24
-	hours := int(duration.Hours()) % 24
-	minutes := int(duration.Minutes()) % 60
-	seconds := int(duration.Seconds()) % 60
-
-	if days > 0 {
-		return fmt.Sprintf("%02dd, %02dh, %02dm, %02ds", days, hours, minutes, seconds)
-	} else if hours > 0 {
-		return fmt.Sprintf("%02dh, %02dm, %02ds", hours, minutes, seconds)
-	} else {
-		return fmt.Sprintf("%02dm, %02ds", minutes, seconds)
-	}
-}
-
-// MarshalJSON customizes the JSON serialization for DhcpClientData
-func (d DhcpClientData) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Lease struct {
-			Expires  int64  `json:"expires"`
-			MacAddr  string `json:"mac_addr"`
-			IPAddr   string `json:"ip_addr"`
-			Hostname string `json:"hostname"`
-		} `json:"lease"`
-		HasStaticIP  bool   `json:"has_static_ip"`
-		FriendlyName string `json:"friendly_name"`
-	}{
-		Lease: struct {
-			Expires  int64  `json:"expires"`
-			MacAddr  string `json:"mac_addr"`
-			IPAddr   string `json:"ip_addr"`
-			Hostname string `json:"hostname"`
-		}{
-			Expires:  d.Lease.Expires.Unix(), // unix time, the number of seconds elapsed since January 1, 1970 UTC
-			MacAddr:  d.Lease.MacAddr.String(),
-			IPAddr:   d.Lease.IPAddr.String(),
-			Hostname: d.Lease.Hostname,
-		},
-		HasStaticIP:  d.HasStaticIP,
-		FriendlyName: d.FriendlyName,
-	})
-}
-
-// DhcpClientFriendlyName
-type DhcpClientFriendlyName struct {
-	MacAddress   net.HardwareAddr
-	FriendlyName string
-}
-
 type UIBackend struct {
+	// Static IP addresses, as read from the configuration
+	ipAddressReservations map[netip.Addr]IpAddressReservation
+
 	// DHCP client friendly names, as read from the configuration
 	// The key of this map is the MAC address formatted as string (since net.HardwareAddr is not a valid map key type)
 	friendlyNames map[string]DhcpClientFriendlyName
@@ -109,6 +39,9 @@ type UIBackend struct {
 	logWebUI bool
 
 	// DHCP range
+	// NOTE: if in the future we want to support more complex DHCP configurations where the DHCP pool
+	//       consists of multiple disjoint IP address ranges, then we should consider using:
+	//       the iprange.Pool object to represent that
 	dhcpStartIP net.IP
 	dhcpEndIP   net.IP
 
@@ -134,11 +67,12 @@ type UIBackend struct {
 
 func NewUIBackend() UIBackend {
 	return UIBackend{
-		friendlyNames:  make(map[string]DhcpClientFriendlyName),
-		clients:        make(map[*websocket.Conn]bool),
-		dhcpClientData: nil,
-		broadcastCh:    make(chan []DhcpClientData),
-		leasesCh:       make(chan []*dnsmasq.Lease),
+		ipAddressReservations: make(map[netip.Addr]IpAddressReservation),
+		friendlyNames:         make(map[string]DhcpClientFriendlyName),
+		clients:               make(map[*websocket.Conn]bool),
+		dhcpClientData:        nil,
+		broadcastCh:           make(chan []DhcpClientData),
+		leasesCh:              make(chan []*dnsmasq.Lease),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true
@@ -315,31 +249,47 @@ func (b *UIBackend) processLeaseUpdates() {
 }
 
 // Process a slice of dnsmasq.Lease and store that into the UIBackend object
-func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) error {
+func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) {
+
 	b.dhcpClientDataLock.Lock()
 	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
 	for _, lease := range updatedLeases {
 
 		d := DhcpClientData{Lease: *lease}
 
+		// friendly-name metadata
+
+		// do we have a friendly-name registered for this MAC address?
 		metadata, ok := b.friendlyNames[lease.MacAddr.String()]
 		if ok {
-			// enrich with some metadata this DHCP client entry
+			// yes: enrich with some metadata this DHCP client entry
 			d.FriendlyName = metadata.FriendlyName
 		} else {
 			if lease.Hostname != dnsmasqMarkerForMissingHostname {
-				// dnsmasq DHCP server has received an hostname so use that to create a "friendly name"
-				d.FriendlyName = "Hostname: " + lease.Hostname
+				// no: user didn't provide any friendly name but the dnsmasq DHCP server
+				// has received (over DHCP protocol) an hostname... better than nothing:
+				// use that to create a "friendly name"
+				d.FriendlyName = lease.Hostname
 			}
 		}
 
+		// has-static-ip metadata
+		_, d.HasStaticIP = b.ipAddressReservations[lease.IPAddr]
+
+		// is-inside-dhcp-pool metadata
+		d.IsInsideDHCPPool = IpInRange(lease.IPAddr, b.dhcpStartIP, b.dhcpEndIP)
+
 		b.dhcpClientData = append(b.dhcpClientData, d)
 	}
+
+	// sort the slice by IP
+	slices.SortFunc(b.dhcpClientData, func(a, b DhcpClientData) int {
+		return a.Lease.IPAddr.Compare(b.Lease.IPAddr)
+	})
+
 	b.dhcpClientDataLock.Unlock()
 
 	log.Default().Printf("Updated DHCP clients internal status with %d entries\n", len(b.dhcpClientData))
-
-	return nil
 }
 
 // Reads the current DNS masq lease file, before any INotify hook gets installed, to get a baseline
@@ -357,27 +307,12 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 		return errRead
 	}
 
-	return b.processLeaseUpdatesFromArray(leases)
+	b.processLeaseUpdatesFromArray(leases)
+	return nil
 }
 
-// dummy struct used to unmarshal HomeAssistant option file correctly
-type AddonConfig struct {
-	DhcpClientsFriendlyNames []struct {
-		Name string `json:"name"`
-		Mac  string `json:"mac"`
-	} `json:"dhcp_clients_friendly_names"`
-
-	DhcpRange struct {
-		StartIP string `json:"start_ip"`
-		EndIP   string `json:"end_ip"`
-	} `json:"dhcp_range"`
-
-	LogDHCP  bool `json:"log_dhcp"`
-	LogWebUI bool `json:"log_web_ui"`
-
-	WebUIPort int `json:"web_ui_port"`
-}
-
+// readAddonConfig reads the configuration of this Home Assistant addon and converts it
+// into maps and slices that get stored into the UIBackend instance
 func (b *UIBackend) readAddonConfig() error {
 	log.Default().Printf("Reading addon config file '%s'\n", defaultHomeAssistantConfigFile)
 
@@ -413,9 +348,23 @@ func (b *UIBackend) readAddonConfig() error {
 		log.Default().Fatalf("Invalid Web UI port in addon config file")
 		return os.ErrInvalid // I'm lazy, recycle a similar error type
 	}
+
+	// copy basic settings
 	b.serverPort = cfg.WebUIPort
 
-	// convert to a slice of DhcpClientFriendlyName instances
+	// convert IP address reservations to a map indexed by IP
+	for _, r := range cfg.IpAddressReservations {
+		ipAddr, err := netip.ParseAddr(r.IP)
+		if err != nil {
+			log.Default().Fatalf("Invalid IP address found inside 'ip_address_reservations': %s", r.IP)
+			continue
+		}
+
+		b.ipAddressReservations[ipAddr] = r
+	}
+	log.Default().Printf("Acquired %d IP address reservations\n", len(b.ipAddressReservations))
+
+	// convert friendly names to a map of DhcpClientFriendlyName instances indexed by MAC address
 	for _, client := range cfg.DhcpClientsFriendlyNames {
 		macAddr, err := net.ParseMAC(client.Mac)
 		if err != nil {
@@ -437,6 +386,8 @@ func (b *UIBackend) readAddonConfig() error {
 	return nil
 }
 
+// ListenAndServe is starting the whole UI backend:
+// a web server, a WebSocket server, INotify-based watch on dnsmasq lease files, etc
 func (b *UIBackend) ListenAndServe() error {
 
 	mux := http.NewServeMux()
