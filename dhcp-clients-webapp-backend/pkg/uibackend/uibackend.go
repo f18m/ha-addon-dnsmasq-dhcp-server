@@ -249,7 +249,7 @@ func (b *UIBackend) processLeaseUpdates() {
 }
 
 // Process a slice of dnsmasq.Lease and store that into the UIBackend object
-func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) error {
+func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) {
 
 	b.dhcpClientDataLock.Lock()
 	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
@@ -290,8 +290,6 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 	b.dhcpClientDataLock.Unlock()
 
 	log.Default().Printf("Updated DHCP clients internal status with %d entries\n", len(b.dhcpClientData))
-
-	return nil
 }
 
 // Reads the current DNS masq lease file, before any INotify hook gets installed, to get a baseline
@@ -309,9 +307,12 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 		return errRead
 	}
 
-	return b.processLeaseUpdatesFromArray(leases)
+	b.processLeaseUpdatesFromArray(leases)
+	return nil
 }
 
+// readAddonConfig reads the configuration of this Home Assistant addon and converts it
+// into maps and slices that get stored into the UIBackend instance
 func (b *UIBackend) readAddonConfig() error {
 	log.Default().Printf("Reading addon config file '%s'\n", defaultHomeAssistantConfigFile)
 
@@ -385,6 +386,8 @@ func (b *UIBackend) readAddonConfig() error {
 	return nil
 }
 
+// ListenAndServe is starting the whole UI backend:
+// a web server, a WebSocket server, INotify-based watch on dnsmasq lease files, etc
 func (b *UIBackend) ListenAndServe() error {
 
 	mux := http.NewServeMux()
