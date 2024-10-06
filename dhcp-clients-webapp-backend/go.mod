@@ -8,5 +8,6 @@ require github.com/b0ch3nski/go-dnsmasq-utils v0.1.1
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/netdata/go.d.plugin v0.58.1 // indirect
 )

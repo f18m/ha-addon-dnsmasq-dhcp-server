@@ -274,7 +274,17 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 		}
 
 		// has-static-ip metadata
-		_, d.HasStaticIP = b.ipAddressReservations[lease.IPAddr]
+		_, hasReservation := b.ipAddressReservations[lease.IPAddr]
+		if hasReservation {
+			// the IP address provided in this lease is a reserved one...
+			// check if the MAC address is the one for which that IP was intended...
+			if lease.MacAddr.String() == b.ipAddressReservations[lease.IPAddr].Mac {
+				d.HasStaticIP = true
+			} else {
+				log.Default().Printf("WARN: the IP %s was leased to MAC address %s, but in configuration it was reserved for MAC %s\n",
+					lease.IPAddr.String(), lease.MacAddr.String(), b.ipAddressReservations[lease.IPAddr].Mac)
+			}
+		}
 
 		// is-inside-dhcp-pool metadata
 		d.IsInsideDHCPPool = IpInRange(lease.IPAddr, b.dhcpStartIP, b.dhcpEndIP)
