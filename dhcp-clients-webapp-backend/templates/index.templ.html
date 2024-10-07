@@ -8,6 +8,7 @@
     <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
     <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
 
+    <!-- for some reason referencing an external CSS does not work, so CSS definitions are embedded: -->
     <style>
         .solidBorder {
             border: 1px solid;
@@ -131,24 +132,7 @@
 
         document.addEventListener('DOMContentLoaded', initTable, false);
 
-
-        // websocket
-
-        var ws = new WebSocket(webSocketURI);
-
-        ws.onopen = function (event) {
-            console.log("Websocket started successfully");
-        };
-
-        ws.onclose = function (event) {
-            console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
-        }
-
-        ws.onerror = function (event) {
-            console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
-        }
-
-        ws.onmessage = function (event) {
+        function processWebSocketEvent(event) {
 
             try {
                 var data = JSON.parse(event.data);
@@ -216,7 +200,32 @@
                 // update the message
                 message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server; " + dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.";
             }
+        }
+
+
+        // websockets
+
+
+        // try with a SECURE websocket first
+
+        var dhcp_clients_ws = new WebSocket(webSocketURI);
+
+        dhcp_clients_ws.onopen = function (event) {
+            console.log("Secure Websocket started successfully");
         };
+
+        dhcp_clients_ws.onclose = function (event) {
+            console.log("Secure Websocket connection closed", event.code, event.reason, event.wasClean)
+        }
+
+        dhcp_clients_ws.onerror = function (event) {
+            console.log("Secure Websocket connection closed due to error", event.code, event.reason, event.wasClean)
+        }
+
+        dhcp_clients_ws.onmessage = function (event) {
+            console.log("Secure Websocket received event", event.code, event.reason, event.wasClean)
+            processWebSocketEvent(event)
+        }
     </script>
 </head>
 
