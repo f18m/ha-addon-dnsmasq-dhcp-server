@@ -195,7 +195,7 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	//
 	XFwdHost, ok1 := r.Header["X-Forwarded-Host"]
 	XIngressPath, ok2 := r.Header["X-Ingress-Path"]
-	var WebSocketHost string
+	//var WebSocketHost string
 	if !ok1 || !ok2 || len(XFwdHost) == 0 || len(XIngressPath) == 0 {
 		log.Default().Printf("WARN: missing headers in HTTP GET")
 		http.Error(w, "The request does not have the 'X-Forwarded-Host' and 'X-Ingress-Path' headers", http.StatusBadRequest)
@@ -203,7 +203,7 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		//log.Default().Printf("The request does not have the 'X-Forwarded-Host' and 'X-Ingress-Path' headers")
 		//WebSocketHost = r.Host
 	} else {
-		WebSocketHost = XFwdHost[0] + XIngressPath[0]
+		//WebSocketHost = XFwdHost[0] + XIngressPath[0]
 	}
 
 	// compute pool size:
