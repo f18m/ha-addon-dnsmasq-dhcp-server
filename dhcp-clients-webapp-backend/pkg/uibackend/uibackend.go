@@ -22,11 +22,14 @@ import (
 
 var defaultDnsmasqLeasesFile = "/data/dnsmasq.leases"
 var defaultHomeAssistantConfigFile = "/data/options.json"
-var dnsmasqMarkerForMissingHostname = "*"
 
 // These absolute paths must be in sync with the Dockerfile
 var staticWebFilesDir = "/opt/web/static"
 var templatesDir = "/opt/web/templates"
+
+// other constants
+var dnsmasqMarkerForMissingHostname = "*"
+var websocketRelativeUrl = "/ws"
 
 type UIBackend struct {
 	// Static IP addresses, as read from the configuration
@@ -194,17 +197,11 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	// To get the Hassio ingress endpoint we can simply read some HTTP headers that the ingress
 	// is adding to any request that goes through:
 	//
-	XFwdHost, ok1 := r.Header["X-Forwarded-Host"]
 	XIngressPath, ok2 := r.Header["X-Ingress-Path"]
-	//var WebSocketHost string
-	if !ok1 || !ok2 || len(XFwdHost) == 0 || len(XIngressPath) == 0 {
+	if !ok2 || len(XIngressPath) == 0 {
 		log.Default().Printf("WARN: missing headers in HTTP GET")
-		http.Error(w, "The request does not have the 'X-Forwarded-Host' and 'X-Ingress-Path' headers", http.StatusBadRequest)
+		http.Error(w, "The request does not have the 'X-Ingress-Path' header", http.StatusBadRequest)
 		return
-		//log.Default().Printf("The request does not have the 'X-Forwarded-Host' and 'X-Ingress-Path' headers")
-		//WebSocketHost = r.Host
-	} else {
-		//WebSocketHost = XFwdHost[0] + XIngressPath[0]
 	}
 
 	// compute pool size:
@@ -220,7 +217,11 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		DhcpPoolSize int
 	}{
 		// We use relative URL for the websocket in the form "/79957c2e_dnsmasq-dhcp/ingress/ws"
-		WebSocketURI: XIngressPath[0] + "/ws",
+		// In this way we don't need to know whether the browser is passing through some TLS
+		// reverse proxy or uses HomeAssistant built-in TLS or is connecting in plaintext (HTTP).
+		// Based on the scheme used by the browser, the websocket will use the associated scheme
+		// ('wss' for 'https' and 'ws' for 'http)
+		WebSocketURI: XIngressPath[0] + websocketRelativeUrl,
 		DhcpStartIP:  b.dhcpStartIP.String(),
 		DhcpEndIP:    b.dhcpEndIP.String(),
 		DhcpPoolSize: dhcpPoolSize,
@@ -420,7 +421,7 @@ func (b *UIBackend) ListenAndServe() error {
 	mux.Handle("/", b.logRequestMiddleware(http.HandlerFunc(b.renderPage)))
 
 	// Serve Websocket requests
-	mux.HandleFunc("/ws", b.handleWebSocketConn)
+	mux.HandleFunc(websocketRelativeUrl, b.handleWebSocketConn)
 
 	// Read friendly names from the HomeAssistant addon config
 	if err := b.readAddonConfig(); err != nil {
