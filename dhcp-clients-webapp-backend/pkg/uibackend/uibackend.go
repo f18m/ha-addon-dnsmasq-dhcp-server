@@ -218,8 +218,8 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		DhcpEndIP    string
 		DhcpPoolSize int
 	}{
-		// Note that the path between browser and Hassio ingress is TLS, so we use WSS scheme
-		WebSocketURI: "wss://" + WebSocketHost + "/ws",
+		// We use relative URL for the websocket in the form "/79957c2e_dnsmasq-dhcp/ingress/ws"
+		WebSocketURI: XIngressPath[0] + "/ws",
 		DhcpStartIP:  b.dhcpStartIP.String(),
 		DhcpEndIP:    b.dhcpEndIP.String(),
 		DhcpPoolSize: dhcpPoolSize,
