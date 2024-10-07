@@ -12,6 +12,7 @@ import (
 	"net/netip"
 	"os"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
@@ -278,7 +279,7 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 		if hasReservation {
 			// the IP address provided in this lease is a reserved one...
 			// check if the MAC address is the one for which that IP was intended...
-			if lease.MacAddr.String() == b.ipAddressReservations[lease.IPAddr].Mac {
+			if strings.EqualFold(lease.MacAddr.String(), b.ipAddressReservations[lease.IPAddr].Mac) {
 				d.HasStaticIP = true
 			} else {
 				log.Default().Printf("WARN: the IP %s was leased to MAC address %s, but in configuration it was reserved for MAC %s\n",
@@ -369,6 +370,15 @@ func (b *UIBackend) readAddonConfig() error {
 			log.Default().Fatalf("Invalid IP address found inside 'ip_address_reservations': %s", r.IP)
 			continue
 		}
+		macAddr, err := net.ParseMAC(r.Mac)
+		if err != nil {
+			log.Default().Fatalf("Invalid MAC address found inside 'ip_address_reservations': %s", r.Mac)
+			continue
+		}
+
+		// normalize the IP and MAC address format (e.g. to lowercase)
+		r.IP = ipAddr.String()
+		r.Mac = macAddr.String()
 
 		b.ipAddressReservations[ipAddr] = r
 	}
