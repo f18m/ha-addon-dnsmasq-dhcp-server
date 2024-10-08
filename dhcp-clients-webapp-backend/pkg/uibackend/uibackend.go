@@ -200,8 +200,9 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	XIngressPath, ok2 := r.Header["X-Ingress-Path"]
 	if !ok2 || len(XIngressPath) == 0 {
 		log.Default().Printf("WARN: missing headers in HTTP GET")
-		http.Error(w, "The request does not have the 'X-Ingress-Path' header", http.StatusBadRequest)
-		return
+		//http.Error(w, "The request does not have the 'X-Ingress-Path' header", http.StatusBadRequest)
+		//return
+		XIngressPath = []string{""}
 	}
 
 	// compute pool size:

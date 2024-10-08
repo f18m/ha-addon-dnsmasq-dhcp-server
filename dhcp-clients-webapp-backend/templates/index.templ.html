@@ -4,6 +4,9 @@
 <head>
     <title>DHCP Clients</title>
 
+    <!-- add jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
+
     <!-- add datatables.net library -->
     <link href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.css" rel="stylesheet" />
     <script src="https://cdn.datatables.net/2.1.8/js/dataTables.js"></script>
@@ -196,24 +199,24 @@
         // websockets
 
 
-        // try with a SECURE websocket first
+        // try with a websocket first
 
         var dhcp_clients_ws = new WebSocket(webSocketURI);
 
         dhcp_clients_ws.onopen = function (event) {
-            console.log("Secure Websocket started successfully");
+            console.log("Websocket connection to " + webSocketURI + " was successfully opened");
         };
 
         dhcp_clients_ws.onclose = function (event) {
-            console.log("Secure Websocket connection closed", event.code, event.reason, event.wasClean)
+            console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
         }
 
         dhcp_clients_ws.onerror = function (event) {
-            console.log("Secure Websocket connection closed due to error", event.code, event.reason, event.wasClean)
+            console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
         }
 
         dhcp_clients_ws.onmessage = function (event) {
-            console.log("Secure Websocket received event", event.code, event.reason, event.wasClean)
+            console.log("Websocket received event", event.code, event.reason, event.wasClean)
             processWebSocketEvent(event)
         }
     </script>
