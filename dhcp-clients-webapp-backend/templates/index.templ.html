@@ -4,9 +4,9 @@
 <head>
     <title>DHCP Clients</title>
 
-    <!-- add Grid.js library -->
-    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
-    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+    <!-- add datatables.net library -->
+    <link href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.css" rel="stylesheet" />
+    <script src="https://cdn.datatables.net/2.1.8/js/dataTables.js"></script>
 
     <!-- for some reason referencing an external CSS does not work, so CSS definitions are embedded: -->
     <style>
@@ -108,26 +108,22 @@
             return `${hoursLeft.toString().padStart(2, '0')}:${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`;
         }
 
-        var grid = null;
+        var table = null;
 
         function initTable() {
-            console.log("Initializing grid.js table");
-            grid = new gridjs.Grid({
-                columns: [
-                    { name: '#', sort: true, width: '10%' },
-                    { name: 'Friendly Name', sort: true, width: '25%' },
-                    { name: 'Hostname', sort: true, width: '25%' },
-                    { name: 'IP Address', sort: { compare: compareIPs }, width: '10%' },
-                    { name: 'MAC Address', sort: true, width: '10%' },
-                    { name: 'Expires in', sort: true, width: '10%' },
-                    { name: 'Static IP?', sort: true, width: '10%' }
-                ],
-                data: [],
-                sort: true,
-                search: true,
-                resizable: true,
-                pagination: { limit: 20 }
-            }).render(document.getElementById('table-wrapper'));
+            console.log("Initializing datatables.net table");
+            table = new DataTable('#table-wrapper', {
+                    columns: [
+                        { title: '#' },
+                        { title: 'Friendly Name' },
+                        { title: 'Hostname' },
+                        { title: 'IP Address' },
+                        { title: 'MAC Address' },
+                        { title: 'Expires in' },
+                        { title: 'Static IP?' }
+                    ],
+                    data: []
+                });
         }
 
         document.addEventListener('DOMContentLoaded', initTable, false);
@@ -146,9 +142,7 @@
                 console.log("Websocket connection: received an empty JSON");
 
                 // clear the table
-                grid.updateConfig({
-                    data: []
-                }).forceRender();
+                table.clear().draw();
 
                 message.innerText = "No DHCP clients so far.";
 
@@ -156,9 +150,7 @@
                 console.error("Websocket connection: expecting a JSON array, received something else", event.data);
 
                 // clear the table
-                grid.updateConfig({
-                    data: []
-                }).forceRender();
+                table.clear().draw();
 
                 message.innerText = "Internal error. Please report upstream together with Javascript logs.";
 
@@ -184,9 +176,7 @@
                 });
 
                 // rerender the table
-                grid.updateConfig({
-                    data: tableData
-                }).forceRender();
+                table.clear().rows.add(tableData).draw();
 
                 // compute DHCP pool usage
                 var usagePerc = 0
@@ -237,8 +227,8 @@
 
     <p id="message"></p>
 
-    <!-- the Grid.js table will be attached to this DIV element -->
-    <div id="table-wrapper"></div>
+    <!-- the Datatables.net table will be attached to this TABLE element -->
+    <table id="table-wrapper" class="display" width="100%"></table>
 
     <p><span class="boldText">Notes:</span></p>
     <ul>
