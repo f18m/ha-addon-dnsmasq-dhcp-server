@@ -67,6 +67,15 @@
 
         function initTable() {
             console.log("Initializing datatables.net table");
+
+            // custom sorting for stuff with format HH:MM:SS
+            $.fn.dataTable.ext.order['custom-time-order'] = function (settings, colIndex) {
+                return this.api().column(colIndex, { order: 'index' }).nodes().map(function (td, i) {
+                    var time = $(td).text().split(':');
+                    // convert to seconds (HH * 3600 + MM * 60 + SS)
+                    return (parseInt(time[0], 10) * 3600) + (parseInt(time[1], 10) * 60) + parseInt(time[2], 10);
+                });
+            };
             table = new DataTable('#table-wrapper', {
                     columns: [
                         { title: '#', type: 'num' },
@@ -74,7 +83,7 @@
                         { title: 'Hostname', type: 'string' },
                         { title: 'IP Address', type: 'ip-address' },
                         { title: 'MAC Address', type: 'string' },
-                        { title: 'Expires in', type: 'date' },
+                        { title: 'Expires in', 'orderDataType': 'custom-date-order' },
                         { title: 'Static IP?', type: 'string' }
                     ],
                     data: [],
