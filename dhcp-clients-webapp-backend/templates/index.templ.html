@@ -4,10 +4,18 @@
 <head>
     <title>DHCP Clients</title>
 
-    <!-- add Grid.js library -->
-    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
-    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+    <!-- add jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
 
+    <!-- add datatables.net library + responsive extension, see
+         https://datatables.net/download/ -->
+    <link href="https://cdn.datatables.net/v/dt/dt-2.1.8/r-3.0.3/datatables.min.css" rel="stylesheet">
+    <script src="https://cdn.datatables.net/v/dt/dt-2.1.8/r-3.0.3/datatables.min.js"></script>
+
+    <!-- add the IP-address-sorting plugin -->
+    <script src="https://cdn.datatables.net/plug-ins/2.1.8/sorting/ip-address.js"></script>
+
+ 
     <!-- for some reason referencing an external CSS does not work, so CSS definitions are embedded: -->
     <style>
         .solidBorder {
@@ -30,59 +38,6 @@
         // and that's why they might be highlighted as invalid Javascript syntax
         var dhcpPoolSize = {{ .DhcpPoolSize }}
         var webSocketURI = {{ .WebSocketURI }}
-
-        function base64ToHex(base64) {
-            // Decode the base64 string into a binary string
-            const binaryString = atob(base64);
-            const bytes = new Uint8Array(binaryString.length);
-
-            // Convert the binary string into an array of bytes
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-
-            // Convert each byte to hexadecimal and concatenate
-            const hexString = Array.from(bytes)
-                .map(byte => byte.toString(16).padStart(2, '0')) // Convert each byte to hex
-                .join(':'); // Join all hex values with ":" as a separator
-
-            return hexString;
-        }
-
-        // Compare function for IP addresses
-        function compareIPs(ip1, ip2) {
-            const ipToNum = (ip) => {
-                return ip.split('.').reduce((acc, octet) => {
-                    return (acc << 8) + parseInt(octet, 10);
-                }, 0);
-            };
-
-            const num1 = ipToNum(ip1);
-            const num2 = ipToNum(ip2);
-
-            if (num1 < num2) return -1;
-            if (num1 > num2) return 1;
-            return 0;
-        }
-
-        function formatTimestamp(unixTimestamp) {
-            // Convert the timestamp to milliseconds and create new Date object
-            const timestampInMillis = unixTimestamp * 1000;
-            const date = new Date(timestampInMillis);
-
-            // Format the date as a string (e.g., "YYYY-MM-DD HH:MM:SS")
-            const formattedDate = date.toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            }) + ' ' + date.toLocaleTimeString(undefined, {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-
-            return formattedDate;
-        }
 
         function formatTimeLeft(unixTimestamp) {
             if (unixTimestamp == 0) {
@@ -108,26 +63,33 @@
             return `${hoursLeft.toString().padStart(2, '0')}:${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`;
         }
 
-        var grid = null;
+        var table = null;
 
         function initTable() {
-            console.log("Initializing grid.js table");
-            grid = new gridjs.Grid({
-                columns: [
-                    { name: '#', sort: true, width: '10%' },
-                    { name: 'Friendly Name', sort: true, width: '25%' },
-                    { name: 'Hostname', sort: true, width: '25%' },
-                    { name: 'IP Address', sort: { compare: compareIPs }, width: '10%' },
-                    { name: 'MAC Address', sort: true, width: '10%' },
-                    { name: 'Expires in', sort: true, width: '10%' },
-                    { name: 'Static IP?', sort: true, width: '10%' }
-                ],
-                data: [],
-                sort: true,
-                search: true,
-                resizable: true,
-                pagination: { limit: 20 }
-            }).render(document.getElementById('table-wrapper'));
+            console.log("Initializing datatables.net table");
+
+            // custom sorting for content formatted as HH:MM:SS
+            $.fn.dataTable.ext.order['custom-time-order'] = function (settings, colIndex) {
+                return this.api().column(colIndex, { order: 'index' }).nodes().map(function (td, i) {
+                    var time = $(td).text().split(':');
+                    // convert to seconds (HH * 3600 + MM * 60 + SS)
+                    return (parseInt(time[0], 10) * 3600) + (parseInt(time[1], 10) * 60) + parseInt(time[2], 10);
+                });
+            };
+            table = new DataTable('#table-wrapper', {
+                    columns: [
+                        { title: '#', type: 'num' },
+                        { title: 'Friendly Name', type: 'string' },
+                        { title: 'Hostname', type: 'string' },
+                        { title: 'IP Address', type: 'ip-address' },
+                        { title: 'MAC Address', type: 'string' },
+                        { title: 'Expires in', 'orderDataType': 'custom-date-order' },
+                        { title: 'Static IP?', type: 'string' }
+                    ],
+                    data: [],
+                    pageLength: 20,
+                    responsive: true
+                });
         }
 
         document.addEventListener('DOMContentLoaded', initTable, false);
@@ -146,9 +108,7 @@
                 console.log("Websocket connection: received an empty JSON");
 
                 // clear the table
-                grid.updateConfig({
-                    data: []
-                }).forceRender();
+                table.clear().draw();
 
                 message.innerText = "No DHCP clients so far.";
 
@@ -156,9 +116,7 @@
                 console.error("Websocket connection: expecting a JSON array, received something else", event.data);
 
                 // clear the table
-                grid.updateConfig({
-                    data: []
-                }).forceRender();
+                table.clear().draw();
 
                 message.innerText = "Internal error. Please report upstream together with Javascript logs.";
 
@@ -184,9 +142,7 @@
                 });
 
                 // rerender the table
-                grid.updateConfig({
-                    data: tableData
-                }).forceRender();
+                table.clear().rows.add(tableData).draw();
 
                 // compute DHCP pool usage
                 var usagePerc = 0
@@ -206,24 +162,24 @@
         // websockets
 
 
-        // try with a SECURE websocket first
+        // try with a websocket first
 
         var dhcp_clients_ws = new WebSocket(webSocketURI);
 
         dhcp_clients_ws.onopen = function (event) {
-            console.log("Secure Websocket started successfully");
+            console.log("Websocket connection to " + webSocketURI + " was successfully opened");
         };
 
         dhcp_clients_ws.onclose = function (event) {
-            console.log("Secure Websocket connection closed", event.code, event.reason, event.wasClean)
+            console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
         }
 
         dhcp_clients_ws.onerror = function (event) {
-            console.log("Secure Websocket connection closed due to error", event.code, event.reason, event.wasClean)
+            console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
         }
 
         dhcp_clients_ws.onmessage = function (event) {
-            console.log("Secure Websocket received event", event.code, event.reason, event.wasClean)
+            console.log("Websocket received event", event.code, event.reason, event.wasClean)
             processWebSocketEvent(event)
         }
     </script>
@@ -237,8 +193,8 @@
 
     <p id="message"></p>
 
-    <!-- the Grid.js table will be attached to this DIV element -->
-    <div id="table-wrapper"></div>
+    <!-- the Datatables.net table will be attached to this TABLE element -->
+    <table id="table-wrapper" class="display" width="100%"></table>
 
     <p><span class="boldText">Notes:</span></p>
     <ul>
