@@ -35,7 +35,6 @@ bashio::log.info "web_ui_port=${web_ui_port}"
 sed -i "s/%%port%%/${ingress_port}/g" /etc/nginx/servers/ingress.conf
 sed -i "s/%%interface%%/${ingress_interface}/g" /etc/nginx/servers/ingress.conf
 sed -i "s|%%ingress_entry%%|${ingress_entry}|g" /etc/nginx/servers/ingress.conf
-sed -i "s|%%ingress_entry%%|${ingress_entry}|g" /etc/nginx/servers/ssl.conf
-
 sed -i "s|%%web_ui_port%%|${web_ui_port}|g" /etc/nginx/servers/ingress.conf
-sed -i "s|%%web_ui_port%%|${web_ui_port}|g" /etc/nginx/servers/ssl.conf
+
+bashio::log.info "nginx ingress config complete."
