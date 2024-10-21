@@ -2,6 +2,7 @@ package uibackend
 
 import (
 	"context"
+	"dhcp-clients-webapp-backend/pkg/trackerdb"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -14,22 +15,12 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/gorilla/websocket"
 	"github.com/netdata/go.d.plugin/pkg/iprange"
 )
-
-var defaultDnsmasqLeasesFile = "/data/dnsmasq.leases"
-var defaultHomeAssistantConfigFile = "/data/options.json"
-
-// These absolute paths must be in sync with the Dockerfile
-var staticWebFilesDir = "/opt/web/static"
-var templatesDir = "/opt/web/templates"
-
-// other constants
-var dnsmasqMarkerForMissingHostname = "*"
-var websocketRelativeUrl = "/ws"
 
 type UIBackend struct {
 	// Static IP addresses, as read from the configuration
@@ -62,6 +53,9 @@ type UIBackend struct {
 	dhcpClientData     []DhcpClientData
 	dhcpClientDataLock sync.Mutex
 
+	// DB tracking all DHCP clients
+	trackerDB trackerdb.DhcpClientTrackerDB
+
 	// channel used to broadcast tabular data from backend->frontend
 	broadcastCh chan []DhcpClientData
 
@@ -70,11 +64,18 @@ type UIBackend struct {
 }
 
 func NewUIBackend() UIBackend {
+	db, err := trackerdb.NewDhcpClientTrackerDB(defaultDhcpClientTrackerDB)
+	if err != nil {
+		log.Default().Fatalf("Failed to open DHCP clients tracking DB: %s", err.Error())
+		return UIBackend{}
+	}
+
 	return UIBackend{
 		ipAddressReservations: make(map[netip.Addr]IpAddressReservation),
 		friendlyNames:         make(map[string]DhcpClientFriendlyName),
 		clients:               make(map[*websocket.Conn]bool),
 		dhcpClientData:        nil,
+		trackerDB:             *db,
 		broadcastCh:           make(chan []DhcpClientData),
 		leasesCh:              make(chan []*dnsmasq.Lease),
 		upgrader: websocket.Upgrader{
@@ -254,6 +255,8 @@ func (b *UIBackend) processLeaseUpdates() {
 // Process a slice of dnsmasq.Lease and store that into the UIBackend object
 func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) {
 
+	timeUpdate := time.Now()
+
 	b.dhcpClientDataLock.Lock()
 	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
 	for _, lease := range updatedLeases {
@@ -292,6 +295,20 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 		// is-inside-dhcp-pool metadata
 		d.IsInsideDHCPPool = IpInRange(lease.IPAddr, b.dhcpStartIP, b.dhcpEndIP)
 
+		// update this DHCP client info also in the tracker DB:
+		err := b.trackerDB.TrackNewDhcpClient(trackerdb.DhcpClient{
+			MacAddr:      lease.MacAddr.String(),
+			Hostname:     lease.Hostname,
+			HasStaticIP:  hasReservation,
+			FriendlyName: d.FriendlyName,
+			LastSeen:     timeUpdate,
+		})
+		if err != nil {
+			log.Default().Printf("WARN: Failed to update the internal DHCP client tracker DB: %s\n", err.Error())
+			// keep going
+		}
+
+		// processing complete:
 		b.dhcpClientData = append(b.dhcpClientData, d)
 	}
 
@@ -362,9 +379,6 @@ func (b *UIBackend) readAddonConfig() error {
 		return os.ErrInvalid // I'm lazy, recycle a similar error type
 	}
 
-	// copy basic settings
-	b.serverPort = cfg.WebUIPort
-
 	// convert IP address reservations to a map indexed by IP
 	for _, r := range cfg.IpAddressReservations {
 		ipAddr, err := netip.ParseAddr(r.IP)
@@ -399,11 +413,14 @@ func (b *UIBackend) readAddonConfig() error {
 			FriendlyName: client.Name,
 		}
 	}
-
 	log.Default().Printf("Acquired %d friendly names\n", len(b.friendlyNames))
 
+	// copy basic settings
+	b.serverPort = cfg.WebUIPort
 	b.logWebUI = cfg.LogWebUI
-	log.Default().Printf("Web UI logging enabled=%t\n", b.logWebUI)
+
+	log.Default().Printf("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
+		b.serverPort, b.logWebUI, cfg.LogDHCP)
 
 	return nil
 }

@@ -36,7 +36,7 @@ build-backend:
 	cd dhcp-clients-webapp-backend && \
 		golangci-lint run
 	cd dhcp-clients-webapp-backend && \
-		go test -v ./...
+		go test -v -cover ./...
 	
 
 test-docker-image: 

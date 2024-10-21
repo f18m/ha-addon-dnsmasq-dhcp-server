@@ -1,6 +1,7 @@
 package uibackend
 
 import (
+	"dhcp-clients-webapp-backend/pkg/trackerdb"
 	"net"
 	"net/netip"
 	"testing"
@@ -66,6 +67,7 @@ func TestProcessLeaseUpdatesFromArray(t *testing.T) {
 		},
 		dhcpStartIP: net.IPv4(192, 168, 0, 1),
 		dhcpEndIP:   net.IPv4(192, 168, 0, 100),
+		trackerDB:   trackerdb.NewTestDB(),
 	}
 
 	// Call the method being tested

@@ -7,7 +7,9 @@ import (
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 )
 
-// DhcpClientData holds all the information the backend has about a particular DHCP client
+// DhcpClientData holds all the information the backend has about a particular DHCP client,
+// currently "connected" to the dnsmasq server.
+// In this context "connected" means: that sent DHCP traffic since the dnsmasq server was started.
 type DhcpClientData struct {
 	// the lease as it is parsed from dnsmasq LEASE file:
 	Lease dnsmasq.Lease
