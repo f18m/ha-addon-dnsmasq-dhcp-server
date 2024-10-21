@@ -125,6 +125,7 @@
 
                 tableData = [];
                 dhcp_addresses_used = 0;
+                dhcp_static_ip = 0;
                 data.forEach(function (item, index) {
                     console.log(`Item ${index + 1}:`, item);
 
@@ -132,8 +133,10 @@
                         dhcp_addresses_used += 1;
 
                     static_ip_str = "NO";
-                    if (item.has_static_ip)
+                    if (item.has_static_ip) {
                         static_ip_str = "YES";
+                        dhcp_static_ip += 1;
+                    }
 
                     // append new row
                     tableData.push([index + 1,
@@ -154,7 +157,9 @@
                 }
 
                 // update the message
-                message.innerText = "A total of " + data.length + " DHCP clients are tracked by the DHCP server; " + dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.";
+                message.innerText = "A total of <span class='boldText'>" + data.length + " DHCP clients</span> are tracked by the DHCP server; " + 
+                                    dhcp_static_ip + " have a static IP address configuration; " +
+                                    dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.";
             }
         }
 
@@ -198,16 +203,16 @@
 
     <p><span class="boldText">Notes:</span></p>
     <ul>
-        <li>An asterisk * in the 'Hostname' column indicates that the DHCP client did not advertise his own hostname to
+        <li>The 'Hostname' column is populated with the hostname advertised by the DHCP client.
+            An asterisk * in the 'Hostname' column indicates that the DHCP client did not advertise his own hostname to
             the DHCP server.</li>
         <li>The 'Friendly Name' column is populated using the <span class="monoText">dhcp_clients_friendly_names</span>
             addon configuration.</li>
-        <li>The 'Hostname' column is populated with the hostname advertised by the DHCP client.</li>
         <li>The 'IP Address' column might contain IP addresses located outside the DHCP range in the case 
             the DHCP client has a special IP reservation assigned via the 
             <span class="monoText">ip_address_reservations</span> addon configuration.</li>
         <li>The 'Expires' column contains the count down to the next DHCP lease renewal formatted as 
-            <span class="monoText">HH:MM::SS</span>.</li>
+            <span class="monoText">HH:MM:SS</span>.</li>
     </ul>
 </body>
 
