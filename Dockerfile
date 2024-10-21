@@ -6,7 +6,7 @@ FROM golang:1.22.7 AS builder-go
 
 WORKDIR /app/backend
 COPY dhcp-clients-webapp-backend .
-RUN CGO_ENABLED=0 go build -o /dhcp-clients-webapp-backend .
+RUN CGO_ENABLED=1 go build -o /dhcp-clients-webapp-backend .
 
 
 # --- Actual ADDON layer

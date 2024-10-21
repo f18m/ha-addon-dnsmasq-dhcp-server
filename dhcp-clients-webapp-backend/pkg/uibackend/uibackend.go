@@ -70,6 +70,8 @@ func NewUIBackend() UIBackend {
 		return UIBackend{}
 	}
 
+	log.Default().Printf("Successfully opened DHCP clients tracking DB at %s", defaultDhcpClientTrackerDB)
+
 	return UIBackend{
 		ipAddressReservations: make(map[netip.Addr]IpAddressReservation),
 		friendlyNames:         make(map[string]DhcpClientFriendlyName),
