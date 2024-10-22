@@ -1,10 +1,14 @@
+/*
+ SCSS style sheet for HA dnsmasq-dhcp addon
+*/
+
 .solidBorder {
     border: 1px solid;
 }
 
 .monoText {
     font-family: monospace;
-    background-color: lightgrey;
+    background-color: lightgrey; 
     padding: 3px;
 }
 
@@ -30,8 +34,6 @@ $blue: #2955ac;
     margin: 0 auto;
     padding: 60px 16px 30px 16px;
     display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .btn {

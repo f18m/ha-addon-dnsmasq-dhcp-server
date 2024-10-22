@@ -60,3 +60,11 @@ test-docker-image-live:
 		--cap-add NET_ADMIN \
 		--network host \
 		debug-image-live
+
+
+INPUT_SCSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/scss/
+OUTPUT_CSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/
+
+build-css:
+	docker run -v $(INPUT_SCSS):/sass/ -v $(OUTPUT_CSS):/css/ -it michalklempa/dart-sass:latest
+		

@@ -40,13 +40,16 @@ type UIBackend struct {
 	dhcpStartIP net.IP
 	dhcpEndIP   net.IP
 
-	// the CSS template as read from file
-	cssContents string
-
 	// the actual HTTP server
 	serverPort int
 	server     http.Server
 	upgrader   websocket.Upgrader
+
+	// more HTTP server resources
+	// the CSS template as read from file
+	isTestingMode bool
+	htmlTemplate  *template.Template
+	cssContents   string
 
 	// map of connected websockets
 	clients     map[*websocket.Conn]bool
@@ -75,12 +78,7 @@ func NewUIBackend() UIBackend {
 
 	log.Default().Printf("Successfully opened DHCP clients tracking DB at %s", defaultDhcpClientTrackerDB)
 
-	cssContents, err := os.ReadFile(templatesDir + "/style.css")
-	if err != nil {
-		log.Default().Fatalf("Failed to open CSS file: %s", err.Error())
-		return UIBackend{}
-	}
-	log.Default().Printf("Read %d bytes of CSS file", len(cssContents))
+	isTestingMode := os.Getenv("LOCAL_TESTING") != ""
 
 	return UIBackend{
 		ipAddressReservations: make(map[netip.Addr]IpAddressReservation),
@@ -99,7 +97,7 @@ func NewUIBackend() UIBackend {
 			Addr:    "",
 			Handler: nil,
 		},
-		cssContents: string(cssContents),
+		isTestingMode: isTestingMode,
 	}
 }
 
@@ -125,6 +123,21 @@ func (b *UIBackend) logRequestMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
+
+	// get a copy of latest status -- lock it during the copy, to avoid race conditions
+	// with the dnsmasq.leases watcher goroutine:
+	b.dhcpClientDataLock.Lock()
+	currentClients := make([]DhcpClientData, len(b.dhcpClientData))
+	copy(currentClients, b.dhcpClientData)
+	b.dhcpClientDataLock.Unlock()
+
+	return WebSocketMessage{
+		CurrentClients: currentClients,
+		PastClients:    make([]trackerdb.DhcpClient, 0),
+	}
+}
+
 // WebSocket connection handler
 func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) {
 	ws, err := b.upgrader.Upgrade(w, r, nil)
@@ -133,16 +146,7 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 	}
 	defer ws.Close()
 
-	// get a copy of latest status so we can release the lock ASAP
-	b.dhcpClientDataLock.Lock()
-	currentClients := make([]DhcpClientData, len(b.dhcpClientData))
-	copy(currentClients, b.dhcpClientData)
-	b.dhcpClientDataLock.Unlock()
-	msg := WebSocketMessage{
-		CurrentClients: currentClients,
-		PastClients:    make([]trackerdb.DhcpClient, 0),
-	}
-
+	msg := b.getWebSocketMessage()
 	log.Default().Printf("Received new websocket client: pushing %d/%d current/past DHCP clients to it",
 		len(msg.CurrentClients), len(msg.PastClients))
 
@@ -176,10 +180,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 
 	ticker := time.NewTicker(10 * time.Second)
 
-	msg := WebSocketMessage{
-		CurrentClients: make([]DhcpClientData, 0),
-		PastClients:    make([]trackerdb.DhcpClient, 0),
-	}
+	msg := b.getWebSocketMessage()
 	for {
 		select {
 		case dhcpClientsSlice := <-b.broadcastCh:
@@ -193,6 +194,11 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 		case <-ticker.C:
 			// let's refresh the websocket with whatever data we already have
 		}
+
+		//if b.logWebUI {
+		log.Default().Printf("Pushing %d/%d current/past DHCP clients to it",
+			len(msg.CurrentClients), len(msg.PastClients))
+		//}
 
 		// loop over all clients
 		b.clientsLock.Lock()
@@ -215,9 +221,29 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 	}
 }
 
+// Reload the templates. Typically this happens only once at startup, but when testing
+// env var is set, it happens on every page load.
+func (b *UIBackend) reloadTemplates() {
+	cssF := templatesDir + "/style.css"
+	htmlF := templatesDir + "/index.templ.html"
+
+	cssContents, err := os.ReadFile(cssF)
+	if err != nil {
+		log.Default().Fatalf("Failed to open CSS file: %s", err.Error())
+		return
+	}
+	log.Default().Printf("Read CSS file %s: %d bytes", cssF, len(cssContents))
+
+	b.cssContents = string(cssContents)
+	b.htmlTemplate = template.Must(template.ParseFiles(htmlF))
+	log.Default().Printf("Parsed template file %s", htmlF)
+}
+
 // Render HTML page
 func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles(templatesDir + "/index.templ.html"))
+	if b.isTestingMode {
+		b.reloadTemplates()
+	}
 
 	//
 	// REVERSE PROXY LOGIC
@@ -231,14 +257,15 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	//
 	XIngressPath, ok2 := r.Header["X-Ingress-Path"]
 	if !ok2 || len(XIngressPath) == 0 {
-		if os.Getenv("LOCAL_TESTING") == "" {
-			log.Default().Printf("WARN: missing headers in HTTP GET")
-			http.Error(w, "The request does not have the 'X-Ingress-Path' header", http.StatusBadRequest)
-		} else {
+		if b.isTestingMode {
 			// local testing mode... the docker container is not running under HA Supervisor,
 			// so there is no ingress at all...
-			log.Default().Printf("WARN: testing mode detected... ignoring the absence of the INGRESS")
+			log.Default().Printf("WARN: testing mode detected... ignoring the absence of the INGRESS header")
 			XIngressPath = []string{""}
+		} else {
+			log.Default().Printf("WARN: missing headers in HTTP GET")
+			http.Error(w, "The request does not have the 'X-Ingress-Path' header", http.StatusBadRequest)
+			return
 		}
 	}
 
@@ -267,12 +294,14 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		CssFileContent: template.CSS(b.cssContents),
 	}
 
-	err := tmpl.Execute(w, templateData)
+	err := b.htmlTemplate.Execute(w, templateData)
 	if err != nil {
 		log.Default().Printf("WARN: error while rendering template: %s\n", err.Error())
 		// keep going
 	} else {
-		log.Default().Printf("Successfully rendered web page template\n")
+		if b.logWebUI {
+			log.Default().Printf("Successfully rendered web page template, responding with 200 OK\n")
+		}
 	}
 }
 
@@ -466,6 +495,8 @@ func (b *UIBackend) readAddonConfig() error {
 // ListenAndServe is starting the whole UI backend:
 // a web server, a WebSocket server, INotify-based watch on dnsmasq lease files, etc
 func (b *UIBackend) ListenAndServe() error {
+
+	b.reloadTemplates()
 
 	mux := http.NewServeMux()
 
