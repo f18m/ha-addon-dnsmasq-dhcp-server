@@ -40,6 +40,9 @@ type UIBackend struct {
 	dhcpStartIP net.IP
 	dhcpEndIP   net.IP
 
+	// the CSS template as read from file
+	cssContents string
+
 	// the actual HTTP server
 	serverPort int
 	server     http.Server
@@ -72,6 +75,13 @@ func NewUIBackend() UIBackend {
 
 	log.Default().Printf("Successfully opened DHCP clients tracking DB at %s", defaultDhcpClientTrackerDB)
 
+	cssContents, err := os.ReadFile(templatesDir + "/style.css")
+	if err != nil {
+		log.Default().Fatalf("Failed to open CSS file: %s", err.Error())
+		return UIBackend{}
+	}
+	log.Default().Printf("Read %d bytes of CSS file", len(cssContents))
+
 	return UIBackend{
 		ipAddressReservations: make(map[netip.Addr]IpAddressReservation),
 		friendlyNames:         make(map[string]DhcpClientFriendlyName),
@@ -89,6 +99,7 @@ func NewUIBackend() UIBackend {
 			Addr:    "",
 			Handler: nil,
 		},
+		cssContents: string(cssContents),
 	}
 }
 
@@ -124,16 +135,21 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 
 	// get a copy of latest status so we can release the lock ASAP
 	b.dhcpClientDataLock.Lock()
-	updatedStatus := make([]DhcpClientData, len(b.dhcpClientData))
-	copy(updatedStatus, b.dhcpClientData)
+	currentClients := make([]DhcpClientData, len(b.dhcpClientData))
+	copy(currentClients, b.dhcpClientData)
 	b.dhcpClientDataLock.Unlock()
+	msg := WebSocketMessage{
+		CurrentClients: currentClients,
+		PastClients:    make([]trackerdb.DhcpClient, 0),
+	}
 
-	log.Default().Printf("Received new websocket client: pushing %d DHCP clients to it", len(updatedStatus))
+	log.Default().Printf("Received new websocket client: pushing %d/%d current/past DHCP clients to it",
+		len(msg.CurrentClients), len(msg.PastClients))
 
 	// register new client
 	b.clientsLock.Lock()
 	b.clients[ws] = true
-	if err := ws.WriteJSON(updatedStatus); err != nil { // push the current status on the websocket
+	if err := ws.WriteJSON(msg); err != nil { // push the current status on the websocket
 		log.Default().Printf("WARN: failed to push initial data to the new websocket: %s", err.Error())
 		// keep going, we will delete the client connection shortly in the loop below if the error
 		// keeps popping up
@@ -142,7 +158,7 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 
 	// listen till the end of the websocket
 	for {
-		var msg []DhcpClientData
+		var msg WebSocketMessage
 		err := ws.ReadJSON(&msg)
 		if err != nil {
 			log.Default().Printf("Error while reading JSON from WebSocket: %v", err)
@@ -160,8 +176,10 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 
 	ticker := time.NewTicker(10 * time.Second)
 
-	//var dhcpClientsSlice []DhcpClientData
-	var msg WebSocketMessage
+	msg := WebSocketMessage{
+		CurrentClients: make([]DhcpClientData, 0),
+		PastClients:    make([]trackerdb.DhcpClient, 0),
+	}
 	for {
 		select {
 		case dhcpClientsSlice := <-b.broadcastCh:
@@ -170,7 +188,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 			slices.SortFunc(dhcpClientsSlice, func(a, b DhcpClientData) int {
 				return a.Lease.IPAddr.Compare(b.Lease.IPAddr)
 			})
-			msg.KnownClients = dhcpClientsSlice
+			msg.CurrentClients = dhcpClientsSlice
 
 		case <-ticker.C:
 			// let's refresh the websocket with whatever data we already have
@@ -213,10 +231,15 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	//
 	XIngressPath, ok2 := r.Header["X-Ingress-Path"]
 	if !ok2 || len(XIngressPath) == 0 {
-		log.Default().Printf("WARN: missing headers in HTTP GET")
-		http.Error(w, "The request does not have the 'X-Ingress-Path' header", http.StatusBadRequest)
-		return
-		//XIngressPath = []string{""}
+		if os.Getenv("LOCAL_TESTING") == "" {
+			log.Default().Printf("WARN: missing headers in HTTP GET")
+			http.Error(w, "The request does not have the 'X-Ingress-Path' header", http.StatusBadRequest)
+		} else {
+			// local testing mode... the docker container is not running under HA Supervisor,
+			// so there is no ingress at all...
+			log.Default().Printf("WARN: testing mode detected... ignoring the absence of the INGRESS")
+			XIngressPath = []string{""}
+		}
 	}
 
 	// compute pool size:
@@ -225,24 +248,26 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		dhcpPoolSize = int(iprange.New(b.dhcpStartIP, b.dhcpEndIP).Size().Int64())
 	}
 
-	data := struct {
-		WebSocketURI string
-		DhcpStartIP  string
-		DhcpEndIP    string
-		DhcpPoolSize int
+	templateData := struct {
+		WebSocketURI   string
+		DhcpStartIP    string
+		DhcpEndIP      string
+		DhcpPoolSize   int
+		CssFileContent template.CSS
 	}{
 		// We use relative URL for the websocket in the form "/79957c2e_dnsmasq-dhcp/ingress/ws"
 		// In this way we don't need to know whether the browser is passing through some TLS
 		// reverse proxy or uses HomeAssistant built-in TLS or is connecting in plaintext (HTTP).
 		// Based on the scheme used by the browser, the websocket will use the associated scheme
 		// ('wss' for 'https' and 'ws' for 'http)
-		WebSocketURI: XIngressPath[0] + websocketRelativeUrl,
-		DhcpStartIP:  b.dhcpStartIP.String(),
-		DhcpEndIP:    b.dhcpEndIP.String(),
-		DhcpPoolSize: dhcpPoolSize,
+		WebSocketURI:   XIngressPath[0] + websocketRelativeUrl,
+		DhcpStartIP:    b.dhcpStartIP.String(),
+		DhcpEndIP:      b.dhcpEndIP.String(),
+		DhcpPoolSize:   dhcpPoolSize,
+		CssFileContent: template.CSS(b.cssContents),
 	}
 
-	err := tmpl.Execute(w, data)
+	err := tmpl.Execute(w, templateData)
 	if err != nil {
 		log.Default().Printf("WARN: error while rendering template: %s\n", err.Error())
 		// keep going

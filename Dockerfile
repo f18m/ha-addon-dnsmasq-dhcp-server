@@ -9,8 +9,10 @@ FROM golang:1.22-alpine AS builder-go
 
 WORKDIR /app/backend
 COPY dhcp-clients-webapp-backend .
-RUN apk add build-base
-RUN CGO_ENABLED=1 go build -o /dhcp-clients-webapp-backend .
+RUN --mount=type=cache,target=/root/.cache/apk \
+    apk add build-base
+RUN --mount=type=cache,target=/root/.cache/go \
+    CGO_ENABLED=1 go build -o /dhcp-clients-webapp-backend .
 
 
 # --- Actual ADDON layer

@@ -1,0 +1,8 @@
+# Working directory
+# . or absolute path, please note that the directories following must be under root.
+root = "/app"
+tmp_dir = "/tmp"
+
+[build]
+cmd = "CGO_ENABLED=1 go build -o /dhcp-clients-webapp-backend ."
+bin = "/dhcp-clients-webapp-backend"

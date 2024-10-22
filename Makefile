@@ -42,7 +42,21 @@ test-docker-image:
 		--rm \
 		-v $(shell pwd)/test-options.json:/data/options.json \
 		-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
+		-e LOCAL_TESTING=1 \
 		--cap-add NET_ADMIN \
 		--network host \
-		-p 8100:8100 \
 		${IMAGETAG}:localtest
+
+test-docker-image-live: 
+	docker build -f Dockerfile.live -t debug-image-live .
+	@echo "Starting container of image debug-image-live" 
+	docker run \
+		--rm \
+		-v $(shell pwd)/test-options.json:/data/options.json \
+		-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
+		-v $(shell pwd)/dhcp-clients-webapp-backend:/app \
+		-v $(shell pwd)/dhcp-clients-webapp-backend/templates:/opt/web/templates/ \
+		-e LOCAL_TESTING=1 \
+		--cap-add NET_ADMIN \
+		--network host \
+		debug-image-live

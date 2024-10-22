@@ -99,11 +99,11 @@ type AddonConfig struct {
 
 // WebSocket
 type WebSocketMessage struct {
-	// KnownClients contains the list of clients currently "connected" to the dnsmasq server.
+	// CurrentClients contains the list of clients currently "connected" to the dnsmasq server.
 	// In this context "connected" means: that sent DHCP traffic since the dnsmasq server was started.
-	KnownClients []DhcpClientData `json:"known_clients"`
+	CurrentClients []DhcpClientData `json:"current_clients"`
 
-	// MissingClients contains the list of clients that were connected in the past, but never
+	// PastClients contains the list of clients that were connected in the past, but never
 	// obtained a DHCP lease since the last dnsmasq server restart.
-	MissingClients []trackerdb.DhcpClient `json:"missing_clients"`
+	PastClients []trackerdb.DhcpClient `json:"past_clients"`
 }

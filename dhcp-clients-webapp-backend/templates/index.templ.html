@@ -18,19 +18,7 @@
  
     <!-- for some reason referencing an external CSS does not work, so CSS definitions are embedded: -->
     <style>
-        .solidBorder {
-            border: 1px solid;
-        }
-
-        .monoText {
-            font-family: monospace;
-            background-color: lightgrey;
-            padding: 3px;
-        }
-
-        .boldText {
-            font-weight: bold;
-        }
+        {{ .CssFileContent }}
     </style>
 
     <script type="text/javascript">
@@ -65,6 +53,31 @@
 
         var table = null;
 
+        function initTabs() {
+            const tabButtons = document.querySelectorAll('.tabs__pills .btn');
+            const tabContents = document.querySelectorAll('.tabs__panels > div');
+
+            if (tabButtons && tabContents) {
+                tabButtons.forEach((tabBtn) => {
+                    tabBtn.addEventListener('click', () => {
+                        console.log("click intercepted")
+                        const tabId = tabBtn.getAttribute('data-id');
+
+                        tabButtons.forEach((btn) => btn.classList.remove('active'));
+                        tabBtn.classList.add('active');
+
+                        tabContents.forEach((content) => {
+                            content.classList.remove('active');
+
+                            if (content.id === tabId) {
+                            content.classList.add('active');
+                            }
+                        });
+                    });
+                });
+            }
+        }
+
         function initTable() {
             console.log("Initializing datatables.net table");
 
@@ -92,7 +105,12 @@
                 });
         }
 
-        document.addEventListener('DOMContentLoaded', initTable, false);
+        function initAll() {
+            initTable()
+            initTabs()
+        }
+
+        document.addEventListener('DOMContentLoaded', initAll, false);
 
         function processWebSocketEvent(event) {
 
@@ -112,9 +130,9 @@
 
                 message.innerText = "No DHCP clients so far.";
 
-            } else if (!("known_clients" in data) || 
-                        !("missing_clients" in data)) {
-                console.error("Websocket connection: expecting a JSON matching the golang WebSocketMessage type, received something else", event.data);
+            } else if (!("current_clients" in data) || 
+                        !("past_clients" in data)) {
+                console.error("Websocket connection: expecting a JSON matching the golang WebSocketMessage type, received something else", data);
 
                 // clear the table
                 table.clear().draw();
@@ -122,13 +140,13 @@
                 message.innerText = "Internal error. Please report upstream together with Javascript logs.";
 
             } else {
-                console.log("Websocket connection: received " + data.known_clients.length + " known clients from websocket");
-                console.log("Websocket connection: received " + data.missing_clients.length + " missing clients from websocket");
+                console.log("Websocket connection: received " + data.current_clients.length + " known clients from websocket");
+                console.log("Websocket connection: received " + data.past_clients.length + " missing clients from websocket");
 
                 tableData = [];
                 dhcp_addresses_used = 0;
                 dhcp_static_ip = 0;
-                data.known_clients.forEach(function (item, index) {
+                data.current_clients.forEach(function (item, index) {
                     console.log(`Item ${index + 1}:`, item);
 
                     if (item.is_inside_dhcp_pool)
@@ -159,7 +177,7 @@
                 }
 
                 // update the message
-                message.innerHTML = "A total of <span class='boldText'>" + data.known_clients.length + " DHCP clients</span> are tracked by the DHCP server; " + 
+                message.innerHTML = "A total of <span class='boldText'>" + data.current_clients.length + " DHCP clients</span> are tracked by the DHCP server; " + 
                                     dhcp_static_ip + " have a static IP address configuration; " +
                                     dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.";
             }
@@ -185,6 +203,8 @@
             console.log("Websocket received event", event.code, event.reason, event.wasClean)
             processWebSocketEvent(event)
         }
+
+
     </script>
 </head>
 
@@ -212,6 +232,63 @@
         <li>The 'Expires' column contains the count down to the next DHCP lease renewal formatted as 
             <span class="monoText">HH:MM:SS</span>.</li>
     </ul>
+
+
+    <div class="container">
+        <div class="tabs">
+          <div class="tabs__pills">
+            <button class="btn active" data-id="summer">Summer</button>
+            <button class="btn" data-id="autumn">Autumn</button>
+            <button class="btn" data-id="winter">Winter</button>
+            <button class="btn" data-id="spring">Spring</button>
+          </div>
+    
+          <div class="tabs__panels">
+            <div id="summer" class="active">
+              <figure>
+                <img src="https://picsum.photos/id/34/400/270" alt="summer" />
+              </figure>
+              <div>
+                <h4>Summer</h4>
+                <p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Ipsam tempore consectetur animi sequi dolore deserunt error nulla officia amet! Autem unde voluptas modi ipsa ullam ex facere cupiditate harum excepturi? Lorem ipsum, dolor sit amet consectetur adipisicing elit. Ipsam tempore consectetur animi sequi dolore deserunt error nulla officia amet! Autem unde voluptas modi ipsa ullam ex facere cupiditate harum excepturi?
+                </p>
+              </div>
+            </div>
+            <div id="autumn">
+              <figure>
+                <img src="https://picsum.photos/id/54/400/270" alt="autumn" />
+              </figure>
+              <div>
+                <h4>Autumn</h4>
+                <p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Ipsam tempore consectetur animi sequi dolore deserunt error nulla officia amet! Autem unde voluptas modi ipsa ullam ex facere cupiditate harum excepturi? Lorem ipsum, dolor sit amet consectetur adipisicing elit. Ipsam tempore consectetur animi sequi dolore deserunt error nulla officia amet! Autem unde voluptas modi ipsa ullam ex facere cupiditate harum excepturi?
+                </p>
+              </div>
+            </div>
+            <div id="winter">
+              <figure>
+                <img src="https://picsum.photos/id/44/400/270" alt="winter" />
+              </figure>
+              <div>
+                <h4>Winter</h4>
+                <p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Ipsam tempore consectetur animi sequi dolore deserunt error nulla officia amet! Autem unde voluptas modi ipsa ullam ex facere cupiditate harum excepturi? Lorem ipsum, dolor sit amet consectetur adipisicing elit. Ipsam tempore consectetur animi sequi dolore deserunt error nulla officia amet! Autem unde voluptas modi ipsa ullam ex facere cupiditate harum excepturi?
+                </p>
+              </div>
+            </div>
+            <div id="spring">
+              <figure>
+                <img src="https://picsum.photos/id/24/400/270" alt="spring" />
+              </figure>
+              <div>
+                <h4>Spring</h4>
+                <p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Ipsam tempore consectetur animi sequi dolore deserunt error nulla officia amet! Autem unde voluptas modi ipsa ullam ex facere cupiditate harum excepturi? Lorem ipsum, dolor sit amet consectetur adipisicing elit. Ipsam tempore consectetur animi sequi dolore deserunt error nulla officia amet! Autem unde voluptas modi ipsa ullam ex facere cupiditate harum excepturi?
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+
+
 </body>
 
 </html>

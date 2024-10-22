@@ -24,7 +24,7 @@ function ipvalid() {
 function dnsresolve() {
     NTP_SERVERS="$(jq --raw-output '.network.ntp[]' ${ADDON_CONFIG} 2>/dev/null)"
     if [[ ! -z "${NTP_SERVERS}" ]]; then
-        bashio::log.info "NTP servers are ${NTP_SERVERS}"
+        bashio::log.info "NTP servers are ${NTP_SERVERS/$'\n'/}"
 
         NTP_SERVERS_RESOLVED=""
         for srv in ${NTP_SERVERS}; do
