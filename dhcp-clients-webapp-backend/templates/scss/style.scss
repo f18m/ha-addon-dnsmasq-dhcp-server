@@ -29,11 +29,11 @@ $blue: #2955ac;
 }
 
 .container {
-    max-width: 980px;
+    //max-width: 980px;
     width: 100%;
     margin: 0 auto;
-    padding: 60px 16px 30px 16px;
-    display: flex;
+    //padding: 60px 16px 30px 16px;
+    //display: flex;
 }
 
 .btn {
@@ -68,15 +68,17 @@ $blue: #2955ac;
 .tabs {
     background-color: $white;
     border-radius: 8px;
-    padding: 32px 32px 10px 32px;
+    padding: 16px 16px 16px 16px;
 
     &__pills {
-        width: fit-content;
+        //width: fit-content;
         border-bottom: 2px solid rgba($color: $text, $alpha: 0.2);
     }
 
     &__panels {
         padding: 20px 0;
+
+        // the styling for inactive panels
         > div {
             width: 100%;
             display: none;
@@ -109,12 +111,13 @@ $blue: #2955ac;
             }
         }
 
+        // the styling for the active panel
         > div.active {
-            display: flex;
+            display: block;
 
-            @media only screen and (max-width: 978px) {
-                flex-direction: column;
-            }
+            //@media only screen and (max-width: 978px) {
+            //    flex-direction: column;
+            //}
         }
     }
 }

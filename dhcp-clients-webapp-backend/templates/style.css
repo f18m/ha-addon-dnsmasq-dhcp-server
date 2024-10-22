@@ -24,11 +24,8 @@
 }
 
 .container {
-  max-width: 980px;
   width: 100%;
   margin: 0 auto;
-  padding: 60px 16px 30px 16px;
-  display: flex;
 }
 
 .btn {
@@ -63,10 +60,9 @@
 .tabs {
   background-color: #f7f7f7;
   border-radius: 8px;
-  padding: 32px 32px 10px 32px;
+  padding: 16px 16px 16px 16px;
 }
 .tabs__pills {
-  width: fit-content;
   border-bottom: 2px solid rgba(16, 25, 39, 0.2);
 }
 .tabs__panels {
@@ -99,12 +95,7 @@
   line-height: 1.8;
 }
 .tabs__panels > div.active {
-  display: flex;
-}
-@media only screen and (max-width: 978px) {
-  .tabs__panels > div.active {
-    flex-direction: column;
-  }
+  display: block;
 }
 
 /*# sourceMappingURL=style.css.map */
