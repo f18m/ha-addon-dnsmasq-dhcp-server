@@ -1,6 +1,7 @@
 package uibackend
 
 import (
+	"dhcp-clients-webapp-backend/pkg/trackerdb"
 	"encoding/json"
 	"net"
 
@@ -94,4 +95,15 @@ type AddonConfig struct {
 	LogWebUI bool `json:"log_web_ui"`
 
 	WebUIPort int `json:"web_ui_port"`
+}
+
+// WebSocket
+type WebSocketMessage struct {
+	// KnownClients contains the list of clients currently "connected" to the dnsmasq server.
+	// In this context "connected" means: that sent DHCP traffic since the dnsmasq server was started.
+	KnownClients []DhcpClientData `json:"known_clients"`
+
+	// MissingClients contains the list of clients that were connected in the past, but never
+	// obtained a DHCP lease since the last dnsmasq server restart.
+	MissingClients []trackerdb.DhcpClient `json:"missing_clients"`
 }

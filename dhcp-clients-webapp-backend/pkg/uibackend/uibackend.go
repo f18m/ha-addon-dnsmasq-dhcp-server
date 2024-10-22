@@ -160,32 +160,33 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 
 	ticker := time.NewTicker(10 * time.Second)
 
-	var dhcpClientsSlice []DhcpClientData
+	//var dhcpClientsSlice []DhcpClientData
+	var msg WebSocketMessage
 	for {
 		select {
-		case dhcpClientsSlice = <-b.broadcastCh:
+		case dhcpClientsSlice := <-b.broadcastCh:
 			// got new data!
+			// sort the slice by IP (the user can sort again later based on some other criteria):
+			slices.SortFunc(dhcpClientsSlice, func(a, b DhcpClientData) int {
+				return a.Lease.IPAddr.Compare(b.Lease.IPAddr)
+			})
+			msg.KnownClients = dhcpClientsSlice
 
 		case <-ticker.C:
 			// let's refresh the websocket with whatever data we already have
 		}
 
-		// sort the slice by IP (the user can sort again later based on some other criteria):
-		slices.SortFunc(dhcpClientsSlice, func(a, b DhcpClientData) int {
-			return a.Lease.IPAddr.Compare(b.Lease.IPAddr)
-		})
-
 		// loop over all clients
 		b.clientsLock.Lock()
 		for client := range b.clients {
-			err := client.WriteJSON(dhcpClientsSlice)
+			err := client.WriteJSON(msg)
 			if err != nil {
 				log.Default().Printf("Error while writing JSON to WebSocket: %v", err)
 				client.Close()
 				delete(b.clients, client)
 			} else {
 				if b.logWebUI {
-					jsonData, err := json.Marshal(dhcpClientsSlice)
+					jsonData, err := json.Marshal(msg)
 					if err != nil {
 						log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
 					}

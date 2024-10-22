@@ -112,8 +112,9 @@
 
                 message.innerText = "No DHCP clients so far.";
 
-            } else if (!Array.isArray(data)) {
-                console.error("Websocket connection: expecting a JSON array, received something else", event.data);
+            } else if (!("known_clients" in data) || 
+                        !("missing_clients" in data)) {
+                console.error("Websocket connection: expecting a JSON matching the golang WebSocketMessage type, received something else", event.data);
 
                 // clear the table
                 table.clear().draw();
@@ -121,12 +122,13 @@
                 message.innerText = "Internal error. Please report upstream together with Javascript logs.";
 
             } else {
-                console.log("Websocket connection: received " + data.length + " items from websocket");
+                console.log("Websocket connection: received " + data.known_clients.length + " known clients from websocket");
+                console.log("Websocket connection: received " + data.missing_clients.length + " missing clients from websocket");
 
                 tableData = [];
                 dhcp_addresses_used = 0;
                 dhcp_static_ip = 0;
-                data.forEach(function (item, index) {
+                data.known_clients.forEach(function (item, index) {
                     console.log(`Item ${index + 1}:`, item);
 
                     if (item.is_inside_dhcp_pool)
@@ -157,7 +159,7 @@
                 }
 
                 // update the message
-                message.innerText = "A total of <span class='boldText'>" + data.length + " DHCP clients</span> are tracked by the DHCP server; " + 
+                message.innerHTML = "A total of <span class='boldText'>" + data.known_clients.length + " DHCP clients</span> are tracked by the DHCP server; " + 
                                     dhcp_static_ip + " have a static IP address configuration; " +
                                     dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.";
             }
