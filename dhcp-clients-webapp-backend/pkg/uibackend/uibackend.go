@@ -157,8 +157,18 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 
 // Broadcast updater: any update posted on the broadcastCh is broadcasted to all clients
 func (b *UIBackend) broadcastUpdatesToClients() {
+
+	ticker := time.NewTicker(10 * time.Second)
+
+	var dhcpClientsSlice []DhcpClientData
 	for {
-		dhcpClientsSlice := <-b.broadcastCh
+		select {
+		case dhcpClientsSlice = <-b.broadcastCh:
+			// got new data!
+
+		case <-ticker.C:
+			// let's refresh the websocket with whatever data we already have
+		}
 
 		// sort the slice by IP (the user can sort again later based on some other criteria):
 		slices.SortFunc(dhcpClientsSlice, func(a, b DhcpClientData) int {

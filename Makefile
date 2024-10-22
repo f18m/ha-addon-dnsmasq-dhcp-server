@@ -11,7 +11,7 @@ IMAGETAG:=$(shell yq .image config.yaml  | sed 's@{arch}@amd64@g')
 BACKEND_SOURCE_CODE_FILES:=$(shell find dhcp-clients-webapp-backend/ -type f -name '*.go')
 ROOTFS_FILES:=$(shell find rootfs/ -type f)
 
-.docker-image: $(BACKEND_SOURCE_CODE_FILES) $(ROOTFS_FILES)
+build-docker-image: $(BACKEND_SOURCE_CODE_FILES) $(ROOTFS_FILES)
 	docker run \
 		--rm \
 		--privileged \
@@ -24,10 +24,6 @@ ROOTFS_FILES:=$(shell find rootfs/ -type f)
 		--version localtest \
 		--self-cache \
 		--test
-	touch .docker-image
-
-build-docker-image:
-	$(MAKE) .docker-image
 
 # non-containerized build of the backend -- requires you to have go installed:
 build-backend:
@@ -40,7 +36,7 @@ build-backend:
 	
 
 test-docker-image: 
-	$(MAKE) FAST=1 .docker-image
+	$(MAKE) FAST=1 build-docker-image
 	@echo "Starting container of image ${IMAGETAG}:localtest" 
 	docker run \
 		--rm \
