@@ -1,0 +1,183 @@
+/*
+    Contains all client-side logic to format the tables,
+    handle websocket events, handle tabs, etc.
+*/
+
+function formatTimeLeft(unixTimestamp) {
+    if (unixTimestamp == 0) {
+        return "Never expires";
+    }
+
+    // Calculate the difference in milliseconds between the timestamp and the current time
+    const now = new Date();
+    const timestampInMillis = unixTimestamp * 1000;
+    const timeDifference = timestampInMillis - now.getTime();
+
+    // If the time has already passed, return 0
+    if (timeDifference <= 0) {
+        return "Already expired";
+    }
+
+    // Calculate the remaining time in hours, minutes, and seconds
+    const hoursLeft = Math.floor(timeDifference / (1000 * 60 * 60));
+    const minutesLeft = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+    const secondsLeft = Math.floor((timeDifference % (1000 * 60)) / 1000);
+
+    // Format the remaining time as a string "HH:MM:SS"
+    return `${hoursLeft.toString().padStart(2, '0')}:${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`;
+}
+
+function initTabs() {
+    const tabButtons = document.querySelectorAll('.tabs__pills .btn');
+    const tabContents = document.querySelectorAll('.tabs__panels > div');
+
+    if (tabButtons && tabContents) {
+        tabButtons.forEach((tabBtn) => {
+            tabBtn.addEventListener('click', () => {
+                console.log("click intercepted")
+                const tabId = tabBtn.getAttribute('data-id');
+
+                tabButtons.forEach((btn) => btn.classList.remove('active'));
+                tabBtn.classList.add('active');
+
+                tabContents.forEach((content) => {
+                    content.classList.remove('active');
+
+                    if (content.id === tabId) {
+                    content.classList.add('active');
+                    }
+                });
+            });
+        });
+    }
+}
+
+
+var table = null;
+
+function initTable() {
+    console.log("Initializing datatables.net table");
+
+    // custom sorting for content formatted as HH:MM:SS
+    $.fn.dataTable.ext.order['custom-time-order'] = function (settings, colIndex) {
+        return this.api().column(colIndex, { order: 'index' }).nodes().map(function (td, i) {
+            var time = $(td).text().split(':');
+            // convert to seconds (HH * 3600 + MM * 60 + SS)
+            return (parseInt(time[0], 10) * 3600) + (parseInt(time[1], 10) * 60) + parseInt(time[2], 10);
+        });
+    };
+    table = new DataTable('#table-wrapper', {
+            columns: [
+                { title: '#', type: 'num' },
+                { title: 'Friendly Name', type: 'string' },
+                { title: 'Hostname', type: 'string' },
+                { title: 'IP Address', type: 'ip-address' },
+                { title: 'MAC Address', type: 'string' },
+                { title: 'Expires in', 'orderDataType': 'custom-date-order' },
+                { title: 'Static IP?', type: 'string' }
+            ],
+            data: [],
+            pageLength: 20,
+            responsive: true
+        });
+}
+
+function initAll() {
+    initTable()
+    initTabs()
+}
+
+document.addEventListener('DOMContentLoaded', initAll, false);
+
+function processWebSocketEvent(event) {
+
+    try {
+        var data = JSON.parse(event.data);
+    } catch (error) {
+        console.error('Error while parsing JSON:', error);
+    }
+
+    var message = document.getElementById("message");
+
+    if (data === null) {
+        console.log("Websocket connection: received an empty JSON");
+
+        // clear the table
+        table.clear().draw();
+
+        message.innerText = "No DHCP clients so far.";
+
+    } else if (!("current_clients" in data) || 
+                !("past_clients" in data)) {
+        console.error("Websocket connection: expecting a JSON matching the golang WebSocketMessage type, received something else", data);
+
+        // clear the table
+        table.clear().draw();
+
+        message.innerText = "Internal error. Please report upstream together with Javascript logs.";
+
+    } else {
+        console.log("Websocket connection: received " + data.current_clients.length + " known clients from websocket");
+        console.log("Websocket connection: received " + data.past_clients.length + " missing clients from websocket");
+
+        tableData = [];
+        dhcp_addresses_used = 0;
+        dhcp_static_ip = 0;
+        data.current_clients.forEach(function (item, index) {
+            console.log(`Item ${index + 1}:`, item);
+
+            if (item.is_inside_dhcp_pool)
+                dhcp_addresses_used += 1;
+
+            static_ip_str = "NO";
+            if (item.has_static_ip) {
+                static_ip_str = "YES";
+                dhcp_static_ip += 1;
+            }
+
+            // append new row
+            tableData.push([index + 1,
+                item.friendly_name, item.lease.hostname, item.lease.ip_addr,
+                item.lease.mac_addr, formatTimeLeft(item.lease.expires), static_ip_str]);
+        });
+
+        // rerender the table
+        table.clear().rows.add(tableData).draw();
+
+        // compute DHCP pool usage
+        var usagePerc = 0
+        if (dhcpPoolSize > 0) {
+            usagePerc = 100 * dhcp_addresses_used / dhcpPoolSize
+
+            // truncate to only 1 digit accuracy
+            usagePerc = Math.round(usagePerc * 10) / 10
+        }
+
+        // update the message
+        message.innerHTML = "A total of <span class='boldText'>" + data.current_clients.length + " DHCP clients</span> are tracked by the DHCP server; " + 
+                            dhcp_static_ip + " have a static IP address configuration; " +
+                            dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.";
+    }
+}
+
+
+// websocket
+var dhcp_clients_ws = new WebSocket(webSocketURI);
+
+dhcp_clients_ws.onopen = function (event) {
+    console.log("Websocket connection to " + webSocketURI + " was successfully opened");
+};
+
+dhcp_clients_ws.onclose = function (event) {
+    console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
+}
+
+dhcp_clients_ws.onerror = function (event) {
+    console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
+}
+
+dhcp_clients_ws.onmessage = function (event) {
+    console.log("Websocket received event", event.code, event.reason, event.wasClean)
+    processWebSocketEvent(event)
+}
+

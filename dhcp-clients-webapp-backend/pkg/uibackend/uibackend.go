@@ -49,6 +49,7 @@ type UIBackend struct {
 	// the CSS template as read from file
 	isTestingMode bool
 	htmlTemplate  *template.Template
+	jsContents    string
 	cssContents   string
 
 	// map of connected websockets
@@ -225,6 +226,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 // env var is set, it happens on every page load.
 func (b *UIBackend) reloadTemplates() {
 	cssF := templatesDir + "/style.css"
+	jsF := templatesDir + "/dnsmasq-dhcp.js"
 	htmlF := templatesDir + "/index.templ.html"
 
 	cssContents, err := os.ReadFile(cssF)
@@ -233,8 +235,16 @@ func (b *UIBackend) reloadTemplates() {
 		return
 	}
 	log.Default().Printf("Read CSS file %s: %d bytes", cssF, len(cssContents))
-
 	b.cssContents = string(cssContents)
+
+	jsContents, err := os.ReadFile(jsF)
+	if err != nil {
+		log.Default().Fatalf("Failed to open Javascript file: %s", err.Error())
+		return
+	}
+	log.Default().Printf("Read Javascript file %s: %d bytes", jsF, len(jsContents))
+	b.jsContents = string(jsContents)
+
 	b.htmlTemplate = template.Must(template.ParseFiles(htmlF))
 	log.Default().Printf("Parsed template file %s", htmlF)
 }
@@ -276,22 +286,24 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templateData := struct {
-		WebSocketURI   string
-		DhcpStartIP    string
-		DhcpEndIP      string
-		DhcpPoolSize   int
-		CssFileContent template.CSS
+		WebSocketURI          string
+		DhcpStartIP           string
+		DhcpEndIP             string
+		DhcpPoolSize          int
+		CssFileContent        template.CSS
+		JavascriptFileContent template.JS
 	}{
 		// We use relative URL for the websocket in the form "/79957c2e_dnsmasq-dhcp/ingress/ws"
 		// In this way we don't need to know whether the browser is passing through some TLS
 		// reverse proxy or uses HomeAssistant built-in TLS or is connecting in plaintext (HTTP).
 		// Based on the scheme used by the browser, the websocket will use the associated scheme
 		// ('wss' for 'https' and 'ws' for 'http)
-		WebSocketURI:   XIngressPath[0] + websocketRelativeUrl,
-		DhcpStartIP:    b.dhcpStartIP.String(),
-		DhcpEndIP:      b.dhcpEndIP.String(),
-		DhcpPoolSize:   dhcpPoolSize,
-		CssFileContent: template.CSS(b.cssContents),
+		WebSocketURI:          XIngressPath[0] + websocketRelativeUrl,
+		DhcpStartIP:           b.dhcpStartIP.String(),
+		DhcpEndIP:             b.dhcpEndIP.String(),
+		DhcpPoolSize:          dhcpPoolSize,
+		CssFileContent:        template.CSS(b.cssContents),
+		JavascriptFileContent: template.JS(b.jsContents),
 	}
 
 	err := b.htmlTemplate.Execute(w, templateData)
