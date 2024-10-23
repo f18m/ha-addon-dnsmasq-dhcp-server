@@ -7,7 +7,7 @@ FROM golang:1.22-alpine
 ENV LANG=C.UTF-8
 
 # Setup base
-RUN apk add --no-cache dnsmasq nginx-debug && mv /etc/nginx /etc/nginx-orig
+RUN apk add --no-cache dnsmasq nginx-debug sqlite && mv /etc/nginx /etc/nginx-orig
 
 # Setup golang build tools
 RUN apk add --no-cache git make musl-dev go build-base

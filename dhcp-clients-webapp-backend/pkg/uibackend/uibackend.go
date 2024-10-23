@@ -64,7 +64,7 @@ type UIBackend struct {
 	trackerDB trackerdb.DhcpClientTrackerDB
 
 	// channel used to broadcast tabular data from backend->frontend
-	broadcastCh chan []DhcpClientData
+	broadcastCh chan struct{}
 
 	// channel used to link a goroutine watching for DHCP lease file changes and the lease file processor
 	leasesCh chan []*dnsmasq.Lease
@@ -87,7 +87,7 @@ func NewUIBackend() UIBackend {
 		clients:               make(map[*websocket.Conn]bool),
 		dhcpClientData:        nil,
 		trackerDB:             *db,
-		broadcastCh:           make(chan []DhcpClientData),
+		broadcastCh:           make(chan struct{}),
 		leasesCh:              make(chan []*dnsmasq.Lease),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
@@ -133,9 +133,25 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 	copy(currentClients, b.dhcpClientData)
 	b.dhcpClientDataLock.Unlock()
 
+	// sort the slice by IP (the user can sort again later based on some other criteria):
+	slices.SortFunc(currentClients, func(a, b DhcpClientData) int {
+		return a.Lease.IPAddr.Compare(b.Lease.IPAddr)
+	})
+
+	// convert currentClients to a simple slice of MAC addresses
+	var currentClientsMacs []net.HardwareAddr
+	for _, c := range currentClients {
+		currentClientsMacs = append(currentClientsMacs, c.Lease.MacAddr)
+	}
+	deadClients, err := b.trackerDB.GetDeadDhcpClients(currentClientsMacs)
+	if err != nil {
+		log.Default().Printf("ERR: failed to get list of dead/past DHCP clients: %s", err.Error())
+		// keep going
+	}
+
 	return WebSocketMessage{
 		CurrentClients: currentClients,
-		PastClients:    make([]trackerdb.DhcpClient, 0),
+		PastClients:    deadClients,
 	}
 }
 
@@ -184,13 +200,9 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 	msg := b.getWebSocketMessage()
 	for {
 		select {
-		case dhcpClientsSlice := <-b.broadcastCh:
-			// got new data!
-			// sort the slice by IP (the user can sort again later based on some other criteria):
-			slices.SortFunc(dhcpClientsSlice, func(a, b DhcpClientData) int {
-				return a.Lease.IPAddr.Compare(b.Lease.IPAddr)
-			})
-			msg.CurrentClients = dhcpClientsSlice
+		case <-b.broadcastCh:
+			// refresh the data
+			msg = b.getWebSocketMessage()
 
 		case <-ticker.C:
 			// let's refresh the websocket with whatever data we already have
@@ -325,8 +337,8 @@ func (b *UIBackend) processLeaseUpdates() {
 		log.Default().Printf("INotify detected a change to the DHCP client lease file... updated list contains %d clients\n", len(updatedLeases))
 		b.processLeaseUpdatesFromArray(updatedLeases)
 
-		// once the new list of DHCP client data entries is ready, push it in broadcast
-		b.broadcastCh <- b.dhcpClientData
+		// once the new list of DHCP client data entries is ready, notify the broadcast channel
+		b.broadcastCh <- struct{}{}
 		i += 1
 	}
 }
@@ -334,7 +346,7 @@ func (b *UIBackend) processLeaseUpdates() {
 // Process a slice of dnsmasq.Lease and store that into the UIBackend object
 func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) {
 
-	timeUpdate := time.Now()
+	// lastSeenTime := time.Now()
 
 	b.dhcpClientDataLock.Lock()
 	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
@@ -373,20 +385,20 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 
 		// is-inside-dhcp-pool metadata
 		d.IsInsideDHCPPool = IpInRange(lease.IPAddr, b.dhcpStartIP, b.dhcpEndIP)
-
-		// update this DHCP client info also in the tracker DB:
-		err := b.trackerDB.TrackNewDhcpClient(trackerdb.DhcpClient{
-			MacAddr:      lease.MacAddr.String(),
-			Hostname:     lease.Hostname,
-			HasStaticIP:  hasReservation,
-			FriendlyName: d.FriendlyName,
-			LastSeen:     timeUpdate,
-		})
-		if err != nil {
-			log.Default().Printf("WARN: Failed to update the internal DHCP client tracker DB: %s\n", err.Error())
-			// keep going
-		}
-
+		/*
+			// update this DHCP client info also in the tracker DB:
+			err := b.trackerDB.TrackNewDhcpClient(trackerdb.DhcpClient{
+				MacAddr:      lease.MacAddr.String(),
+				Hostname:     lease.Hostname,
+				HasStaticIP:  hasReservation,
+				FriendlyName: d.FriendlyName,
+				LastSeen:     lastSeenTime,
+			})
+			if err != nil {
+				log.Default().Printf("WARN: Failed to update the internal DHCP client tracker DB: %s\n", err.Error())
+				// keep going
+			}
+		*/
 		// processing complete:
 		b.dhcpClientData = append(b.dhcpClientData, d)
 	}

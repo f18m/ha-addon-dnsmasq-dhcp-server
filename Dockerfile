@@ -23,7 +23,7 @@ FROM $BUILD_FROM
 ENV LANG=C.UTF-8
 
 # Setup base
-RUN apk add --no-cache dnsmasq nginx-debug && mv /etc/nginx /etc/nginx-orig
+RUN apk add --no-cache dnsmasq nginx-debug sqlite && mv /etc/nginx /etc/nginx-orig
 
 # Copy data
 COPY rootfs /
