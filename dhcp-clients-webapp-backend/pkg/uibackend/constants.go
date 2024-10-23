@@ -10,6 +10,10 @@ var defaultHomeAssistantConfigFile = "/data/options.json"
 // location for our small DB tracking DHCP clients:
 var defaultDhcpClientTrackerDB = "/data/trackerdb.sqlite3"
 
+// location for a basic counter that is used to tag entries in the tracker DB
+// to understand if they are stale or not
+var defaultStartCounter = "/data/startcounter"
+
 // These absolute paths must be in sync with the Dockerfile
 var staticWebFilesDir = "/opt/web/static"
 var templatesDir = "/opt/web/templates"

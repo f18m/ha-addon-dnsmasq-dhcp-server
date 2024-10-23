@@ -55,6 +55,7 @@ test-docker-image-live:
 		-v $(shell pwd)/test-options.json:/data/options.json \
 		-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
 		-v $(shell pwd)/test-db.sqlite3:/data/trackerdb.sqlite3 \
+		-v $(shell pwd)/test-startcounter:/data/startcounter \
 		-v $(shell pwd)/dhcp-clients-webapp-backend:/app \
 		-v $(shell pwd)/dhcp-clients-webapp-backend/templates:/opt/web/templates/ \
 		-v $(shell pwd)/rootfs/opt/bin/dnsmasq-dhcp-script.sh:/opt/bin/dnsmasq-dhcp-script.sh \

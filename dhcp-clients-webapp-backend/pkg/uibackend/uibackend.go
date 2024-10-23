@@ -13,6 +13,7 @@ import (
 	"net/netip"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -42,6 +43,7 @@ type UIBackend struct {
 
 	// time this application was started
 	startTimestamp time.Time
+	startCounter   int
 
 	// the actual HTTP server
 	serverPort int
@@ -72,6 +74,26 @@ type UIBackend struct {
 	leasesCh chan []*dnsmasq.Lease
 }
 
+// ReadFileAndParseInteger reads a file, parses the number, and returns it as an integer
+func ReadFileAndParseInteger(filename string) (int, error) {
+	// Read the file content
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return 0, err
+	}
+
+	// Trim any leading/trailing spaces or newlines
+	str := strings.TrimSpace(string(content))
+
+	// Convert the string to an integer
+	num, err := strconv.Atoi(str)
+	if err != nil {
+		return 0, err
+	}
+
+	return num, nil
+}
+
 func NewUIBackend() UIBackend {
 	db, err := trackerdb.NewDhcpClientTrackerDB(defaultDhcpClientTrackerDB)
 	if err != nil {
@@ -83,8 +105,18 @@ func NewUIBackend() UIBackend {
 
 	isTestingMode := os.Getenv("LOCAL_TESTING") != ""
 
+	var startCounter int
+	startCounter, err = ReadFileAndParseInteger(defaultStartCounter)
+	if err != nil {
+		log.Default().Fatalf("Failed to open start counter file: %s", err.Error())
+		return UIBackend{}
+	}
+
+	log.Default().Printf("The current DHCP start counter is at %d", startCounter)
+
 	return UIBackend{
 		startTimestamp:        time.Now(),
+		startCounter:          startCounter,
 		ipAddressReservations: make(map[netip.Addr]IpAddressReservation),
 		friendlyNames:         make(map[string]DhcpClientFriendlyName),
 		clients:               make(map[*websocket.Conn]bool),
@@ -151,6 +183,8 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 		log.Default().Printf("ERR: failed to get list of dead/past DHCP clients: %s", err.Error())
 		// keep going
 	}
+
+	// finally build the websocket message
 	return WebSocketMessage{
 		CurrentClients: currentClients,
 		PastClients:    deadClients,

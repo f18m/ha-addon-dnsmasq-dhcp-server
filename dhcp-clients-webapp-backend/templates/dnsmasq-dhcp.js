@@ -227,11 +227,11 @@ function processWebSocketEvent(event) {
         uptime_str = formatTimeSince(data.dhcp_server_starttime)
 
         // update the message
-        message.innerHTML = "A total of <span class='boldText'>" + data.current_clients.length + " DHCP clients</span> are tracked by the DHCP server; " + 
-                            dhcp_static_ip + " have a static IP address configuration; " +
-                            dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%." +
+        message.innerHTML = "<span class='boldText'>" + data.current_clients.length + " DHCP clients</span> currently hold a DHCP lease.<br/>" + 
+                            dhcp_static_ip + " have a static IP address configuration.<br/>" +
+                            dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.<br/>" +
                             data.past_clients.length + " DHCP clients contacted the server in the past but failed to do so in the last " + 
-                            uptime_str + " hh:mm:ss.";
+                            uptime_str + " hh:mm:ss.<br/>";
     }
 }
 
