@@ -10,19 +10,43 @@ var dhcp_clients_ws = new WebSocket(webSocketURI);
 
 
 /* FUNCTIONS */
-function formatTimeLeft(unixTimestamp) {
-    if (unixTimestamp == 0) {
+function formatTimeLeft(unixFutureTimestamp) {
+    if (unixFutureTimestamp == 0) {
         return "Never expires";
     }
 
     // Calculate the difference in milliseconds between the timestamp and the current time
     const now = new Date();
-    const timestampInMillis = unixTimestamp * 1000;
+    const timestampInMillis = unixFutureTimestamp * 1000;
     const timeDifference = timestampInMillis - now.getTime();
 
     // If the time has already passed, return 0
     if (timeDifference <= 0) {
         return "Already expired";
+    }
+
+    // Calculate the remaining time in hours, minutes, and seconds
+    const hoursLeft = Math.floor(timeDifference / (1000 * 60 * 60));
+    const minutesLeft = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+    const secondsLeft = Math.floor((timeDifference % (1000 * 60)) / 1000);
+
+    // Format the remaining time as a string "HH:MM:SS"
+    return `${hoursLeft.toString().padStart(2, '0')}:${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`;
+}
+
+function formatTimeSince(unixPastTimestamp) {
+    if (unixPastTimestamp == 0) {
+        return "Invalid timestamp";
+    }
+
+    // Calculate the difference in milliseconds between the timestamp and the current time
+    const now = new Date();
+    const timestampInMillis = unixPastTimestamp * 1000;
+    const timeDifference = now.getTime() - timestampInMillis;
+
+    // If the time has already passed, return 0
+    if (timeDifference <= 0) {
+        return "Timestamp in future?";
     }
 
     // Calculate the remaining time in hours, minutes, and seconds
@@ -103,7 +127,7 @@ function initPastTable() {
                 { title: 'Friendly Name', type: 'string' },
                 { title: 'Hostname', type: 'string' },
                 { title: 'MAC Address', type: 'string' },
-                { title: 'Last Seen', 'orderDataType': 'custom-date-order' },
+                { title: 'Last Seen hh:mm:ss ago', 'orderDataType': 'custom-date-order' },
                 { title: 'Static IP?', type: 'string' }
             ],
             data: [],
@@ -146,8 +170,9 @@ function processWebSocketEvent(event) {
         message.innerText = "Internal error. Please report upstream together with Javascript logs.";
 
     } else {
-        console.log("Websocket connection: received " + data.current_clients.length + " known clients from websocket");
-        console.log("Websocket connection: received " + data.past_clients.length + " missing clients from websocket");
+        console.log("Websocket connection: received " + data.current_clients.length + " current clients from websocket");
+        console.log("Websocket connection: received " + data.past_clients.length + " past clients from websocket");
+        console.log("Websocket connection: received " + data.dhcp_server_starttime + " as DHCP server start timestamp");
 
         // rerender the CURRENT table
         tableData = [];
@@ -184,11 +209,11 @@ function processWebSocketEvent(event) {
 
             // append new row
             tableData.push([index + 1,
-                item.friendly_name, item.lease.hostname, 
-                item.lease.mac_addr, formatTimeLeft(item.last_seen), static_ip_str]);
+                item.friendly_name, item.hostname, 
+                item.mac_addr, formatTimeSince(item.last_seen), static_ip_str]);
         });
         table_past.clear().rows.add(tableData).draw();
-
+        
         // compute DHCP pool usage
         var usagePerc = 0
         if (dhcpPoolSize > 0) {
@@ -198,10 +223,15 @@ function processWebSocketEvent(event) {
             usagePerc = Math.round(usagePerc * 10) / 10
         }
 
+        // format server uptime
+        uptime_str = formatTimeSince(data.dhcp_server_starttime)
+
         // update the message
         message.innerHTML = "A total of <span class='boldText'>" + data.current_clients.length + " DHCP clients</span> are tracked by the DHCP server; " + 
                             dhcp_static_ip + " have a static IP address configuration; " +
-                            dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.";
+                            dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%." +
+                            data.past_clients.length + " DHCP clients contacted the server in the past but failed to do so in the last " + 
+                            uptime_str + " hh:mm:ss.";
     }
 }
 

@@ -97,7 +97,9 @@ type AddonConfig struct {
 	WebUIPort int `json:"web_ui_port"`
 }
 
-// WebSocket
+// WebSocketMessage defines which contents get transmitted over the websocket in the
+// BACKEND -> UI direction.
+// Any structure contained here should have a sensible JSON marshalling helper.
 type WebSocketMessage struct {
 	// CurrentClients contains the list of clients currently "connected" to the dnsmasq server.
 	// In this context "connected" means: that sent DHCP traffic since the dnsmasq server was started.
@@ -106,4 +108,8 @@ type WebSocketMessage struct {
 	// PastClients contains the list of clients that were connected in the past, but never
 	// obtained a DHCP lease since the last dnsmasq server restart.
 	PastClients []trackerdb.DhcpClient `json:"past_clients"`
+
+	// DHCPServerStartTime indicates the point in time where
+	// the dnsmasq server was last started, expressed as Unix epoch.
+	DHCPServerStartTime int64 `json:"dhcp_server_starttime"`
 }

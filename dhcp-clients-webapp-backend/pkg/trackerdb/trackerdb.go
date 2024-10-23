@@ -11,17 +11,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// DhcpClient represents the structure for a DHCP client.
-// The DHCP client might be currently connected to the server or not; in other words this
-// may represent a DHCP client that has been connected in the past, but currently is not.
-type DhcpClient struct {
-	MacAddr      net.HardwareAddr `json:"mac_addr"`
-	Hostname     string           `json:"hostname"`
-	HasStaticIP  bool             `json:"has_static_ip"`
-	FriendlyName string           `json:"friendly_name"`
-	LastSeen     time.Time        `json:"last_seen"`
-}
-
 // DhcpClientTrackerDB manages the database operations for DHCP clients.
 type DhcpClientTrackerDB struct {
 	DB *sql.DB
@@ -34,20 +23,7 @@ func NewDhcpClientTrackerDB(dbPath string) (*DhcpClientTrackerDB, error) {
 		return nil, err
 	}
 
-	// Create table if not exists
-	createTableQuery := `
-	CREATE TABLE IF NOT EXISTS dhcp_clients (
-		mac_addr TEXT PRIMARY KEY,
-		hostname TEXT,
-		has_static_ip INTEGER,
-		friendly_name TEXT,
-		last_seen TEXT
-	);
-	`
-	_, err = db.Exec(createTableQuery)
-	if err != nil {
-		return nil, err
-	}
+	// the table should be already there as it's created by the dnsmasq helper script
 
 	return &DhcpClientTrackerDB{DB: db}, nil
 }
@@ -59,6 +35,21 @@ func NewTestDB() DhcpClientTrackerDB {
 	if err != nil {
 		log.Fatal("Failed to initialize test database")
 	}
+
+	// Create table
+	createTableQuery := `
+	CREATE TABLE IF NOT EXISTS dhcp_clients (
+		mac_addr TEXT PRIMARY KEY,
+		hostname TEXT,
+		last_seen TEXT,
+		dhcp_server_start_counter INT
+	);
+	`
+	_, err = db.DB.Exec(createTableQuery)
+	if err != nil {
+		log.Fatal("Failed to initialize test database")
+	}
+
 	return *db
 }
 
@@ -79,16 +70,15 @@ func NewTestDBWithData(clientsInDB []DhcpClient) DhcpClientTrackerDB {
 // TrackNewDhcpClient inserts a new DHCP client into the database.
 func (d *DhcpClientTrackerDB) TrackNewDhcpClient(client DhcpClient) error {
 	insertQuery := `
-	INSERT INTO dhcp_clients (mac_addr, hostname, has_static_ip, friendly_name, last_seen)
-	VALUES (?, ?, ?, ?, ?)
+	INSERT INTO dhcp_clients (mac_addr, hostname, last_seen, dhcp_server_start_counter)
+	VALUES (?, ?, ?, ?)
 	ON CONFLICT(mac_addr) DO UPDATE SET 
 		hostname=excluded.hostname, 
-		has_static_ip=excluded.has_static_ip,
-		friendly_name=excluded.friendly_name,
-		last_seen=excluded.last_seen;
+		last_seen=excluded.last_seen,
+		dhcp_server_start_counter=excluded.dhcp_server_start_counter;
 	`
 
-	_, err := d.DB.Exec(insertQuery, client.MacAddr.String(), client.Hostname, client.HasStaticIP, client.FriendlyName, client.LastSeen.Format(time.RFC3339))
+	_, err := d.DB.Exec(insertQuery, client.MacAddr.String(), client.Hostname, client.LastSeen.Format(time.RFC3339), 0)
 	if err != nil {
 		return err
 	}
@@ -98,14 +88,14 @@ func (d *DhcpClientTrackerDB) TrackNewDhcpClient(client DhcpClient) error {
 
 // GetDhcpClient retrieves a DHCP client by its MAC address.
 func (d *DhcpClientTrackerDB) GetDhcpClient(macAddr net.HardwareAddr) (*DhcpClient, error) {
-	query := `SELECT mac_addr, hostname, has_static_ip, friendly_name, last_seen FROM dhcp_clients WHERE mac_addr = ?`
+	query := `SELECT mac_addr, hostname, last_seen FROM dhcp_clients WHERE mac_addr = ?`
 	row := d.DB.QueryRow(query, macAddr.String())
 
 	var client DhcpClient
 	var lastSeen string
 	var mac string
 
-	err := row.Scan(&mac, &client.Hostname, &client.HasStaticIP, &client.FriendlyName, &lastSeen)
+	err := row.Scan(&mac, &client.Hostname, &lastSeen)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("client with mac_addr %s not found", macAddr)
@@ -159,7 +149,7 @@ func (d *DhcpClientTrackerDB) UnmarshalDhcpClient(data string) error {
 // which identifies the currently-alive DHCP clients.
 func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr) ([]DhcpClient, error) {
 	// Step 1: Get all DHCP clients from the database
-	rows, err := d.DB.Query("SELECT mac_addr, hostname, has_static_ip, friendly_name, last_seen FROM dhcp_clients")
+	rows, err := d.DB.Query("SELECT mac_addr, hostname, last_seen FROM dhcp_clients")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query dhcp_clients: %v", err)
 	}
@@ -179,7 +169,7 @@ func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr
 		var mac string
 
 		// Scan the row data into the DhcpClient struct
-		err := rows.Scan(&mac, &client.Hostname, &client.HasStaticIP, &client.FriendlyName, &lastSeenStr)
+		err := rows.Scan(&mac, &client.Hostname, &lastSeenStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %v", err)
 		}

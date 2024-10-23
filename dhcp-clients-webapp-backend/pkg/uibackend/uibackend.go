@@ -40,17 +40,19 @@ type UIBackend struct {
 	dhcpStartIP net.IP
 	dhcpEndIP   net.IP
 
+	// time this application was started
+	startTimestamp time.Time
+
 	// the actual HTTP server
 	serverPort int
 	server     http.Server
 	upgrader   websocket.Upgrader
 
 	// more HTTP server resources
-	// the CSS template as read from file
 	isTestingMode bool
-	htmlTemplate  *template.Template
-	jsContents    string
-	cssContents   string
+	htmlTemplate  *template.Template // read from disk at startup
+	jsContents    string             // read from disk at startup
+	cssContents   string             // read from disk at startup
 
 	// map of connected websockets
 	clients     map[*websocket.Conn]bool
@@ -60,7 +62,7 @@ type UIBackend struct {
 	dhcpClientData     []DhcpClientData
 	dhcpClientDataLock sync.Mutex
 
-	// DB tracking all DHCP clients
+	// DB tracking all DHCP clients, used to provide the "past DHCP clients" feature
 	trackerDB trackerdb.DhcpClientTrackerDB
 
 	// channel used to broadcast tabular data from backend->frontend
@@ -82,6 +84,7 @@ func NewUIBackend() UIBackend {
 	isTestingMode := os.Getenv("LOCAL_TESTING") != ""
 
 	return UIBackend{
+		startTimestamp:        time.Now(),
 		ipAddressReservations: make(map[netip.Addr]IpAddressReservation),
 		friendlyNames:         make(map[string]DhcpClientFriendlyName),
 		clients:               make(map[*websocket.Conn]bool),
@@ -148,10 +151,14 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 		log.Default().Printf("ERR: failed to get list of dead/past DHCP clients: %s", err.Error())
 		// keep going
 	}
-
 	return WebSocketMessage{
 		CurrentClients: currentClients,
 		PastClients:    deadClients,
+
+		// we approximate the DHCP server start time with this app's start time;
+		// the reason is that inside the HA addon, dnsmasq is started at about the same
+		// time of this app
+		DHCPServerStartTime: b.startTimestamp.Unix(),
 	}
 }
 
