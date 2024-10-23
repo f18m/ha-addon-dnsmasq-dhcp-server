@@ -13,9 +13,9 @@ RUN apk add --no-cache dnsmasq nginx-debug && mv /etc/nginx /etc/nginx-orig
 RUN apk add --no-cache git make musl-dev go build-base
 
 # Configure Go
-ENV GOROOT /usr/lib/go
-ENV GOPATH /go
-ENV PATH /go/bin:$PATH
+ENV GOROOT=/usr/lib/go
+ENV GOPATH=/go
+ENV PATH=/go/bin:$PATH
 
 # Copy data
 COPY rootfs /

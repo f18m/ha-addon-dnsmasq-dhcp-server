@@ -3,6 +3,13 @@
     handle websocket events, handle tabs, etc.
 */
 
+/* GLOBALS */
+var table_current = null;
+var table_past = null;
+var dhcp_clients_ws = new WebSocket(webSocketURI);
+
+
+/* FUNCTIONS */
 function formatTimeLeft(unixTimestamp) {
     if (unixTimestamp == 0) {
         return "Never expires";
@@ -52,11 +59,8 @@ function initTabs() {
     }
 }
 
-
-var table = null;
-
-function initTable() {
-    console.log("Initializing datatables.net table");
+function initCurrentTable() {
+    console.log("Initializing table for current DHCP clients");
 
     // custom sorting for content formatted as HH:MM:SS
     $.fn.dataTable.ext.order['custom-time-order'] = function (settings, colIndex) {
@@ -66,7 +70,7 @@ function initTable() {
             return (parseInt(time[0], 10) * 3600) + (parseInt(time[1], 10) * 60) + parseInt(time[2], 10);
         });
     };
-    table = new DataTable('#table-wrapper', {
+    table_current = new DataTable('#current_table', {
             columns: [
                 { title: '#', type: 'num' },
                 { title: 'Friendly Name', type: 'string' },
@@ -82,12 +86,37 @@ function initTable() {
         });
 }
 
-function initAll() {
-    initTable()
-    initTabs()
+function initPastTable() {
+    console.log("Initializing table for past DHCP clients");
+
+    // custom sorting for content formatted as HH:MM:SS
+    $.fn.dataTable.ext.order['custom-time-order'] = function (settings, colIndex) {
+        return this.api().column(colIndex, { order: 'index' }).nodes().map(function (td, i) {
+            var time = $(td).text().split(':');
+            // convert to seconds (HH * 3600 + MM * 60 + SS)
+            return (parseInt(time[0], 10) * 3600) + (parseInt(time[1], 10) * 60) + parseInt(time[2], 10);
+        });
+    };
+    table_past = new DataTable('#past_table', {
+            columns: [
+                { title: '#', type: 'num' },
+                { title: 'Friendly Name', type: 'string' },
+                { title: 'Hostname', type: 'string' },
+                { title: 'MAC Address', type: 'string' },
+                { title: 'Last Seen', 'orderDataType': 'custom-date-order' },
+                { title: 'Static IP?', type: 'string' }
+            ],
+            data: [],
+            pageLength: 20,
+            responsive: true
+        });
 }
 
-document.addEventListener('DOMContentLoaded', initAll, false);
+function initAll() {
+    initCurrentTable()
+    initPastTable()
+    initTabs()
+}
 
 function processWebSocketEvent(event) {
 
@@ -103,7 +132,7 @@ function processWebSocketEvent(event) {
         console.log("Websocket connection: received an empty JSON");
 
         // clear the table
-        table.clear().draw();
+        table_current.clear().draw();
 
         message.innerText = "No DHCP clients so far.";
 
@@ -112,7 +141,7 @@ function processWebSocketEvent(event) {
         console.error("Websocket connection: expecting a JSON matching the golang WebSocketMessage type, received something else", data);
 
         // clear the table
-        table.clear().draw();
+        table_current.clear().draw();
 
         message.innerText = "Internal error. Please report upstream together with Javascript logs.";
 
@@ -120,11 +149,12 @@ function processWebSocketEvent(event) {
         console.log("Websocket connection: received " + data.current_clients.length + " known clients from websocket");
         console.log("Websocket connection: received " + data.past_clients.length + " missing clients from websocket");
 
+        // rerender the CURRENT table
         tableData = [];
         dhcp_addresses_used = 0;
         dhcp_static_ip = 0;
         data.current_clients.forEach(function (item, index) {
-            console.log(`Item ${index + 1}:`, item);
+            console.log(`CurrentItem ${index + 1}:`, item);
 
             if (item.is_inside_dhcp_pool)
                 dhcp_addresses_used += 1;
@@ -140,9 +170,24 @@ function processWebSocketEvent(event) {
                 item.friendly_name, item.lease.hostname, item.lease.ip_addr,
                 item.lease.mac_addr, formatTimeLeft(item.lease.expires), static_ip_str]);
         });
+        table_current.clear().rows.add(tableData).draw();
 
-        // rerender the table
-        table.clear().rows.add(tableData).draw();
+        // rerender the PAST table
+        tableData = [];
+        data.past_clients.forEach(function (item, index) {
+            console.log(`PastItem ${index + 1}:`, item);
+
+            static_ip_str = "NO";
+            if (item.has_static_ip) {
+                static_ip_str = "YES";
+            }
+
+            // append new row
+            tableData.push([index + 1,
+                item.friendly_name, item.lease.hostname, 
+                item.lease.mac_addr, formatTimeLeft(item.last_seen), static_ip_str]);
+        });
+        table_past.clear().rows.add(tableData).draw();
 
         // compute DHCP pool usage
         var usagePerc = 0
@@ -160,10 +205,7 @@ function processWebSocketEvent(event) {
     }
 }
 
-
 // websocket
-var dhcp_clients_ws = new WebSocket(webSocketURI);
-
 dhcp_clients_ws.onopen = function (event) {
     console.log("Websocket connection to " + webSocketURI + " was successfully opened");
 };
@@ -181,3 +223,6 @@ dhcp_clients_ws.onmessage = function (event) {
     processWebSocketEvent(event)
 }
 
+
+// init code
+document.addEventListener('DOMContentLoaded', initAll, false);

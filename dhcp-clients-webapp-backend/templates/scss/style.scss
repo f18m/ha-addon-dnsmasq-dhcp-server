@@ -4,30 +4,31 @@
  NOTE: portions of this file have been taken from https://codepen.io/serhatbek/pen/bGyVLpM?editors=1111
 */
 
+// colors
+$btnTextInactive: #101927;
+$backgroundTab: #f7f7f7;
+$btnTextActive: #2955ac;
+$backgroundMonoText: lightgrey;
+
+.topLevel {
+    margin-left: 10px;
+}
+
 .solidBorder {
     border: 1px solid;
 }
 
 .monoText {
     font-family: monospace;
-    background-color: lightgrey; 
-    padding: 3px;
+    background-color: $backgroundMonoText; 
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-top: 1px;
+    padding-bottom: 1px;
 }
 
 .boldText {
     font-weight: bold;
-}
-
-$text: #101927;
-$white: #f7f7f7;
-$blue: #2955ac;
-
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
 }
 
 .container {
@@ -45,14 +46,14 @@ $blue: #2955ac;
     background: transparent;
     outline: transparent;
     border: transparent;
-    color: $text;
+    color: $btnTextInactive;
     transition: 300ms all ease-in-out;
     @media only screen and (max-width: 576px) {
         padding: 10px 8px;
     }
 
     &.active {
-        color: $blue;
+        color: $btnTextActive;
         position: relative;
 
         &::after {
@@ -68,13 +69,13 @@ $blue: #2955ac;
 }
 
 .tabs {
-    background-color: $white;
+    background-color: $backgroundTab;
     border-radius: 8px;
     padding: 16px 16px 16px 16px;
 
     &__pills {
         //width: fit-content;
-        border-bottom: 2px solid rgba($color: $text, $alpha: 0.2);
+        border-bottom: 2px solid rgba($color: $btnTextInactive, $alpha: 0.2);
     }
 
     &__panels {

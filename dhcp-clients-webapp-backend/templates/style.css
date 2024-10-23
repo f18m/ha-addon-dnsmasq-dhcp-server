@@ -3,6 +3,10 @@
 
  NOTE: portions of this file have been taken from https://codepen.io/serhatbek/pen/bGyVLpM?editors=1111
 */
+.topLevel {
+  margin-left: 10px;
+}
+
 .solidBorder {
   border: 1px solid;
 }
@@ -10,19 +14,14 @@
 .monoText {
   font-family: monospace;
   background-color: lightgrey;
-  padding: 3px;
+  padding-left: 3px;
+  padding-right: 3px;
+  padding-top: 1px;
+  padding-bottom: 1px;
 }
 
 .boldText {
   font-weight: bold;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 .container {

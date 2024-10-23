@@ -30,10 +30,10 @@
     </script>
 </head>
 <body>
-    <h1>DHCP Clients</h1>
+    <h1 class="topLevel">DHCP Clients</h1>
 
-    <p id="dhcp_range">The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }} - {{ .DhcpEndIP }}</span>.</p>
-    <p id="message"></p>
+    <p class="topLevel" id="dhcp_range">The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }} - {{ .DhcpEndIP }}</span>.</p>
+    <p class="topLevel" id="message"></p>
 
     <div class="container">
         <div class="tabs">
@@ -46,7 +46,7 @@
             <div id="current_clients" class="active">
                             
                 <!-- the Datatables.net table will be attached to this TABLE element -->
-                <table id="table-wrapper" class="display" width="100%"></table>
+                <table id="current_table" class="display" width="100%"></table>
 
                 <p><span class="boldText">Notes:</span></p>
                 <ul>
@@ -64,7 +64,8 @@
             </div>
             <div id="past_clients">
                 
-                <p>TODO</p>
+                <!-- the Datatables.net table will be attached to this TABLE element -->
+                <table id="past_table" class="display" width="100%"></table>
 
             </div>
           </div>
