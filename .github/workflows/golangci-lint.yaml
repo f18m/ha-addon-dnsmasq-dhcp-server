@@ -1,11 +1,11 @@
 name: "Linter"
 
-on:
+on: 
   push:
     branches:
-      - main
-      - master
-  pull_request:
+      - '**'
+    tags:
+      - '*'
 
 permissions:
   contents: read
