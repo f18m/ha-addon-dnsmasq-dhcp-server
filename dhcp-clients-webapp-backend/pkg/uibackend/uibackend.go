@@ -266,12 +266,13 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 				} else {
 					numSuccess++
 					if b.cfg.logWebUI {
-						jsonData, err := json.Marshal(msg)
+						_, err := json.Marshal(msg)
 						if err != nil {
-							log.Default().Printf("Failed to marshal to JSON: %s.\nData:%v\n", err.Error(), msg)
-						} else {
-							log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
+							log.Default().Printf("Failed to marshal to JSON: %s.\nMessage:%v\n", err.Error(), msg)
 						}
+						// else {
+						//	log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
+						// }
 					}
 				}
 			}

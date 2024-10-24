@@ -66,7 +66,7 @@ function initTabs() {
     if (tabButtons && tabContents) {
         tabButtons.forEach((tabBtn) => {
             tabBtn.addEventListener('click', () => {
-                console.log("click intercepted")
+                // console.log("click intercepted")
                 const tabId = tabBtn.getAttribute('data-id');
 
                 tabButtons.forEach((btn) => btn.classList.remove('active'));
@@ -174,7 +174,7 @@ function processWebSocketEvent(event) {
         message.innerText = "Internal error. Please report upstream together with Javascript logs.";
 
     } else {
-        console.log("DEBUG:" + JSON.stringify(data))
+        // console.log("DEBUG:" + JSON.stringify(data))
         console.log("Websocket connection: received " + data.current_clients.length + " current clients from websocket");
         console.log("Websocket connection: received " + data.past_clients.length + " past clients from websocket");
 
