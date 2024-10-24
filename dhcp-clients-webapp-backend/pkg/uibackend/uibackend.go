@@ -1,6 +1,7 @@
 package uibackend
 
 import (
+	"cmp"
 	"context"
 	"dhcp-clients-webapp-backend/pkg/trackerdb"
 	"encoding/json"
@@ -210,6 +211,11 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 				deadC.DhcpServerStartCounter, b.startCounter)
 		}
 	}
+
+	// sort the slice by LastSeen (the user can sort again later based on some other criteria):
+	slices.SortFunc(pastClients, func(a, b PastDhcpClientData) int {
+		return cmp.Compare(a.PastInfo.LastSeen.Unix(), b.PastInfo.LastSeen.Unix())
+	})
 
 	// finally build the websocket message
 	return WebSocketMessage{
