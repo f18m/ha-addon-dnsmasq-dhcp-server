@@ -47,7 +47,7 @@ func TestProcessLeaseUpdatesFromArray(t *testing.T) {
 	}
 
 	// Prepare UIBackend with mock data
-	backend := &UIBackend{
+	backendcfg := AddonConfig{
 		friendlyNames: map[string]DhcpClientFriendlyName{
 			"00:11:22:33:44:55": { // this is the MAC of 'client1'
 				MacAddress:   MustParseMAC("00:11:22:33:44:55"),
@@ -67,7 +67,10 @@ func TestProcessLeaseUpdatesFromArray(t *testing.T) {
 		},
 		dhcpStartIP: net.IPv4(192, 168, 0, 1),
 		dhcpEndIP:   net.IPv4(192, 168, 0, 100),
-		trackerDB:   trackerdb.NewTestDB(),
+	}
+	backend := &UIBackend{
+		cfg:       backendcfg,
+		trackerDB: trackerdb.NewTestDB(),
 	}
 
 	// Call the method being tested

@@ -24,31 +24,16 @@ import (
 )
 
 type UIBackend struct {
-	// Static IP addresses, as read from the configuration
-	ipAddressReservations map[netip.Addr]IpAddressReservation
-
-	// DHCP client friendly names, as read from the configuration
-	// The key of this map is the MAC address formatted as string (since net.HardwareAddr is not a valid map key type)
-	friendlyNames map[string]DhcpClientFriendlyName
-
-	// Log this backend activities?
-	logWebUI bool
-
-	// DHCP range
-	// NOTE: if in the future we want to support more complex DHCP configurations where the DHCP pool
-	//       consists of multiple disjoint IP address ranges, then we should consider using:
-	//       the iprange.Pool object to represent that
-	dhcpStartIP net.IP
-	dhcpEndIP   net.IP
+	// The configuration for this backend
+	cfg AddonConfig
 
 	// time this application was started
 	startTimestamp time.Time
 	startCounter   int
 
 	// the actual HTTP server
-	serverPort int
-	server     http.Server
-	upgrader   websocket.Upgrader
+	server   http.Server
+	upgrader websocket.Upgrader
 
 	// more HTTP server resources
 	isTestingMode bool
@@ -115,15 +100,17 @@ func NewUIBackend() UIBackend {
 	log.Default().Printf("The current DHCP start counter is at %d", startCounter)
 
 	return UIBackend{
-		startTimestamp:        time.Now(),
-		startCounter:          startCounter,
-		ipAddressReservations: make(map[netip.Addr]IpAddressReservation),
-		friendlyNames:         make(map[string]DhcpClientFriendlyName),
-		clients:               make(map[*websocket.Conn]bool),
-		dhcpClientData:        nil,
-		trackerDB:             *db,
-		broadcastCh:           make(chan struct{}),
-		leasesCh:              make(chan []*dnsmasq.Lease),
+		cfg: AddonConfig{
+			ipAddressReservations: make(map[netip.Addr]IpAddressReservation),
+			friendlyNames:         make(map[string]DhcpClientFriendlyName),
+		},
+		startTimestamp: time.Now(),
+		startCounter:   startCounter,
+		clients:        make(map[*websocket.Conn]bool),
+		dhcpClientData: nil,
+		trackerDB:      *db,
+		broadcastCh:    make(chan struct{}),
+		leasesCh:       make(chan []*dnsmasq.Lease),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true
@@ -141,7 +128,7 @@ func (b *UIBackend) logRequestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// this logging is quite verbose, enable only if explicitly asked so
-		if b.logWebUI {
+		if b.cfg.logWebUI {
 			log.Default().Printf("Method: %s, URL: %s, Host: %s, RemoteAddr: %s\n", r.Method, r.URL.String(), r.Host, r.RemoteAddr)
 
 			// print headers
@@ -255,7 +242,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 			//    considered "stale" and get reset)
 		}
 
-		if b.logWebUI {
+		if b.cfg.logWebUI {
 			log.Default().Printf("Pushing %d/%d current/past DHCP clients to it",
 				len(msg.CurrentClients), len(msg.PastClients))
 		}
@@ -269,7 +256,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 				client.Close()
 				delete(b.clients, client)
 			} else {
-				if b.logWebUI {
+				if b.cfg.logWebUI {
 					jsonData, err := json.Marshal(msg)
 					if err != nil {
 						log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
@@ -340,8 +327,8 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 
 	// compute pool size:
 	dhcpPoolSize := 0
-	if b.dhcpStartIP != nil && b.dhcpEndIP != nil {
-		dhcpPoolSize = int(iprange.New(b.dhcpStartIP, b.dhcpEndIP).Size().Int64())
+	if b.cfg.dhcpStartIP != nil && b.cfg.dhcpEndIP != nil {
+		dhcpPoolSize = int(iprange.New(b.cfg.dhcpStartIP, b.cfg.dhcpEndIP).Size().Int64())
 	}
 
 	templateData := struct {
@@ -366,11 +353,11 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		// Based on the scheme used by the browser, the websocket will use the associated scheme
 		// ('wss' for 'https' and 'ws' for 'http)
 		WebSocketURI:            XIngressPath[0] + websocketRelativeUrl,
-		DhcpStartIP:             b.dhcpStartIP.String(),
-		DhcpEndIP:               b.dhcpEndIP.String(),
+		DhcpStartIP:             b.cfg.dhcpStartIP.String(),
+		DhcpEndIP:               b.cfg.dhcpEndIP.String(),
 		DhcpPoolSize:            dhcpPoolSize,
-		DefaultLease:            "", // TODO
-		AddressReservationLease: "", // TODO
+		DefaultLease:            b.cfg.defaultLease,
+		AddressReservationLease: b.cfg.addressReservationLease,
 		// we approximate the DHCP server start time with this app's start time;
 		// the reason is that inside the HA addon, dnsmasq is started at about the same
 		// time of this app
@@ -385,7 +372,7 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		log.Default().Printf("WARN: error while rendering template: %s\n", err.Error())
 		// keep going
 	} else {
-		if b.logWebUI {
+		if b.cfg.logWebUI {
 			log.Default().Printf("Successfully rendered web page template, responding with 200 OK\n")
 		}
 	}
@@ -419,7 +406,7 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 		// friendly-name metadata
 
 		// do we have a friendly-name registered for this MAC address?
-		metadata, ok := b.friendlyNames[lease.MacAddr.String()]
+		metadata, ok := b.cfg.friendlyNames[lease.MacAddr.String()]
 		if ok {
 			// yes: enrich with some metadata this DHCP client entry
 			d.FriendlyName = metadata.FriendlyName
@@ -433,20 +420,20 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 		}
 
 		// has-static-ip metadata
-		_, hasReservation := b.ipAddressReservations[lease.IPAddr]
+		_, hasReservation := b.cfg.ipAddressReservations[lease.IPAddr]
 		if hasReservation {
 			// the IP address provided in this lease is a reserved one...
 			// check if the MAC address is the one for which that IP was intended...
-			if strings.EqualFold(lease.MacAddr.String(), b.ipAddressReservations[lease.IPAddr].Mac) {
+			if strings.EqualFold(lease.MacAddr.String(), b.cfg.ipAddressReservations[lease.IPAddr].Mac) {
 				d.HasStaticIP = true
 			} else {
 				log.Default().Printf("WARN: the IP %s was leased to MAC address %s, but in configuration it was reserved for MAC %s\n",
-					lease.IPAddr.String(), lease.MacAddr.String(), b.ipAddressReservations[lease.IPAddr].Mac)
+					lease.IPAddr.String(), lease.MacAddr.String(), b.cfg.ipAddressReservations[lease.IPAddr].Mac)
 			}
 		}
 
 		// is-inside-dhcp-pool metadata
-		d.IsInsideDHCPPool = IpInRange(lease.IPAddr, b.dhcpStartIP, b.dhcpEndIP)
+		d.IsInsideDHCPPool = IpInRange(lease.IPAddr, b.cfg.dhcpStartIP, b.cfg.dhcpEndIP)
 		/*
 			// update this DHCP client info also in the tracker DB:
 			err := b.trackerDB.TrackNewDhcpClient(trackerdb.DhcpClient{
@@ -512,68 +499,15 @@ func (b *UIBackend) readAddonConfig() error {
 	}
 
 	// JSON parse
-	var cfg AddonConfig
-	err = json.Unmarshal(data, &cfg)
+	err = json.Unmarshal(data, &b.cfg)
 	if err != nil {
 		return err
 	}
 
-	// convert DHCP IP strings to net.IP
-	b.dhcpStartIP = net.ParseIP(cfg.DhcpRange.StartIP)
-	b.dhcpEndIP = net.ParseIP(cfg.DhcpRange.EndIP)
-	if b.dhcpStartIP == nil || b.dhcpEndIP == nil {
-		log.Default().Fatalf("Invalid DHCP range found in addon config file")
-		return os.ErrInvalid // I'm lazy, recycle a similar error type
-	}
-
-	// ensure we have a valid port for web UI
-	if cfg.WebUIPort <= 0 || cfg.WebUIPort > 32768 {
-		log.Default().Fatalf("Invalid Web UI port in addon config file")
-		return os.ErrInvalid // I'm lazy, recycle a similar error type
-	}
-
-	// convert IP address reservations to a map indexed by IP
-	for _, r := range cfg.IpAddressReservations {
-		ipAddr, err := netip.ParseAddr(r.IP)
-		if err != nil {
-			log.Default().Fatalf("Invalid IP address found inside 'ip_address_reservations': %s", r.IP)
-			continue
-		}
-		macAddr, err := net.ParseMAC(r.Mac)
-		if err != nil {
-			log.Default().Fatalf("Invalid MAC address found inside 'ip_address_reservations': %s", r.Mac)
-			continue
-		}
-
-		// normalize the IP and MAC address format (e.g. to lowercase)
-		r.IP = ipAddr.String()
-		r.Mac = macAddr.String()
-
-		b.ipAddressReservations[ipAddr] = r
-	}
-	log.Default().Printf("Acquired %d IP address reservations\n", len(b.ipAddressReservations))
-
-	// convert friendly names to a map of DhcpClientFriendlyName instances indexed by MAC address
-	for _, client := range cfg.DhcpClientsFriendlyNames {
-		macAddr, err := net.ParseMAC(client.Mac)
-		if err != nil {
-			log.Default().Fatalf("Invalid MAC address found inside 'dhcp_clients_friendly_names': %s", client.Mac)
-			continue
-		}
-
-		b.friendlyNames[macAddr.String()] = DhcpClientFriendlyName{
-			MacAddress:   macAddr,
-			FriendlyName: client.Name,
-		}
-	}
-	log.Default().Printf("Acquired %d friendly names\n", len(b.friendlyNames))
-
-	// copy basic settings
-	b.serverPort = cfg.WebUIPort
-	b.logWebUI = cfg.LogWebUI
-
+	log.Default().Printf("Acquired %d IP address reservations\n", len(b.cfg.ipAddressReservations))
+	log.Default().Printf("Acquired %d friendly names\n", len(b.cfg.friendlyNames))
 	log.Default().Printf("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
-		b.serverPort, b.logWebUI, cfg.LogDHCP)
+		b.cfg.webUIPort, b.cfg.logWebUI, b.cfg.logDHCP)
 
 	return nil
 }
@@ -622,8 +556,8 @@ func (b *UIBackend) ListenAndServe() error {
 	go b.broadcastUpdatesToClients()
 
 	// Start server
-	log.Default().Printf("Starting server to listen on port %d\n", b.serverPort)
-	b.server.Addr = fmt.Sprintf(":%d", b.serverPort)
+	log.Default().Printf("Starting server to listen on port %d\n", b.cfg.webUIPort)
+	b.server.Addr = fmt.Sprintf(":%d", b.cfg.webUIPort)
 	b.server.Handler = mux
 	return b.server.ListenAndServe()
 }
