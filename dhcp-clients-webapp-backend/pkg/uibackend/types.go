@@ -65,6 +65,14 @@ func (d DhcpClientData) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// PastDhcpClientData identifies a DHCP client that was connected in the past, but not anymore
+type PastDhcpClientData struct {
+	trackerdb.DhcpClient
+	HasStaticIP  bool
+	FriendlyName string
+	Notes        string
+}
+
 // DhcpClientFriendlyName is the 1:1 binding between a MAC address and a human-friendly name
 type DhcpClientFriendlyName struct {
 	MacAddress   net.HardwareAddr
@@ -82,7 +90,8 @@ type IpAddressReservation struct {
 // This must be updated every time the config.yaml of the addon is changed
 type AddonConfig struct {
 	// Static IP addresses, as read from the configuration
-	ipAddressReservations map[netip.Addr]IpAddressReservation
+	ipAddressReservationsByIP  map[netip.Addr]IpAddressReservation
+	ipAddressReservationsByMAC map[string]IpAddressReservation
 
 	// DHCP client friendly names, as read from the configuration
 	// The key of this map is the MAC address formatted as string (since net.HardwareAddr is not a valid map key type)
@@ -164,7 +173,8 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 		r.IP = ipAddr.String()
 		r.Mac = macAddr.String()
 
-		b.ipAddressReservations[ipAddr] = r
+		b.ipAddressReservationsByIP[ipAddr] = r
+		b.ipAddressReservationsByMAC[macAddr.String()] = r
 	}
 
 	// convert friendly names to a map of DhcpClientFriendlyName instances indexed by MAC address
@@ -203,5 +213,5 @@ type WebSocketMessage struct {
 
 	// PastClients contains the list of clients that were connected in the past, but never
 	// obtained a DHCP lease since the last dnsmasq server restart.
-	PastClients []trackerdb.DhcpClient `json:"past_clients"`
+	PastClients []PastDhcpClientData `json:"past_clients"`
 }

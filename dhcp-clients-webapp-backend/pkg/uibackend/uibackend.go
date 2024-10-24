@@ -101,8 +101,9 @@ func NewUIBackend() UIBackend {
 
 	return UIBackend{
 		cfg: AddonConfig{
-			ipAddressReservations: make(map[netip.Addr]IpAddressReservation),
-			friendlyNames:         make(map[string]DhcpClientFriendlyName),
+			ipAddressReservationsByIP:  make(map[netip.Addr]IpAddressReservation),
+			ipAddressReservationsByMAC: make(map[string]IpAddressReservation),
+			friendlyNames:              make(map[string]DhcpClientFriendlyName),
 		},
 		startTimestamp: time.Now(),
 		startCounter:   startCounter,
@@ -180,15 +181,34 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 		}
 	}
 
-	// TODO: enrich FriendlyName, HasStaticIP fields of dead clients
-	// TODO: provide a good "note" field to the websocket indicating
-	//    Last seen in a previous restart of this addon
-	//    Missed DHCP renewal
+	// enrich FriendlyName, HasStaticIP fields of dead clients, creating the list of "past clients"
+	pastClients := make([]PastDhcpClientData, len(deadClients))
+	for i, deadC := range deadClients {
+		pastClients[i].DhcpClient = deadC
+
+		// fill additional metadata
+		pastClients[i].FriendlyName = b.getFriendlyNameFor(deadC.MacAddr, deadC.Hostname)
+		pastClients[i].HasStaticIP = b.hasIpAddressReservationByMAC(deadC.MacAddr)
+
+		// create note field
+		if deadC.DhcpServerStartCounter < b.startCounter {
+			// a past instance of dnsmasq provided a DHCP lease... but we have no news
+			// of this DHCP client since last restart
+			pastClients[i].Notes = "Last seen in a previous run of this addon"
+		} else if deadC.DhcpServerStartCounter == b.startCounter {
+			// typical case when the DHCP client is turned off or e.g. it's connected via WLAN
+			// and is currently out of range
+			pastClients[i].Notes = "Missed DHCP renewal or cannot reach the network"
+		} else {
+			log.Default().Printf("ERROR: the database contains a client with a DHCP server start counter %d while current start counter is %d",
+				deadC.DhcpServerStartCounter, b.startCounter)
+		}
+	}
 
 	// finally build the websocket message
 	return WebSocketMessage{
 		CurrentClients: currentClients,
-		PastClients:    deadClients,
+		PastClients:    pastClients,
 	}
 }
 
@@ -412,10 +432,45 @@ func (b *UIBackend) processLeaseUpdates() {
 	}
 }
 
+func (b *UIBackend) getFriendlyNameFor(mac net.HardwareAddr, hostname string) string {
+	// do we have a friendly-name registered for this MAC address?
+	metadata, ok := b.cfg.friendlyNames[mac.String()]
+	if ok {
+		// yes: enrich with some metadata this DHCP client entry
+		return metadata.FriendlyName
+	} else {
+		if hostname != dnsmasqMarkerForMissingHostname {
+			// no: user didn't provide any friendly name but the dnsmasq DHCP server
+			// has received (over DHCP protocol) an hostname... better than nothing:
+			// use that to create a "friendly name"
+			return hostname
+		}
+	}
+	return ""
+}
+
+func (b *UIBackend) hasIpAddressReservationByIP(ip netip.Addr, macExpected net.HardwareAddr) bool {
+	_, hasReservation := b.cfg.ipAddressReservationsByIP[ip]
+	if hasReservation {
+		// the IP address provided is a reserved one...
+		// check if the MAC address is the one for which that IP was intended...
+		if strings.EqualFold(macExpected.String(), b.cfg.ipAddressReservationsByIP[ip].Mac) {
+			return true
+		} else {
+			log.Default().Printf("WARN: the IP %s was leased to MAC address %s, but in configuration it was reserved for MAC %s\n",
+				ip.String(), macExpected.String(), b.cfg.ipAddressReservationsByIP[ip].Mac)
+		}
+	}
+	return false
+}
+
+func (b *UIBackend) hasIpAddressReservationByMAC(mac net.HardwareAddr) bool {
+	_, hasReservation := b.cfg.ipAddressReservationsByMAC[mac.String()]
+	return hasReservation
+}
+
 // Process a slice of dnsmasq.Lease and store that into the UIBackend object
 func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) {
-
-	// lastSeenTime := time.Now()
 
 	b.dhcpClientDataLock.Lock()
 	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
@@ -423,51 +478,11 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 
 		d := DhcpClientData{Lease: *lease}
 
-		// friendly-name metadata
-
-		// do we have a friendly-name registered for this MAC address?
-		metadata, ok := b.cfg.friendlyNames[lease.MacAddr.String()]
-		if ok {
-			// yes: enrich with some metadata this DHCP client entry
-			d.FriendlyName = metadata.FriendlyName
-		} else {
-			if lease.Hostname != dnsmasqMarkerForMissingHostname {
-				// no: user didn't provide any friendly name but the dnsmasq DHCP server
-				// has received (over DHCP protocol) an hostname... better than nothing:
-				// use that to create a "friendly name"
-				d.FriendlyName = lease.Hostname
-			}
-		}
-
-		// has-static-ip metadata
-		_, hasReservation := b.cfg.ipAddressReservations[lease.IPAddr]
-		if hasReservation {
-			// the IP address provided in this lease is a reserved one...
-			// check if the MAC address is the one for which that IP was intended...
-			if strings.EqualFold(lease.MacAddr.String(), b.cfg.ipAddressReservations[lease.IPAddr].Mac) {
-				d.HasStaticIP = true
-			} else {
-				log.Default().Printf("WARN: the IP %s was leased to MAC address %s, but in configuration it was reserved for MAC %s\n",
-					lease.IPAddr.String(), lease.MacAddr.String(), b.cfg.ipAddressReservations[lease.IPAddr].Mac)
-			}
-		}
-
-		// is-inside-dhcp-pool metadata
+		// fill metadata
+		d.FriendlyName = b.getFriendlyNameFor(lease.MacAddr, lease.Hostname)
+		d.HasStaticIP = b.hasIpAddressReservationByIP(lease.IPAddr, lease.MacAddr)
 		d.IsInsideDHCPPool = IpInRange(lease.IPAddr, b.cfg.dhcpStartIP, b.cfg.dhcpEndIP)
-		/*
-			// update this DHCP client info also in the tracker DB:
-			err := b.trackerDB.TrackNewDhcpClient(trackerdb.DhcpClient{
-				MacAddr:      lease.MacAddr.String(),
-				Hostname:     lease.Hostname,
-				HasStaticIP:  hasReservation,
-				FriendlyName: d.FriendlyName,
-				LastSeen:     lastSeenTime,
-			})
-			if err != nil {
-				log.Default().Printf("WARN: Failed to update the internal DHCP client tracker DB: %s\n", err.Error())
-				// keep going
-			}
-		*/
+
 		// processing complete:
 		b.dhcpClientData = append(b.dhcpClientData, d)
 	}
@@ -524,7 +539,7 @@ func (b *UIBackend) readAddonConfig() error {
 		return err
 	}
 
-	log.Default().Printf("Acquired %d IP address reservations\n", len(b.cfg.ipAddressReservations))
+	log.Default().Printf("Acquired %d IP address reservations\n", len(b.cfg.ipAddressReservationsByIP))
 	log.Default().Printf("Acquired %d friendly names\n", len(b.cfg.friendlyNames))
 	log.Default().Printf("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
 		b.cfg.webUIPort, b.cfg.logWebUI, b.cfg.logDHCP)

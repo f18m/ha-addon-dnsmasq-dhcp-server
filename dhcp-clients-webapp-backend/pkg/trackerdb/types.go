@@ -15,8 +15,6 @@ import (
 type DhcpClient struct {
 	MacAddr                net.HardwareAddr
 	Hostname               string
-	HasStaticIP            bool
-	FriendlyName           string
 	LastSeen               time.Time
 	DhcpServerStartCounter int
 }
@@ -33,8 +31,6 @@ func (d DhcpClient) MarshalJSON() ([]byte, error) {
 	}{
 		MacAddr:                d.MacAddr.String(),
 		Hostname:               d.Hostname,
-		HasStaticIP:            d.HasStaticIP,
-		FriendlyName:           d.FriendlyName,
 		LastSeen:               d.LastSeen.Unix(),
 		DhcpServerStartCounter: d.DhcpServerStartCounter,
 	})

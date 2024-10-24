@@ -58,7 +58,7 @@ func TestProcessLeaseUpdatesFromArray(t *testing.T) {
 				FriendlyName: "FriendlyClient4",
 			},
 		},
-		ipAddressReservations: map[netip.Addr]IpAddressReservation{
+		ipAddressReservationsByIP: map[netip.Addr]IpAddressReservation{
 			netip.MustParseAddr("192.168.0.3"): {
 				Name: "test-friendly-name",
 				Mac:  "00:11:22:33:44:56", // this is the MAC of 'client2'

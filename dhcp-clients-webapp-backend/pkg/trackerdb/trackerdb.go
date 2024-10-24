@@ -116,35 +116,6 @@ func (d *DhcpClientTrackerDB) GetDhcpClient(macAddr net.HardwareAddr) (*DhcpClie
 	return &client, nil
 }
 
-/*
-
-// MarshalDhcpClient marshals the DHCP client struct to a JSON string.
-func (d *DhcpClientTrackerDB) MarshalDhcpClient(macAddr string) (string, error) {
-	client, err := d.GetDhcpClient(macAddr)
-	if err != nil {
-		return "", err
-	}
-
-	clientJSON, err := json.Marshal(client)
-	if err != nil {
-		return "", err
-	}
-
-	return string(clientJSON), nil
-}
-
-// UnmarshalDhcpClient unmarshals a JSON string into a DHCP client and stores it in the database.
-func (d *DhcpClientTrackerDB) UnmarshalDhcpClient(data string) error {
-	var client DhcpClient
-	err := json.Unmarshal([]byte(data), &client)
-	if err != nil {
-		return err
-	}
-
-	return d.AddDhcpClient(client)
-}
-*/
-
 // GetDeadDhcpClients finds DHCP clients in the database that are NOT appearing in the given list of MAC addresses
 // which identifies the currently-alive DHCP clients.
 func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr) ([]DhcpClient, error) {
