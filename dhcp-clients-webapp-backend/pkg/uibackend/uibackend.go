@@ -25,6 +25,8 @@ import (
 )
 
 type UIBackend struct {
+	logger *log.Logger
+
 	// The configuration for this backend
 	cfg AddonConfig
 
@@ -80,27 +82,28 @@ func ReadFileAndParseInteger(filename string) (int, error) {
 	return num, nil
 }
 
-func NewUIBackend() UIBackend {
+func NewUIBackend(logger *log.Logger) UIBackend {
 	db, err := trackerdb.NewDhcpClientTrackerDB(defaultDhcpClientTrackerDB)
 	if err != nil {
-		log.Default().Fatalf("Failed to open DHCP clients tracking DB: %s", err.Error())
+		logger.Fatalf("Failed to open DHCP clients tracking DB: %s", err.Error())
 		return UIBackend{}
 	}
 
-	log.Default().Printf("Successfully opened DHCP clients tracking DB at %s", defaultDhcpClientTrackerDB)
+	logger.Printf("Successfully opened DHCP clients tracking DB at %s", defaultDhcpClientTrackerDB)
 
 	isTestingMode := os.Getenv("LOCAL_TESTING") != ""
 
 	var startCounter int
 	startCounter, err = ReadFileAndParseInteger(defaultStartCounter)
 	if err != nil {
-		log.Default().Fatalf("Failed to open start counter file: %s", err.Error())
+		logger.Fatalf("Failed to open start counter file: %s", err.Error())
 		return UIBackend{}
 	}
 
-	log.Default().Printf("The current DHCP start counter is at %d", startCounter)
+	logger.Printf("The current DHCP start counter is at %d", startCounter)
 
 	return UIBackend{
+		logger: logger,
 		cfg: AddonConfig{
 			ipAddressReservationsByIP:  make(map[netip.Addr]IpAddressReservation),
 			ipAddressReservationsByMAC: make(map[string]IpAddressReservation),
@@ -140,7 +143,7 @@ func (b *UIBackend) logRequestMiddleware(next http.Handler) http.Handler {
 			}
 			headerStr += "----"
 
-			log.Default().Printf("Method: %s, URL: %s, Host: %s, RemoteAddr: %s\nHeaders:\n%s\n",
+			b.logger.Printf("Method: %s, URL: %s, Host: %s, RemoteAddr: %s\nHeaders:\n%s\n",
 				r.Method, r.URL.String(), r.Host, r.RemoteAddr, headerStr)
 
 		}
@@ -173,12 +176,12 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 	// now get from the tracker DB some historical data about "dead DHCP clients"
 	deadClients, err := b.trackerDB.GetDeadDhcpClients(currentClientsMacs)
 	if err != nil {
-		log.Default().Printf("ERR: failed to get list of dead/past DHCP clients: %s", err.Error())
+		b.logger.Printf("ERR: failed to get list of dead/past DHCP clients: %s", err.Error())
 		// keep going with an empty list
 		deadClients = []trackerdb.DhcpClient{}
 	} else {
 		if b.cfg.logWebUI {
-			log.Default().Printf("Running query to the tracker DB: found %d past/dead DHCP clients", len(deadClients))
+			b.logger.Printf("Running query to the tracker DB: found %d past/dead DHCP clients", len(deadClients))
 		}
 	}
 
@@ -207,7 +210,7 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 			// and is currently out of range
 			pastClients[i].Notes = "Missed DHCP renewal or cannot reach the network"
 		} else {
-			log.Default().Printf("ERROR: the database contains a client with a DHCP server start counter %d while current start counter is %d",
+			b.logger.Printf("ERROR: the database contains a client with a DHCP server start counter %d while current start counter is %d",
 				deadC.DhcpServerStartCounter, b.startCounter)
 		}
 	}
@@ -228,19 +231,19 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) {
 	ws, err := b.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Default().Fatal(err)
+		b.logger.Fatal(err)
 	}
 	defer ws.Close()
 
 	msg := b.getWebSocketMessage()
-	log.Default().Printf("Received new websocket client: pushing %d/%d current/past DHCP clients to it",
+	b.logger.Printf("Received new websocket client: pushing %d/%d current/past DHCP clients to it",
 		len(msg.CurrentClients), len(msg.PastClients))
 
 	// register new client
 	b.clientsLock.Lock()
 	b.clients[ws] = true
 	if err := ws.WriteJSON(msg); err != nil { // push the current status on the websocket
-		log.Default().Printf("WARN: failed to push initial data to the new websocket: %s", err.Error())
+		b.logger.Printf("WARN: failed to push initial data to the new websocket: %s", err.Error())
 		// keep going, we will delete the client connection shortly in the loop below if the error
 		// keeps popping up
 	}
@@ -251,13 +254,13 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 		var msg WebSocketMessage
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			log.Default().Printf("Error while reading JSON from WebSocket: %v", err)
+			b.logger.Printf("Error while reading JSON from WebSocket: %v", err)
 			b.clientsLock.Lock()
 			delete(b.clients, ws)
 			b.clientsLock.Unlock()
 			break
 		}
-		log.Default().Printf("Received data from the websocket: %v", msg)
+		b.logger.Printf("Received data from the websocket: %v", msg)
 	}
 }
 
@@ -292,7 +295,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 			for client := range b.clients {
 				err := client.WriteJSON(msg)
 				if err != nil {
-					log.Default().Printf("Error while writing JSON to WebSocket: %v", err)
+					b.logger.Printf("Error while writing JSON to WebSocket: %v", err)
 					client.Close()
 					delete(b.clients, client)
 				} else {
@@ -300,9 +303,9 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 					if b.cfg.logWebUI {
 						_, err := json.Marshal(msg)
 						if err != nil {
-							log.Default().Printf("Failed to marshal to JSON: %s.\nMessage:%v\n", err.Error(), msg)
+							b.logger.Printf("Failed to marshal to JSON: %s.\nMessage:%v\n", err.Error(), msg)
 						} /* else {
-							log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
+							b.logger.Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
 						} */
 					}
 				}
@@ -310,7 +313,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 			b.clientsLock.Unlock()
 
 			if b.cfg.logWebUI {
-				log.Default().Printf("Successfully pushed %d/%d current/past DHCP clients to %d websockets",
+				b.logger.Printf("Successfully pushed %d/%d current/past DHCP clients to %d websockets",
 					len(msg.CurrentClients), len(msg.PastClients), numSuccess)
 			}
 
@@ -327,22 +330,22 @@ func (b *UIBackend) reloadTemplates() {
 
 	cssContents, err := os.ReadFile(cssF)
 	if err != nil {
-		log.Default().Fatalf("Failed to open CSS file: %s", err.Error())
+		b.logger.Fatalf("Failed to open CSS file: %s", err.Error())
 		return
 	}
-	log.Default().Printf("Read CSS file %s: %d bytes", cssF, len(cssContents))
+	b.logger.Printf("Read CSS file %s: %d bytes", cssF, len(cssContents))
 	b.cssContents = string(cssContents)
 
 	jsContents, err := os.ReadFile(jsF)
 	if err != nil {
-		log.Default().Fatalf("Failed to open Javascript file: %s", err.Error())
+		b.logger.Fatalf("Failed to open Javascript file: %s", err.Error())
 		return
 	}
-	log.Default().Printf("Read Javascript file %s: %d bytes", jsF, len(jsContents))
+	b.logger.Printf("Read Javascript file %s: %d bytes", jsF, len(jsContents))
 	b.jsContents = string(jsContents)
 
 	b.htmlTemplate = template.Must(template.ParseFiles(htmlF))
-	log.Default().Printf("Parsed template file %s", htmlF)
+	b.logger.Printf("Parsed template file %s", htmlF)
 }
 
 // Render HTML page
@@ -366,10 +369,10 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		if b.isTestingMode {
 			// local testing mode... the docker container is not running under HA Supervisor,
 			// so there is no ingress at all...
-			log.Default().Printf("WARN: testing mode detected... ignoring the absence of the INGRESS header")
+			b.logger.Printf("WARN: testing mode detected... ignoring the absence of the INGRESS header")
 			XIngressPath = []string{""}
 		} else {
-			log.Default().Printf("WARN: missing headers in HTTP GET")
+			b.logger.Printf("WARN: missing headers in HTTP GET")
 			http.Error(w, "The request does not have the 'X-Ingress-Path' header", http.StatusBadRequest)
 			return
 		}
@@ -419,11 +422,11 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 
 	err := b.htmlTemplate.Execute(w, templateData)
 	if err != nil {
-		log.Default().Printf("WARN: error while rendering template: %s\n", err.Error())
+		b.logger.Printf("WARN: error while rendering template: %s\n", err.Error())
 		// keep going
 	} else {
 		if b.cfg.logWebUI {
-			log.Default().Printf("Successfully rendered web page template, responding with 200 OK\n")
+			b.logger.Printf("Successfully rendered web page template, responding with 200 OK\n")
 		}
 	}
 }
@@ -433,7 +436,7 @@ func (b *UIBackend) processLeaseUpdates() {
 	i := 0
 	for {
 		updatedLeases := <-b.leasesCh
-		log.Default().Printf("INotify detected a change (#%d) to the DHCP client lease file... list size before=%d, after=%d clients\n",
+		b.logger.Printf("INotify detected a change (#%d) to the DHCP client lease file... list size before=%d, after=%d clients\n",
 			i, len(b.dhcpClientData), len(updatedLeases))
 		b.processLeaseUpdatesFromArray(updatedLeases)
 
@@ -468,7 +471,7 @@ func (b *UIBackend) hasIpAddressReservationByIP(ip netip.Addr, macExpected net.H
 		if strings.EqualFold(macExpected.String(), b.cfg.ipAddressReservationsByIP[ip].Mac) {
 			return true
 		} else {
-			log.Default().Printf("WARN: the IP %s was leased to MAC address %s, but in configuration it was reserved for MAC %s\n",
+			b.logger.Printf("WARN: the IP %s was leased to MAC address %s, but in configuration it was reserved for MAC %s\n",
 				ip.String(), macExpected.String(), b.cfg.ipAddressReservationsByIP[ip].Mac)
 		}
 	}
@@ -505,12 +508,12 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 
 	b.dhcpClientDataLock.Unlock()
 
-	log.Default().Printf("Updated DHCP clients internal status with %d entries\n", len(b.dhcpClientData))
+	b.logger.Printf("Updated DHCP clients internal status with %d entries\n", len(b.dhcpClientData))
 }
 
 // Reads the current DNS masq lease file, before any INotify hook gets installed, to get a baseline
 func (b *UIBackend) readCurrentLeaseFile() error {
-	log.Default().Printf("Reading DHCP client lease file '%s'\n", defaultDnsmasqLeasesFile)
+	b.logger.Printf("Reading DHCP client lease file '%s'\n", defaultDnsmasqLeasesFile)
 
 	// Read current DHCP leases
 	leaseFile, errOpen := os.OpenFile(defaultDnsmasqLeasesFile, os.O_RDONLY|os.O_CREATE, 0644)
@@ -530,7 +533,7 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 // readAddonConfig reads the configuration of this Home Assistant addon and converts it
 // into maps and slices that get stored into the UIBackend instance
 func (b *UIBackend) readAddonConfig() error {
-	log.Default().Printf("Reading addon config file '%s'\n", defaultHomeAssistantConfigFile)
+	b.logger.Printf("Reading addon config file '%s'\n", defaultHomeAssistantConfigFile)
 
 	optionFile, errOpen := os.OpenFile(defaultHomeAssistantConfigFile, os.O_RDONLY|os.O_CREATE, 0644)
 	if errOpen != nil {
@@ -550,9 +553,9 @@ func (b *UIBackend) readAddonConfig() error {
 		return err
 	}
 
-	log.Default().Printf("Acquired %d IP address reservations\n", len(b.cfg.ipAddressReservationsByIP))
-	log.Default().Printf("Acquired %d friendly names\n", len(b.cfg.friendlyNames))
-	log.Default().Printf("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
+	b.logger.Printf("Acquired %d IP address reservations\n", len(b.cfg.ipAddressReservationsByIP))
+	b.logger.Printf("Acquired %d friendly names\n", len(b.cfg.friendlyNames))
+	b.logger.Printf("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
 		b.cfg.webUIPort, b.cfg.logWebUI, b.cfg.logDHCP)
 
 	return nil
@@ -578,12 +581,12 @@ func (b *UIBackend) ListenAndServe() error {
 
 	// Read friendly names from the HomeAssistant addon config
 	if err := b.readAddonConfig(); err != nil {
-		log.Default().Fatalf("FATAL: error while reading HomeAssistant addon options: %s\n", err.Error())
+		b.logger.Fatalf("FATAL: error while reading HomeAssistant addon options: %s\n", err.Error())
 	}
 
 	// Initialize current DHCP client data table
 	if err := b.readCurrentLeaseFile(); err != nil {
-		log.Default().Fatalf("FATAL: error while reading DHCP leases file: %s\n", err.Error())
+		b.logger.Fatalf("FATAL: error while reading DHCP leases file: %s\n", err.Error())
 	}
 
 	// Watch for updates on DHCP leases file and push to leasesCh
@@ -591,7 +594,7 @@ func (b *UIBackend) ListenAndServe() error {
 	go func() {
 		err := dnsmasq.WatchLeases(ctx, defaultDnsmasqLeasesFile, b.leasesCh)
 		if err != nil {
-			log.Default().Fatalf("FATAL: error while watching DHCP leases file: %s\n", err.Error())
+			b.logger.Fatalf("FATAL: error while watching DHCP leases file: %s\n", err.Error())
 		}
 	}()
 
@@ -602,7 +605,7 @@ func (b *UIBackend) ListenAndServe() error {
 	go b.broadcastUpdatesToClients()
 
 	// Start server
-	log.Default().Printf("Starting server to listen on port %d\n", b.cfg.webUIPort)
+	b.logger.Printf("Starting server to listen on port %d\n", b.cfg.webUIPort)
 	b.server.Addr = fmt.Sprintf(":%d", b.cfg.webUIPort)
 	b.server.Handler = mux
 	return b.server.ListenAndServe()
