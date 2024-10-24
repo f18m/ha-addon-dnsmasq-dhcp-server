@@ -172,6 +172,7 @@ function processWebSocketEvent(event) {
         message.innerText = "Internal error. Please report upstream together with Javascript logs.";
 
     } else {
+        console.log("DEBUG:" + data)
         console.log("Websocket connection: received " + data.current_clients.length + " current clients from websocket");
         console.log("Websocket connection: received " + data.past_clients.length + " past clients from websocket");
 
