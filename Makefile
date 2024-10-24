@@ -47,11 +47,14 @@ test-docker-image:
 		--network host \
 		${IMAGETAG}:localtest
 
+LIVE_CONTAINER_NAME:=dsnmasq-dhcp-test-live
+
 test-docker-image-live: 
 	docker build -f Dockerfile.live -t debug-image-live .
 	@echo "Starting container of image debug-image-live" 
 	docker run \
 		--rm \
+		--name $(LIVE_CONTAINER_NAME) \
 		-v $(shell pwd)/test-options.json:/data/options.json \
 		-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
 		-v $(shell pwd)/test-db.sqlite3:/data/trackerdb.sqlite3 \
@@ -68,6 +71,18 @@ test-docker-image-live:
 INPUT_SCSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/scss/
 OUTPUT_CSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/
 
-build-css:
+build-css-live:
 	docker run -v $(INPUT_SCSS):/sass/ -v $(OUTPUT_CSS):/css/ -it michalklempa/dart-sass:latest
-		
+
+test-database-show:
+	sqlite3 test-db.sqlite3 'select * from dhcp_clients;'		
+
+test-database-drop:
+	sqlite3 test-db.sqlite3 'drop table dhcp_clients;'
+
+# this target assumes that you launched 'test-docker-image-live' previously
+test-database-add-entry:
+	docker exec -ti $(LIVE_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:57" "192.168.1.250"
+
+test-database-del-entry:
+	docker exec -ti $(LIVE_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh del "00:11:22:33:44:57" "192.168.1.250"

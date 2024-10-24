@@ -83,7 +83,7 @@ ON CONFLICT(mac_addr) DO UPDATE SET
 EOF
 
     if [[ $? -eq 0 ]]; then
-        log_info "Client with MAC address $mac_addr has been added/updated successfully."
+        log_info "Client with mac=$mac_addr, hostname=$hostname has been added/updated successfully."
     else
         log_error "Failed to add/update client. Expect inconsistencies."
     fi
@@ -102,7 +102,7 @@ EOF
 #   When dnsmasq receives a HUP signal, the script will be invoked for existing leases with an "old" event.
 #  """
 #
-log_info "Triggered with mode=${MODE}, mac=${MAC_ADDRESS}, hostname=${HOSTNAME}"
+log_info "*** Triggered with mode=${MODE}, mac=${MAC_ADDRESS}, hostname=${HOSTNAME} ***"
 if [[ "$MODE" = "add" ]]; then
     read_start_counter
     last_seen=$(date -u +"%Y-%m-%dT%H:%M:%SZ")  # ISO 8601 UTC format
