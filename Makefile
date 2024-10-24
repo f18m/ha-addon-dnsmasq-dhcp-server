@@ -33,38 +33,41 @@ build-backend:
 		golangci-lint run
 	cd dhcp-clients-webapp-backend && \
 		go test -v -cover ./...
-	
 
+TEST_CONTAINER_NAME:=dnsmasq-dhcp-test
+DOCKER_RUN_OPTIONS:= \
+	-v $(shell pwd)/test-options.json:/data/options.json \
+	-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
+	-v $(shell pwd)/test-db.sqlite3:/data/trackerdb.sqlite3 \
+	-v $(shell pwd)/test-startcounter:/data/startcounter \
+	-v $(shell pwd)/dhcp-clients-webapp-backend:/app \
+	-v $(shell pwd)/dhcp-clients-webapp-backend/templates:/opt/web/templates/ \
+	-v $(shell pwd)/rootfs/opt/bin/dnsmasq-dhcp-script.sh:/opt/bin/dnsmasq-dhcp-script.sh \
+	-e LOCAL_TESTING=1 \
+	--cap-add NET_ADMIN \
+	--network host
+
+# when using the 'test-docker-image' target it's normal to see messages like
+#    "Something went wrong contacting the API"
+# at startup of the docker container... the reason is that the startup scripts
+# will try to reach to HomeAssistant Supervisor which is not running...
 test-docker-image: 
 	$(MAKE) FAST=1 build-docker-image
 	@echo "Starting container of image ${IMAGETAG}:localtest" 
 	docker run \
 		--rm \
-		-v $(shell pwd)/test-options.json:/data/options.json \
-		-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
-		-e LOCAL_TESTING=1 \
-		--cap-add NET_ADMIN \
-		--network host \
+		--name $(TEST_CONTAINER_NAME) \
+		${DOCKER_RUN_OPTIONS} \
 		${IMAGETAG}:localtest
 
-LIVE_CONTAINER_NAME:=dsnmasq-dhcp-test-live
 
 test-docker-image-live: 
 	docker build -f Dockerfile.live -t debug-image-live .
 	@echo "Starting container of image debug-image-live" 
 	docker run \
 		--rm \
-		--name $(LIVE_CONTAINER_NAME) \
-		-v $(shell pwd)/test-options.json:/data/options.json \
-		-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
-		-v $(shell pwd)/test-db.sqlite3:/data/trackerdb.sqlite3 \
-		-v $(shell pwd)/test-startcounter:/data/startcounter \
-		-v $(shell pwd)/dhcp-clients-webapp-backend:/app \
-		-v $(shell pwd)/dhcp-clients-webapp-backend/templates:/opt/web/templates/ \
-		-v $(shell pwd)/rootfs/opt/bin/dnsmasq-dhcp-script.sh:/opt/bin/dnsmasq-dhcp-script.sh \
-		-e LOCAL_TESTING=1 \
-		--cap-add NET_ADMIN \
-		--network host \
+		--name $(TEST_CONTAINER_NAME) \
+		${DOCKER_RUN_OPTIONS} \
 		debug-image-live
 
 
@@ -82,15 +85,13 @@ test-database-drop:
 
 # this target assumes that you launched 'test-docker-image-live' previously
 test-database-add-entry:
-	docker exec -ti $(LIVE_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:57" "192.168.1.250" "test-entry"
-	docker exec -ti $(LIVE_CONTAINER_NAME) cat /data/dnsmasq-dhcp-script.log
+	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:57" "192.168.1.250" "test-entry"
 
 test-database-add-entry2:
-	docker exec -ti $(LIVE_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:58" "192.168.1.251" "test-entry2"
-	docker exec -ti $(LIVE_CONTAINER_NAME) cat /data/dnsmasq-dhcp-script.log
+	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:58" "192.168.1.251" "test-entry2"
 
 # NOTE:
-#    docker exec -ti $(LIVE_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh del "00:11:22:33:44:57" "192.168.1.250" "test-entry"
+#    docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh del "00:11:22:33:44:57" "192.168.1.250" "test-entry"
 # won't work: there is no 'del' support... the only way to 
 test-database-del-entry:
 	sqlite3 test-db.sqlite3 "DELETE FROM dhcp_clients WHERE mac_addr = '00:11:22:33:44:57';"

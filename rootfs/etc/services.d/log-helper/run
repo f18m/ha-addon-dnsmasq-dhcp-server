@@ -1,0 +1,12 @@
+#!/usr/bin/with-contenv bashio
+
+LOG_SOCKET=/tmp/dnsmasq-script-log-socket
+
+# This service implements just a very very basic
+# Unix socket -> stdout proxy server.
+# This is useful to get the messages logged by the
+# /opt/bin/dnsmasq-dhcp-script.sh 
+# to stdout
+
+bashio::log.info "Starting log-helper..."
+socat -u UNIX-LISTEN:${LOG_SOCKET},fork STDOUT

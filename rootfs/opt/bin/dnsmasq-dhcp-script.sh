@@ -12,15 +12,27 @@ HOSTNAME="${4:-}"
 DB_PATH=/data/trackerdb.sqlite3
 ADDON_DHCP_SERVER_START_COUNTER="/data/startcounter"
 ADDON_DHCP_SERVER_START_EPOCH="/data/startepoch"
-LOGFILE="/data/dnsmasq-dhcp-script.log"
 START_TIME_THRESHOLD_SEC=3
 
+# About logging
+# Unfortunately logging from this script to stdout does not produce any output
+# (dnsmasq which launches this script seems to ignore its output).
+# Logging to a file implies also handling its rotation/cleanup...
+# so instead we log to a Unix socket and we have a basic 'socat' server 
+# that acts as log proxy; see the /etc/services.d/log-helper for more details.
+#LOGFILE="/data/dnsmasq-dhcp-script.log"
+LOG_SOCKET=/tmp/dnsmasq-script-log-socket
+
 log_info() {
-    echo "$(date): INFO: $*" >>$LOGFILE
+    #echo "$(date): INFO: $*" >>$LOGFILE
+    MSG="$(date): DNSMASQ-SCRIPT: INFO: $*"
+    echo "$MSG" | socat - UNIX-CONNECT:${LOG_SOCKET}
 }
 
 log_error() {
-    echo "$(date): ERR: $*" >>$LOGFILE
+    #echo "$(date): ERR: $*" >>$LOGFILE
+    MSG="$(date): DNSMASQ-SCRIPT: ERR: $*"
+    echo "$MSG" | socat - UNIX-CONNECT:${LOG_SOCKET}
 }
 
 # Reads the current start counter into global var DHCP_SERVER_START_COUNTER
@@ -31,7 +43,7 @@ read_start_counter() {
         DHCP_SERVER_START_COUNTER=0
     fi
 
-    log_info "The DHCP server start counter is ${DHCP_SERVER_START_COUNTER}"
+    log_info "Acquired DHCP server start counter: ${DHCP_SERVER_START_COUNTER}"
 }
 
 # Returns 1 if the dnsmasq just started or 0 if not
@@ -83,7 +95,7 @@ ON CONFLICT(mac_addr) DO UPDATE SET
 EOF
 
     if [[ $? -eq 0 ]]; then
-        log_info "Client with mac=$mac_addr, hostname=$hostname has been added/updated successfully."
+        log_info "Stored in trackerDB updated information for client mac=$mac_addr, hostname=$hostname"
     else
         log_error "Failed to add/update client. Expect inconsistencies."
     fi
@@ -116,7 +128,6 @@ elif [[ "$MODE" = "old" ]]; then
     if [[ $? -eq 1 ]]; then 
         log_info "Detected startup LEASE processing and ignoring it"
     else
-        log_info "Updating lease"
         read_start_counter
         last_seen=$(date -u +"%Y-%m-%dT%H:%M:%SZ")  # ISO 8601 UTC format
         add_or_update_dhcp_client "$DB_PATH" "$MAC_ADDRESS" "$HOSTNAME" "$last_seen" "$DHCP_SERVER_START_COUNTER"
