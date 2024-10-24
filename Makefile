@@ -82,7 +82,15 @@ test-database-drop:
 
 # this target assumes that you launched 'test-docker-image-live' previously
 test-database-add-entry:
-	docker exec -ti $(LIVE_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:57" "192.168.1.250"
+	docker exec -ti $(LIVE_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:57" "192.168.1.250" "test-entry"
+	docker exec -ti $(LIVE_CONTAINER_NAME) cat /data/dnsmasq-dhcp-script.log
 
+test-database-add-entry2:
+	docker exec -ti $(LIVE_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:58" "192.168.1.251" "test-entry2"
+	docker exec -ti $(LIVE_CONTAINER_NAME) cat /data/dnsmasq-dhcp-script.log
+
+# NOTE:
+#    docker exec -ti $(LIVE_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh del "00:11:22:33:44:57" "192.168.1.250" "test-entry"
+# won't work: there is no 'del' support... the only way to 
 test-database-del-entry:
-	docker exec -ti $(LIVE_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh del "00:11:22:33:44:57" "192.168.1.250"
+	sqlite3 test-db.sqlite3 "DELETE FROM dhcp_clients WHERE mac_addr = '00:11:22:33:44:57';"

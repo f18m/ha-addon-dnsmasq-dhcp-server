@@ -129,16 +129,18 @@ func (b *UIBackend) logRequestMiddleware(next http.Handler) http.Handler {
 
 		// this logging is quite verbose, enable only if explicitly asked so
 		if b.cfg.logWebUI {
-			log.Default().Printf("Method: %s, URL: %s, Host: %s, RemoteAddr: %s\n", r.Method, r.URL.String(), r.Host, r.RemoteAddr)
-
 			// print headers
-			fmt.Println("Headers:")
+			var headerStr string
 			for name, values := range r.Header {
 				for _, value := range values {
-					fmt.Printf("  %s: %s\n", name, value)
+					headerStr += fmt.Sprintf("  %s: %s\n", name, value)
 				}
 			}
-			fmt.Println("----")
+			headerStr += "----"
+
+			log.Default().Printf("Method: %s, URL: %s, Host: %s, RemoteAddr: %s\nHeaders:\n%s\n",
+				r.Method, r.URL.String(), r.Host, r.RemoteAddr, headerStr)
+
 		}
 
 		// keep serving the request
@@ -167,6 +169,9 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 	}
 
 	// now get from the tracker DB some historical data about "dead DHCP clients"
+	if b.cfg.logWebUI {
+		log.Default().Printf("Running query to the tracker DB for past/dead DHCP clients")
+	}
 	deadClients, err := b.trackerDB.GetDeadDhcpClients(currentClientsMacs)
 	if err != nil {
 		log.Default().Printf("ERR: failed to get list of dead/past DHCP clients: %s", err.Error())
@@ -175,6 +180,9 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 	}
 
 	// TODO: enrich FriendlyName, HasStaticIP fields of dead clients
+	// TODO: provide a good "note" field to the websocket indicating
+	//    Last seen in a previous restart of this addon
+	//    Missed DHCP renewal
 
 	// finally build the websocket message
 	return WebSocketMessage{
@@ -230,8 +238,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 		select {
 		case <-b.broadcastCh:
 			// if we get a message from this channel, it means the global list of
-			// current DHCP clients has changed, so regen the message:
-			msg = b.getWebSocketMessage()
+			// current DHCP clients has changed
 
 		case <-ticker.C:
 			// let's refresh the websocket with whatever data we already have;
@@ -242,29 +249,37 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 			//    considered "stale" and get reset)
 		}
 
-		if b.cfg.logWebUI {
-			log.Default().Printf("Pushing %d/%d current/past DHCP clients to it",
-				len(msg.CurrentClients), len(msg.PastClients))
-		}
+		if len(b.clients) > 0 {
+			// regen message
+			msg = b.getWebSocketMessage()
 
-		// loop over all clients
-		b.clientsLock.Lock()
-		for client := range b.clients {
-			err := client.WriteJSON(msg)
-			if err != nil {
-				log.Default().Printf("Error while writing JSON to WebSocket: %v", err)
-				client.Close()
-				delete(b.clients, client)
-			} else {
-				if b.cfg.logWebUI {
-					jsonData, err := json.Marshal(msg)
-					if err != nil {
-						log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
+			// loop over all clients
+			numSuccess := 0
+			b.clientsLock.Lock()
+			for client := range b.clients {
+				err := client.WriteJSON(msg)
+				if err != nil {
+					log.Default().Printf("Error while writing JSON to WebSocket: %v", err)
+					client.Close()
+					delete(b.clients, client)
+				} else {
+					numSuccess++
+					if b.cfg.logWebUI {
+						jsonData, err := json.Marshal(msg)
+						if err != nil {
+							log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
+						}
 					}
 				}
 			}
+			b.clientsLock.Unlock()
+
+			if b.cfg.logWebUI {
+				log.Default().Printf("Successfully pushed %d/%d current/past DHCP clients to %d websockets",
+					len(msg.CurrentClients), len(msg.PastClients), numSuccess)
+			}
+
 		}
-		b.clientsLock.Unlock()
 	}
 }
 
