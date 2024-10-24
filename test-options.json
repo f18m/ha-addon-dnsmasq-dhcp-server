@@ -13,6 +13,12 @@
       "ip": "192.168.1.55"
     }
   ],
+  "dhcp_clients_friendly_names": [
+    {
+      "name": "a human-friendly name",
+      "mac": "4c:50:77:cf:3c:35"
+    }
+  ],
   "dhcp_range": {
     "start_ip": "192.168.1.50",
     "end_ip": "192.168.1.100"

@@ -184,11 +184,17 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 	// enrich FriendlyName, HasStaticIP fields of dead clients, creating the list of "past clients"
 	pastClients := make([]PastDhcpClientData, len(deadClients))
 	for i, deadC := range deadClients {
-		pastClients[i].DhcpClient = deadC
+		pastClients[i].PastInfo = deadC
 
 		// fill additional metadata
-		pastClients[i].FriendlyName = b.getFriendlyNameFor(deadC.MacAddr, deadC.Hostname)
 		pastClients[i].HasStaticIP = b.hasIpAddressReservationByMAC(deadC.MacAddr)
+		pastClients[i].FriendlyName = b.getFriendlyNameFor(deadC.MacAddr, deadC.Hostname)
+		if pastClients[i].FriendlyName == deadC.Hostname {
+			// look also in the IP address reservations "friendly names"
+			if pastClients[i].HasStaticIP {
+				pastClients[i].FriendlyName = b.cfg.ipAddressReservationsByMAC[deadC.MacAddr.String()].Name
+			}
+		}
 
 		// create note field
 		if deadC.DhcpServerStartCounter < b.startCounter {
@@ -289,10 +295,9 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 						_, err := json.Marshal(msg)
 						if err != nil {
 							log.Default().Printf("Failed to marshal to JSON: %s.\nMessage:%v\n", err.Error(), msg)
-						}
-						// else {
-						//	log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
-						// }
+						} /* else {
+							log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
+						} */
 					}
 				}
 			}

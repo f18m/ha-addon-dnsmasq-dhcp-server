@@ -88,7 +88,7 @@ test-database-add-entry:
 	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:57" "192.168.1.250" "test-entry"
 
 test-database-add-entry2:
-	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:58" "192.168.1.251" "test-entry2"
+	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "aa:bb:cc:dd:ee:01" "192.168.1.251" "test-entry2"
 
 # NOTE:
 #    docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh del "00:11:22:33:44:57" "192.168.1.250" "test-entry"

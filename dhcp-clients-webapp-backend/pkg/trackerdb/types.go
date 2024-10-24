@@ -24,8 +24,6 @@ func (d DhcpClient) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		MacAddr                string `json:"mac_addr"`
 		Hostname               string `json:"hostname"`
-		HasStaticIP            bool   `json:"has_static_ip"`
-		FriendlyName           string `json:"friendly_name"`
 		LastSeen               int64  `json:"last_seen"`
 		DhcpServerStartCounter int    `json:"dhcp_server_start_counter"`
 	}{

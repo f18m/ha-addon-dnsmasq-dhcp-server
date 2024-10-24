@@ -67,10 +67,10 @@ func (d DhcpClientData) MarshalJSON() ([]byte, error) {
 
 // PastDhcpClientData identifies a DHCP client that was connected in the past, but not anymore
 type PastDhcpClientData struct {
-	trackerdb.DhcpClient
-	HasStaticIP  bool
-	FriendlyName string
-	Notes        string
+	PastInfo     trackerdb.DhcpClient `json:"past_info"`
+	HasStaticIP  bool                 `json:"has_static_ip"`
+	FriendlyName string               `json:"friendly_name"`
+	Notes        string               `json:"notes"`
 }
 
 // DhcpClientFriendlyName is the 1:1 binding between a MAC address and a human-friendly name

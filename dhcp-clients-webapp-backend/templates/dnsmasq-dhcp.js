@@ -211,12 +211,11 @@ function processWebSocketEvent(event) {
                 static_ip_str = "YES";
             }
 
-            notes_str = "Last seen in instance " + item.dhcp_server_start_counter
-
             // append new row
             tableData.push([index + 1,
-                item.friendly_name, item.hostname, 
-                item.mac_addr, static_ip_str, formatTimeSince(item.last_seen), notes_str]);
+                item.friendly_name, item.past_info.hostname, 
+                item.past_info.mac_addr, static_ip_str, 
+                formatTimeSince(item.past_info.last_seen), item.notes]);
         });
         table_past.clear().rows.add(tableData).draw();
 
