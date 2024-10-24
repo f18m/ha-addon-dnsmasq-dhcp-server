@@ -3,6 +3,8 @@
 # DNSMASQ config
 # ==============================================================================
 
+ADDON_DHCP_SERVER_START_COUNTER="/data/startcounter"
+ADDON_DHCP_SERVER_START_EPOCH="/data/startepoch"
 ADDON_CONFIG="/data/options.json"
 ADDON_CONFIG_RESOLVED="/data/options.resolved.json"
 DNSMASQ_CONFIG="/etc/dnsmasq.conf"
@@ -24,7 +26,7 @@ function ipvalid() {
 function dnsresolve() {
     NTP_SERVERS="$(jq --raw-output '.network.ntp[]' ${ADDON_CONFIG} 2>/dev/null)"
     if [[ ! -z "${NTP_SERVERS}" ]]; then
-        bashio::log.info "NTP servers are ${NTP_SERVERS}"
+        bashio::log.info "NTP servers are ${NTP_SERVERS/$'\n'/,}"
 
         NTP_SERVERS_RESOLVED=""
         for srv in ${NTP_SERVERS}; do
@@ -54,6 +56,28 @@ function dnsresolve() {
     fi
 }
 
+function bump_dhcp_server_start_counter() {
+    # Check if the file exists
+    if [[ -f "$ADDON_DHCP_SERVER_START_COUNTER" ]]; then
+        # Read the number from the file & increment it
+        NUMBER=$(cat "$ADDON_DHCP_SERVER_START_COUNTER")
+        NUMBER=$((NUMBER + 1))
+    else
+        # If the file doesn't exist, set NUMBER to 0
+        NUMBER=0
+    fi
+
+    # Write the new value to the file
+    echo "$NUMBER" > "$ADDON_DHCP_SERVER_START_COUNTER"
+    bashio::log.info "Updated DHCP start counter is: $NUMBER"
+
+    # Write also the current timestamp as Unix epoch
+    date +%s > "$ADDON_DHCP_SERVER_START_EPOCH"
+}
+
+
+bashio::log.info "Advancing the DHCP server start counter by one..."
+bump_dhcp_server_start_counter
 
 bashio::log.info "Resolving NTP hostnames eventually provided..."
 dnsresolve

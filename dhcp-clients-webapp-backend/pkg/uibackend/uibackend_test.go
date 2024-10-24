@@ -1,6 +1,8 @@
 package uibackend
 
 import (
+	"dhcp-clients-webapp-backend/pkg/trackerdb"
+	"log"
 	"net"
 	"net/netip"
 	"testing"
@@ -46,7 +48,7 @@ func TestProcessLeaseUpdatesFromArray(t *testing.T) {
 	}
 
 	// Prepare UIBackend with mock data
-	backend := &UIBackend{
+	backendcfg := AddonConfig{
 		friendlyNames: map[string]DhcpClientFriendlyName{
 			"00:11:22:33:44:55": { // this is the MAC of 'client1'
 				MacAddress:   MustParseMAC("00:11:22:33:44:55"),
@@ -57,7 +59,7 @@ func TestProcessLeaseUpdatesFromArray(t *testing.T) {
 				FriendlyName: "FriendlyClient4",
 			},
 		},
-		ipAddressReservations: map[netip.Addr]IpAddressReservation{
+		ipAddressReservationsByIP: map[netip.Addr]IpAddressReservation{
 			netip.MustParseAddr("192.168.0.3"): {
 				Name: "test-friendly-name",
 				Mac:  "00:11:22:33:44:56", // this is the MAC of 'client2'
@@ -66,6 +68,11 @@ func TestProcessLeaseUpdatesFromArray(t *testing.T) {
 		},
 		dhcpStartIP: net.IPv4(192, 168, 0, 1),
 		dhcpEndIP:   net.IPv4(192, 168, 0, 100),
+	}
+	backend := &UIBackend{
+		logger:    log.Default(),
+		cfg:       backendcfg,
+		trackerDB: trackerdb.NewTestDB(),
 	}
 
 	// Call the method being tested

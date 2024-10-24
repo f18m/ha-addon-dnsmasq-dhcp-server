@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>DHCP Clients</title>
 
@@ -18,202 +17,64 @@
  
     <!-- for some reason referencing an external CSS does not work, so CSS definitions are embedded: -->
     <style>
-        .solidBorder {
-            border: 1px solid;
-        }
-
-        .monoText {
-            font-family: monospace;
-            background-color: lightgrey;
-            padding: 3px;
-        }
-
-        .boldText {
-            font-weight: bold;
-        }
+        {{ .CssFileContent }}
     </style>
 
     <script type="text/javascript">
         // these variables are rendered by the UI backend when serving this file to the client
         // and that's why they might be highlighted as invalid Javascript syntax
-        var dhcpPoolSize = {{ .DhcpPoolSize }}
-        var webSocketURI = {{ .WebSocketURI }}
+        var templated_dhcpPoolSize = {{ .DhcpPoolSize }}
+        var templated_webSocketURI = {{ .WebSocketURI }}
+        var templated_dhcpServerStartTime = {{ .DHCPServerStartTime }}
 
-        function formatTimeLeft(unixTimestamp) {
-            if (unixTimestamp == 0) {
-                return "Never expires";
-            }
-
-            // Calculate the difference in milliseconds between the timestamp and the current time
-            const now = new Date();
-            const timestampInMillis = unixTimestamp * 1000;
-            const timeDifference = timestampInMillis - now.getTime();
-
-            // If the time has already passed, return 0
-            if (timeDifference <= 0) {
-                return "Already expired";
-            }
-
-            // Calculate the remaining time in hours, minutes, and seconds
-            const hoursLeft = Math.floor(timeDifference / (1000 * 60 * 60));
-            const minutesLeft = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
-            const secondsLeft = Math.floor((timeDifference % (1000 * 60)) / 1000);
-
-            // Format the remaining time as a string "HH:MM:SS"
-            return `${hoursLeft.toString().padStart(2, '0')}:${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`;
-        }
-
-        var table = null;
-
-        function initTable() {
-            console.log("Initializing datatables.net table");
-
-            // custom sorting for content formatted as HH:MM:SS
-            $.fn.dataTable.ext.order['custom-time-order'] = function (settings, colIndex) {
-                return this.api().column(colIndex, { order: 'index' }).nodes().map(function (td, i) {
-                    var time = $(td).text().split(':');
-                    // convert to seconds (HH * 3600 + MM * 60 + SS)
-                    return (parseInt(time[0], 10) * 3600) + (parseInt(time[1], 10) * 60) + parseInt(time[2], 10);
-                });
-            };
-            table = new DataTable('#table-wrapper', {
-                    columns: [
-                        { title: '#', type: 'num' },
-                        { title: 'Friendly Name', type: 'string' },
-                        { title: 'Hostname', type: 'string' },
-                        { title: 'IP Address', type: 'ip-address' },
-                        { title: 'MAC Address', type: 'string' },
-                        { title: 'Expires in', 'orderDataType': 'custom-date-order' },
-                        { title: 'Static IP?', type: 'string' }
-                    ],
-                    data: [],
-                    pageLength: 20,
-                    responsive: true
-                });
-        }
-
-        document.addEventListener('DOMContentLoaded', initTable, false);
-
-        function processWebSocketEvent(event) {
-
-            try {
-                var data = JSON.parse(event.data);
-            } catch (error) {
-                console.error('Error while parsing JSON:', error);
-            }
-
-            var message = document.getElementById("message");
-
-            if (data === null) {
-                console.log("Websocket connection: received an empty JSON");
-
-                // clear the table
-                table.clear().draw();
-
-                message.innerText = "No DHCP clients so far.";
-
-            } else if (!Array.isArray(data)) {
-                console.error("Websocket connection: expecting a JSON array, received something else", event.data);
-
-                // clear the table
-                table.clear().draw();
-
-                message.innerText = "Internal error. Please report upstream together with Javascript logs.";
-
-            } else {
-                console.log("Websocket connection: received " + data.length + " items from websocket");
-
-                tableData = [];
-                dhcp_addresses_used = 0;
-                dhcp_static_ip = 0;
-                data.forEach(function (item, index) {
-                    console.log(`Item ${index + 1}:`, item);
-
-                    if (item.is_inside_dhcp_pool)
-                        dhcp_addresses_used += 1;
-
-                    static_ip_str = "NO";
-                    if (item.has_static_ip) {
-                        static_ip_str = "YES";
-                        dhcp_static_ip += 1;
-                    }
-
-                    // append new row
-                    tableData.push([index + 1,
-                        item.friendly_name, item.lease.hostname, item.lease.ip_addr,
-                        item.lease.mac_addr, formatTimeLeft(item.lease.expires), static_ip_str]);
-                });
-
-                // rerender the table
-                table.clear().rows.add(tableData).draw();
-
-                // compute DHCP pool usage
-                var usagePerc = 0
-                if (dhcpPoolSize > 0) {
-                    usagePerc = 100 * dhcp_addresses_used / dhcpPoolSize
-
-                    // truncate to only 1 digit accuracy
-                    usagePerc = Math.round(usagePerc * 10) / 10
-                }
-
-                // update the message
-                message.innerText = "A total of <span class='boldText'>" + data.length + " DHCP clients</span> are tracked by the DHCP server; " + 
-                                    dhcp_static_ip + " have a static IP address configuration; " +
-                                    dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.";
-            }
-        }
-
-
-        // websockets
-
-
-        // try with a websocket first
-
-        var dhcp_clients_ws = new WebSocket(webSocketURI);
-
-        dhcp_clients_ws.onopen = function (event) {
-            console.log("Websocket connection to " + webSocketURI + " was successfully opened");
-        };
-
-        dhcp_clients_ws.onclose = function (event) {
-            console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
-        }
-
-        dhcp_clients_ws.onerror = function (event) {
-            console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
-        }
-
-        dhcp_clients_ws.onmessage = function (event) {
-            console.log("Websocket received event", event.code, event.reason, event.wasClean)
-            processWebSocketEvent(event)
-        }
+        {{ .JavascriptFileContent }}
     </script>
 </head>
-
 <body>
-    <h1>DHCP Clients</h1>
+    <h1 class="topLevel">DHCP Clients</h1>
 
-    <p id="dhcp_range">The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }} - {{ .DhcpEndIP
-            }}</span>.</p>
+    <p class="topLevel" id="addon_cfg">
+        The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }} - {{ .DhcpEndIP }}</span>.
+        The default lease time is <span class="monoText">{{ .DefaultLease }}</span>.
+        The lease time for clients with IP address reservations is <span class="monoText">{{ .AddressReservationLease }}</span>.<br/>
+    </p>
+    <p class="topLevel" id="message"></p>
 
-    <p id="message"></p>
+    <div class="container">
+        <div class="tabs">
+          <div class="tabs__pills">
+            <button class="btn active" data-id="current_clients">Current DHCP Clients</button>
+            <button class="btn" data-id="past_clients">Past DHCP Clients</button>
+          </div>
+    
+          <div class="tabs__panels">
+            <div id="current_clients" class="active">
+                            
+                <!-- the Datatables.net table will be attached to this TABLE element -->
+                <table id="current_table" class="display" width="100%"></table>
 
-    <!-- the Datatables.net table will be attached to this TABLE element -->
-    <table id="table-wrapper" class="display" width="100%"></table>
+                <p><span class="boldText">Notes:</span></p>
+                <ul>
+                    <li>The 'Hostname' column is populated with the hostname advertised by the DHCP client.
+                        An asterisk * in the 'Hostname' column indicates that the DHCP client did not advertise his own hostname to
+                        the DHCP server.</li>
+                    <li>The 'Friendly Name' column is populated using the <span class="monoText">dhcp_clients_friendly_names</span>
+                        addon configuration.</li>
+                    <li>The 'IP Address' column might contain IP addresses located outside the DHCP range in the case 
+                        the DHCP client has a special IP reservation assigned via the 
+                        <span class="monoText">ip_address_reservations</span> addon configuration.</li>
+                    <li>The 'Expires' column contains the count down to the next DHCP lease renewal formatted as 
+                        <span class="monoText">HH:MM:SS</span>.</li>
+                </ul>
+            </div>
+            <div id="past_clients">
+                
+                <!-- the Datatables.net table will be attached to this TABLE element -->
+                <table id="past_table" class="display" width="100%"></table>
 
-    <p><span class="boldText">Notes:</span></p>
-    <ul>
-        <li>The 'Hostname' column is populated with the hostname advertised by the DHCP client.
-            An asterisk * in the 'Hostname' column indicates that the DHCP client did not advertise his own hostname to
-            the DHCP server.</li>
-        <li>The 'Friendly Name' column is populated using the <span class="monoText">dhcp_clients_friendly_names</span>
-            addon configuration.</li>
-        <li>The 'IP Address' column might contain IP addresses located outside the DHCP range in the case 
-            the DHCP client has a special IP reservation assigned via the 
-            <span class="monoText">ip_address_reservations</span> addon configuration.</li>
-        <li>The 'Expires' column contains the count down to the next DHCP lease renewal formatted as 
-            <span class="monoText">HH:MM:SS</span>.</li>
-    </ul>
+            </div>
+          </div>
+        </div>
+    </div>
 </body>
-
 </html>

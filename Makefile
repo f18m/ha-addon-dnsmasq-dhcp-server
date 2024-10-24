@@ -11,7 +11,7 @@ IMAGETAG:=$(shell yq .image config.yaml  | sed 's@{arch}@amd64@g')
 BACKEND_SOURCE_CODE_FILES:=$(shell find dhcp-clients-webapp-backend/ -type f -name '*.go')
 ROOTFS_FILES:=$(shell find rootfs/ -type f)
 
-.docker-image: $(BACKEND_SOURCE_CODE_FILES) $(ROOTFS_FILES)
+build-docker-image: $(BACKEND_SOURCE_CODE_FILES) $(ROOTFS_FILES)
 	docker run \
 		--rm \
 		--privileged \
@@ -24,10 +24,6 @@ ROOTFS_FILES:=$(shell find rootfs/ -type f)
 		--version localtest \
 		--self-cache \
 		--test
-	touch .docker-image
-
-build-docker-image:
-	$(MAKE) .docker-image
 
 # non-containerized build of the backend -- requires you to have go installed:
 build-backend:
@@ -36,17 +32,66 @@ build-backend:
 	cd dhcp-clients-webapp-backend && \
 		golangci-lint run
 	cd dhcp-clients-webapp-backend && \
-		go test -v ./...
-	
+		go test -v -cover ./...
 
+TEST_CONTAINER_NAME:=dnsmasq-dhcp-test
+DOCKER_RUN_OPTIONS:= \
+	-v $(shell pwd)/test-options.json:/data/options.json \
+	-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
+	-v $(shell pwd)/test-db.sqlite3:/data/trackerdb.sqlite3 \
+	-v $(shell pwd)/test-startcounter:/data/startcounter \
+	-v $(shell pwd)/dhcp-clients-webapp-backend:/app \
+	-v $(shell pwd)/dhcp-clients-webapp-backend/templates:/opt/web/templates/ \
+	-v $(shell pwd)/rootfs/opt/bin/dnsmasq-dhcp-script.sh:/opt/bin/dnsmasq-dhcp-script.sh \
+	-e LOCAL_TESTING=1 \
+	--cap-add NET_ADMIN \
+	--network host
+
+# when using the 'test-docker-image' target it's normal to see messages like
+#    "Something went wrong contacting the API"
+# at startup of the docker container... the reason is that the startup scripts
+# will try to reach to HomeAssistant Supervisor which is not running...
 test-docker-image: 
-	$(MAKE) FAST=1 .docker-image
+	$(MAKE) FAST=1 build-docker-image
 	@echo "Starting container of image ${IMAGETAG}:localtest" 
 	docker run \
 		--rm \
-		-v $(shell pwd)/test-options.json:/data/options.json \
-		-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
-		--cap-add NET_ADMIN \
-		--network host \
-		-p 8100:8100 \
+		--name $(TEST_CONTAINER_NAME) \
+		${DOCKER_RUN_OPTIONS} \
 		${IMAGETAG}:localtest
+
+
+test-docker-image-live: 
+	docker build -f Dockerfile.live -t debug-image-live .
+	@echo "Starting container of image debug-image-live" 
+	docker run \
+		--rm \
+		--name $(TEST_CONTAINER_NAME) \
+		${DOCKER_RUN_OPTIONS} \
+		debug-image-live
+
+
+INPUT_SCSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/scss/
+OUTPUT_CSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/
+
+build-css-live:
+	docker run -v $(INPUT_SCSS):/sass/ -v $(OUTPUT_CSS):/css/ -it michalklempa/dart-sass:latest
+
+test-database-show:
+	sqlite3 test-db.sqlite3 'select * from dhcp_clients;'		
+
+test-database-drop:
+	sqlite3 test-db.sqlite3 'drop table dhcp_clients;'
+
+# this target assumes that you launched 'test-docker-image-live' previously
+test-database-add-entry:
+	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:57" "192.168.1.250" "test-entry"
+
+test-database-add-entry2:
+	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "aa:bb:cc:dd:ee:01" "192.168.1.251" "test-entry2"
+
+# NOTE:
+#    docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh del "00:11:22:33:44:57" "192.168.1.250" "test-entry"
+# won't work: there is no 'del' support... the only way to 
+test-database-del-entry:
+	sqlite3 test-db.sqlite3 "DELETE FROM dhcp_clients WHERE mac_addr = '00:11:22:33:44:57';"

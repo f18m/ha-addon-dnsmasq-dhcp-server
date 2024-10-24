@@ -1,0 +1,35 @@
+# Docker image mimicking the actual addon docker image
+# for live debugging/development
+
+FROM golang:1.22-alpine
+
+# Add env
+ENV LANG=C.UTF-8
+
+# Setup base
+RUN apk add --no-cache dnsmasq nginx-debug sqlite socat && mv /etc/nginx /etc/nginx-orig
+
+# Setup golang build tools
+RUN apk add --no-cache git make musl-dev go build-base
+
+# Configure Go
+ENV GOROOT=/usr/lib/go
+ENV GOPATH=/go
+ENV PATH=/go/bin:$PATH
+
+# Copy data
+COPY rootfs /
+COPY dhcp-clients-webapp-backend/templates/ /opt/web/templates/
+
+# Copy backend source code and run 1st go download
+WORKDIR /app
+COPY dhcp-clients-webapp-backend/ /app
+RUN go mod download
+
+# Install AIR
+RUN apk add curl
+RUN cd / && curl -sSfL https://raw.githubusercontent.com/air-verse/air/master/install.sh | sh -s
+COPY air.toml /
+
+# run air 
+CMD ["/bin/air", "-c", "/air.toml"]

@@ -1,12 +1,18 @@
 ARG BUILD_FROM
 
 # --- BACKEND BUILD
-# About golang version: downgrade Go to 1.22.7 to avoid https://github.com/golang/go/issues/68976
-FROM golang:1.22.7 AS builder-go
+# About golang version: downgrade Go to 1.22.x to avoid https://github.com/golang/go/issues/68976
+# About base image: we need to use a musl-based docker image since the actual HomeAssistant addon
+# base image will be musl-based as well. This is required since we depend from "github.com/mattn/go-sqlite3"
+# which is a CGO library; so that's why we select the -alpine variant
+FROM golang:1.22-alpine AS builder-go
 
 WORKDIR /app/backend
 COPY dhcp-clients-webapp-backend .
-RUN CGO_ENABLED=0 go build -o /dhcp-clients-webapp-backend .
+RUN --mount=type=cache,target=/root/.cache/apk \
+    apk add build-base
+RUN --mount=type=cache,target=/root/.cache/go \
+    CGO_ENABLED=1 go build -o /dhcp-clients-webapp-backend .
 
 
 # --- Actual ADDON layer
@@ -17,7 +23,7 @@ FROM $BUILD_FROM
 ENV LANG=C.UTF-8
 
 # Setup base
-RUN apk add --no-cache dnsmasq nginx-debug && mv /etc/nginx /etc/nginx-orig
+RUN apk add --no-cache dnsmasq nginx-debug sqlite socat && mv /etc/nginx /etc/nginx-orig
 
 # Copy data
 COPY rootfs /
