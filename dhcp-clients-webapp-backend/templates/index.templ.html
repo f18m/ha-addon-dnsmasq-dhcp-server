@@ -23,8 +23,9 @@
     <script type="text/javascript">
         // these variables are rendered by the UI backend when serving this file to the client
         // and that's why they might be highlighted as invalid Javascript syntax
-        var dhcpPoolSize = {{ .DhcpPoolSize }}
-        var webSocketURI = {{ .WebSocketURI }}
+        var templated_dhcpPoolSize = {{ .DhcpPoolSize }}
+        var templated_webSocketURI = {{ .WebSocketURI }}
+        var templated_dhcpServerStartTime = {{ .DHCPServerStartTime }}
 
         {{ .JavascriptFileContent }}
     </script>
@@ -32,7 +33,11 @@
 <body>
     <h1 class="topLevel">DHCP Clients</h1>
 
-    <p class="topLevel" id="dhcp_range">The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }} - {{ .DhcpEndIP }}</span>.</p>
+    <p class="topLevel" id="addon_cfg">
+        The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }} - {{ .DhcpEndIP }}</span>.<br/>
+        The default lease time is <span class="monoText">{{ .DefaultLease }}</span>.<br/>
+        The lease time for IP address reservations is <span class="monoText">{{ .AddressReservationLease }}</span>.<br/>
+    </p>
     <p class="topLevel" id="message"></p>
 
     <div class="container">

@@ -25,7 +25,7 @@ log_error() {
 
 # Reads the current start counter into global var DHCP_SERVER_START_COUNTER
 read_start_counter() {
-    if [[ -f "$FILE_PATH" ]]; then
+    if [[ -f "$ADDON_DHCP_SERVER_START_COUNTER" ]]; then
         DHCP_SERVER_START_COUNTER=$(cat "$ADDON_DHCP_SERVER_START_COUNTER")
     else
         DHCP_SERVER_START_COUNTER=0

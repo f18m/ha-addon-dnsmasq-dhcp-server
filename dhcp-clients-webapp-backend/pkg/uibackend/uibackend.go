@@ -178,21 +178,21 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 	for _, c := range currentClients {
 		currentClientsMacs = append(currentClientsMacs, c.Lease.MacAddr)
 	}
+
+	// now get from the tracker DB some historical data about "dead DHCP clients"
 	deadClients, err := b.trackerDB.GetDeadDhcpClients(currentClientsMacs)
 	if err != nil {
 		log.Default().Printf("ERR: failed to get list of dead/past DHCP clients: %s", err.Error())
-		// keep going
+		// keep going with an empty list
+		deadClients = []trackerdb.DhcpClient{}
 	}
+
+	// TODO: enrich FriendlyName, HasStaticIP fields of dead clients
 
 	// finally build the websocket message
 	return WebSocketMessage{
 		CurrentClients: currentClients,
 		PastClients:    deadClients,
-
-		// we approximate the DHCP server start time with this app's start time;
-		// the reason is that inside the HA addon, dnsmasq is started at about the same
-		// time of this app
-		DHCPServerStartTime: b.startTimestamp.Unix(),
 	}
 }
 
@@ -242,17 +242,23 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 	for {
 		select {
 		case <-b.broadcastCh:
-			// refresh the data
+			// if we get a message from this channel, it means the global list of
+			// current DHCP clients has changed, so regen the message:
 			msg = b.getWebSocketMessage()
 
 		case <-ticker.C:
-			// let's refresh the websocket with whatever data we already have
+			// let's refresh the websocket with whatever data we already have;
+			// this is done for 2 reasons:
+			// 1. trigger a refresh on the webpage (the JS client-side will recompute
+			//    countdowns, etc)
+			// 2. keep the websocket TCP connection alive (otherwise it might be
+			//    considered "stale" and get reset)
 		}
 
-		//if b.logWebUI {
-		log.Default().Printf("Pushing %d/%d current/past DHCP clients to it",
-			len(msg.CurrentClients), len(msg.PastClients))
-		//}
+		if b.logWebUI {
+			log.Default().Printf("Pushing %d/%d current/past DHCP clients to it",
+				len(msg.CurrentClients), len(msg.PastClients))
+		}
 
 		// loop over all clients
 		b.clientsLock.Lock()
@@ -339,10 +345,18 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templateData := struct {
-		WebSocketURI          string
-		DhcpStartIP           string
-		DhcpEndIP             string
-		DhcpPoolSize          int
+		// websockets
+		WebSocketURI string
+
+		// config info that are handy to have in the UI page
+		DhcpStartIP             string
+		DhcpEndIP               string
+		DhcpPoolSize            int
+		DefaultLease            string
+		AddressReservationLease string
+		DHCPServerStartTime     int64
+
+		// embedded contents
 		CssFileContent        template.CSS
 		JavascriptFileContent template.JS
 	}{
@@ -351,10 +365,17 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		// reverse proxy or uses HomeAssistant built-in TLS or is connecting in plaintext (HTTP).
 		// Based on the scheme used by the browser, the websocket will use the associated scheme
 		// ('wss' for 'https' and 'ws' for 'http)
-		WebSocketURI:          XIngressPath[0] + websocketRelativeUrl,
-		DhcpStartIP:           b.dhcpStartIP.String(),
-		DhcpEndIP:             b.dhcpEndIP.String(),
-		DhcpPoolSize:          dhcpPoolSize,
+		WebSocketURI:            XIngressPath[0] + websocketRelativeUrl,
+		DhcpStartIP:             b.dhcpStartIP.String(),
+		DhcpEndIP:               b.dhcpEndIP.String(),
+		DhcpPoolSize:            dhcpPoolSize,
+		DefaultLease:            "", // TODO
+		AddressReservationLease: "", // TODO
+		// we approximate the DHCP server start time with this app's start time;
+		// the reason is that inside the HA addon, dnsmasq is started at about the same
+		// time of this app
+		DHCPServerStartTime: b.startTimestamp.Unix(),
+
 		CssFileContent:        template.CSS(b.cssContents),
 		JavascriptFileContent: template.JS(b.jsContents),
 	}

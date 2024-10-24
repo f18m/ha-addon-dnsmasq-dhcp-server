@@ -149,7 +149,7 @@ func (d *DhcpClientTrackerDB) UnmarshalDhcpClient(data string) error {
 // which identifies the currently-alive DHCP clients.
 func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr) ([]DhcpClient, error) {
 	// Step 1: Get all DHCP clients from the database
-	rows, err := d.DB.Query("SELECT mac_addr, hostname, last_seen FROM dhcp_clients")
+	rows, err := d.DB.Query("SELECT mac_addr, hostname, last_seen, dhcp_server_start_counter FROM dhcp_clients")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query dhcp_clients: %v", err)
 	}
@@ -169,30 +169,30 @@ func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr
 		var mac string
 
 		// Scan the row data into the DhcpClient struct
-		err := rows.Scan(&mac, &client.Hostname, &lastSeenStr)
+		err := rows.Scan(&mac, &client.Hostname, &lastSeenStr, &client.DhcpServerStartCounter)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %v", err)
 		}
 
+		// Convert string -> net.HardwareAddr
 		client.MacAddr, err = net.ParseMAC(mac)
 		if err != nil {
 			return nil, err
 		}
 
-		// Convert lastSeenStr to time.Time format (assuming it's stored as text)
+		// Convert string -> time.Time
 		client.LastSeen, err = parseTime(lastSeenStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse LastSeen: %v", err)
 		}
 
-		// Step 3: Check if the client MAC address exists in the provided DhcpClientData slice
+		// Step 3: Check if the client MAC address exists in the aliveClients list
 		if _, exists := macAddrMap[client.MacAddr.String()]; !exists {
-			// If the MAC address is not in the slice, add the client to the result
+			// If the MAC address is not in the slice, then the client is a "dead" one...
 			deadClients = append(deadClients, client)
 		}
 	}
 
-	// Return the slice of DhcpClient instances that are not present in the provided DhcpClientData slice
 	return deadClients, nil
 }
 

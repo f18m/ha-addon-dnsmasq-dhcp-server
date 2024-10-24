@@ -4,9 +4,10 @@
 */
 
 /* GLOBALS */
+/* Note that all variables prefixed with "templated_" are globals as well, defined in the HTML template file */
 var table_current = null;
 var table_past = null;
-var dhcp_clients_ws = new WebSocket(webSocketURI);
+var dhcp_clients_ws = new WebSocket(templated_webSocketURI);
 
 
 /* FUNCTIONS */
@@ -127,8 +128,9 @@ function initPastTable() {
                 { title: 'Friendly Name', type: 'string' },
                 { title: 'Hostname', type: 'string' },
                 { title: 'MAC Address', type: 'string' },
+                { title: 'Static IP?', type: 'string' },
                 { title: 'Last Seen hh:mm:ss ago', 'orderDataType': 'custom-date-order' },
-                { title: 'Static IP?', type: 'string' }
+                { title: 'Notes', type: 'string' }
             ],
             data: [],
             pageLength: 20,
@@ -172,7 +174,6 @@ function processWebSocketEvent(event) {
     } else {
         console.log("Websocket connection: received " + data.current_clients.length + " current clients from websocket");
         console.log("Websocket connection: received " + data.past_clients.length + " past clients from websocket");
-        console.log("Websocket connection: received " + data.dhcp_server_starttime + " as DHCP server start timestamp");
 
         // rerender the CURRENT table
         tableData = [];
@@ -207,24 +208,26 @@ function processWebSocketEvent(event) {
                 static_ip_str = "YES";
             }
 
+            notes_str = "Last seen in instance " + item.dhcp_server_start_counter
+
             // append new row
             tableData.push([index + 1,
                 item.friendly_name, item.hostname, 
-                item.mac_addr, formatTimeSince(item.last_seen), static_ip_str]);
+                item.mac_addr, static_ip_str, formatTimeSince(item.last_seen), notes_str]);
         });
         table_past.clear().rows.add(tableData).draw();
-        
+
         // compute DHCP pool usage
         var usagePerc = 0
-        if (dhcpPoolSize > 0) {
-            usagePerc = 100 * dhcp_addresses_used / dhcpPoolSize
+        if (templated_dhcpPoolSize > 0) {
+            usagePerc = 100 * dhcp_addresses_used / templated_dhcpPoolSize
 
             // truncate to only 1 digit accuracy
             usagePerc = Math.round(usagePerc * 10) / 10
         }
 
         // format server uptime
-        uptime_str = formatTimeSince(data.dhcp_server_starttime)
+        uptime_str = formatTimeSince(templated_dhcpServerStartTime)
 
         // update the message
         message.innerHTML = "<span class='boldText'>" + data.current_clients.length + " DHCP clients</span> currently hold a DHCP lease.<br/>" + 
@@ -237,7 +240,7 @@ function processWebSocketEvent(event) {
 
 // websocket
 dhcp_clients_ws.onopen = function (event) {
-    console.log("Websocket connection to " + webSocketURI + " was successfully opened");
+    console.log("Websocket connection to " + templated_webSocketURI + " was successfully opened");
 };
 
 dhcp_clients_ws.onclose = function (event) {
