@@ -169,14 +169,15 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 	}
 
 	// now get from the tracker DB some historical data about "dead DHCP clients"
-	if b.cfg.logWebUI {
-		log.Default().Printf("Running query to the tracker DB for past/dead DHCP clients")
-	}
 	deadClients, err := b.trackerDB.GetDeadDhcpClients(currentClientsMacs)
 	if err != nil {
 		log.Default().Printf("ERR: failed to get list of dead/past DHCP clients: %s", err.Error())
 		// keep going with an empty list
 		deadClients = []trackerdb.DhcpClient{}
+	} else {
+		if b.cfg.logWebUI {
+			log.Default().Printf("Running query to the tracker DB: found %d past/dead DHCP clients", len(deadClients))
+		}
 	}
 
 	// TODO: enrich FriendlyName, HasStaticIP fields of dead clients
@@ -267,6 +268,8 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 					if b.cfg.logWebUI {
 						jsonData, err := json.Marshal(msg)
 						if err != nil {
+							log.Default().Printf("Failed to marshal to JSON: %s.\nData:%v\n", err.Error(), msg)
+						} else {
 							log.Default().Printf("Successfully pushed data to WebSocket: %s", string(jsonData))
 						}
 					}
@@ -398,7 +401,8 @@ func (b *UIBackend) processLeaseUpdates() {
 	i := 0
 	for {
 		updatedLeases := <-b.leasesCh
-		log.Default().Printf("INotify detected a change to the DHCP client lease file... updated list contains %d clients\n", len(updatedLeases))
+		log.Default().Printf("INotify detected a change (#%d) to the DHCP client lease file... list size before=%d, after=%d clients\n",
+			i, len(b.dhcpClientData), len(updatedLeases))
 		b.processLeaseUpdatesFromArray(updatedLeases)
 
 		// once the new list of DHCP client data entries is ready, notify the broadcast channel

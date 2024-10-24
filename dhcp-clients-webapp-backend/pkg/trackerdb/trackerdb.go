@@ -162,7 +162,7 @@ func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr
 	}
 
 	// Step 2: Collect all clients from the database
-	var deadClients []DhcpClient
+	deadClients := make([]DhcpClient, 0) // in case of errors, or zero results return an empty slice, not nil
 	for rows.Next() {
 		var client DhcpClient
 		var lastSeenStr string
