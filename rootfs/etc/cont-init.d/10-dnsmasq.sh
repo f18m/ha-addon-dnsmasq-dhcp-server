@@ -94,7 +94,7 @@ function reset_dhcp_leases_database_if_just_rebooted() {
         # the previuos database does not really get deleted, just moved in a file ignored by dnsmasq
         mv ${DNSMASQ_LEASE_DATABASE} ${DNSMASQ_LEASE_DATABASE}.${timestamp}
     else
-        echo "The HomeAssistant server is up since ${uptime_seconds}. Skipping DHCP lease database reset."
+        bashio::log.info "The HomeAssistant server is up since ${uptime_seconds}secs. Skipping DHCP lease database reset."
     fi
 }
 
