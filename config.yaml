@@ -98,6 +98,7 @@ schema:
   log_dhcp: bool
   log_web_ui: bool
   web_ui_port: int
+  reset_dhcp_lease_database_on_reboot: bool
 startup: system
 privileged:
   - NET_ADMIN
