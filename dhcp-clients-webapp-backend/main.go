@@ -11,5 +11,5 @@ func main() {
 	logger.Info("Web backend starting")
 
 	ui := uibackend.NewUIBackend(logger)
-	ui.ListenAndServe()
+	_ = ui.ListenAndServe()
 }
