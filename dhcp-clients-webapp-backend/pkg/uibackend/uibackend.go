@@ -32,7 +32,7 @@ type UIBackend struct {
 
 	// time this application was started
 	startTimestamp time.Time
-	startCounter   int
+	startEpoch     int
 
 	// the actual HTTP server
 	server   http.Server
@@ -93,14 +93,14 @@ func NewUIBackend(logger *log.Logger) UIBackend {
 
 	isTestingMode := os.Getenv("LOCAL_TESTING") != ""
 
-	var startCounter int
-	startCounter, err = ReadFileAndParseInteger(defaultStartCounter)
+	var startEpoch int
+	startEpoch, err = ReadFileAndParseInteger(defaultStartEpoch)
 	if err != nil {
-		logger.Fatalf("Failed to open start counter file: %s", err.Error())
+		logger.Fatalf("Failed to open start Epoch file: %s", err.Error())
 		return UIBackend{}
 	}
 
-	logger.Printf("The current DHCP start counter is at %d", startCounter)
+	logger.Printf("The current DHCP start Epoch is at %d", startEpoch)
 
 	return UIBackend{
 		logger: logger,
@@ -110,7 +110,7 @@ func NewUIBackend(logger *log.Logger) UIBackend {
 			friendlyNames:              make(map[string]DhcpClientFriendlyName),
 		},
 		startTimestamp: time.Now(),
-		startCounter:   startCounter,
+		startEpoch:     startEpoch,
 		clients:        make(map[*websocket.Conn]bool),
 		dhcpClientData: nil,
 		trackerDB:      *db,
@@ -201,17 +201,18 @@ func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
 		}
 
 		// create note field
-		if deadC.DhcpServerStartCounter < b.startCounter {
+		if deadC.DhcpServerStartEpoch < b.startEpoch {
 			// a past instance of dnsmasq provided a DHCP lease... but we have no news
 			// of this DHCP client since last restart
 			pastClients[i].Notes = "Last seen in a previous run of this addon"
-		} else if deadC.DhcpServerStartCounter == b.startCounter {
+		} else if deadC.DhcpServerStartEpoch == b.startEpoch {
 			// typical case when the DHCP client is turned off or e.g. it's connected via WLAN
 			// and is currently out of range
-			pastClients[i].Notes = "Missed DHCP renewal or cannot reach the network"
+			pastClients[i].Notes = "Seen after last DHCP server restart but it missed DHCP renewal or it cannot reach the network anymore"
 		} else {
-			b.logger.Printf("ERROR: the database contains a client with a DHCP server start counter %d while current start counter is %d",
-				deadC.DhcpServerStartCounter, b.startCounter)
+			pastClients[i].Notes = "Tagged with wrong DHCP server start epoch"
+			b.logger.Printf("ERROR: the database contains a client with a DHCP server start Epoch %d while current start Epoch is %d",
+				deadC.DhcpServerStartEpoch, b.startEpoch)
 		}
 	}
 

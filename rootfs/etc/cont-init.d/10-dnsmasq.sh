@@ -3,7 +3,6 @@
 # DNSMASQ config
 # ==============================================================================
 
-ADDON_DHCP_SERVER_START_COUNTER="/data/startcounter"
 ADDON_DHCP_SERVER_START_EPOCH="/data/startepoch"
 ADDON_CONFIG="/data/options.json"
 ADDON_CONFIG_RESOLVED="/data/options.resolved.json"
@@ -60,23 +59,10 @@ function dnsresolve() {
     fi
 }
 
-function bump_dhcp_server_start_counter() {
-    # Check if the file exists
-    if [[ -f "$ADDON_DHCP_SERVER_START_COUNTER" ]]; then
-        # Read the number from the file & increment it
-        NUMBER=$(cat "$ADDON_DHCP_SERVER_START_COUNTER")
-        NUMBER=$((NUMBER + 1))
-    else
-        # If the file doesn't exist, set NUMBER to 0
-        NUMBER=0
-    fi
-
-    # Write the new value to the file
-    echo "$NUMBER" > "$ADDON_DHCP_SERVER_START_COUNTER"
-    bashio::log.info "Updated DHCP start counter is: $NUMBER"
-
-    # Write also the current timestamp as Unix epoch
-    date +%s > "$ADDON_DHCP_SERVER_START_EPOCH"
+function bump_dhcp_server_start_epoch() {
+    updated_epoch="$(date +%s)"
+    echo $updated_epoch > "$ADDON_DHCP_SERVER_START_EPOCH"
+    bashio::log.info "Updated DHCP start epoch is: $updated_epoch"
 }
 
 function reset_dhcp_leases_database_if_just_rebooted() {
@@ -103,8 +89,8 @@ if $should_reset_on_reboot ; then
     reset_dhcp_leases_database_if_just_rebooted
 fi
 
-bashio::log.info "Advancing the DHCP server start counter by one..."
-bump_dhcp_server_start_counter
+bashio::log.info "Advancing the DHCP server start epoch..."
+bump_dhcp_server_start_epoch
 
 bashio::log.info "Resolving NTP hostnames eventually provided..."
 dnsresolve
