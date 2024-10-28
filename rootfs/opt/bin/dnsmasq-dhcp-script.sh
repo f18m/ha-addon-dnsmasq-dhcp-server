@@ -23,14 +23,12 @@ START_TIME_THRESHOLD_SEC=3
 LOG_SOCKET=/tmp/dnsmasq-script-log-socket
 
 log_info() {
-    #echo "$(date): INFO: $*" >>$LOGFILE
-    MSG="dnsmasq-SCRIPT[$$]: $(date -Iseconds): INFO: $*"
+    MSG="dnsmasq-script[$$]: $(date -Iseconds): INFO: $*"
     echo "$MSG" | socat - UNIX-CONNECT:${LOG_SOCKET}
 }
 
 log_error() {
-    #echo "$(date): ERR: $*" >>$LOGFILE
-    MSG="dnsmasq-SCRIPT[$$]: $(date -Iseconds): ERR: $*"
+    MSG="dnsmasq-script[$$]: $(date -Iseconds): ERR: $*"
     echo "$MSG" | socat - UNIX-CONNECT:${LOG_SOCKET}
 }
 
@@ -52,7 +50,7 @@ dnsmasq_just_started() {
     RESULT=$((CURRENT_EPOCH - START_EPOCH))
 
     # Compare the result with 3
-    log_info "Comparing DHCP server start epoch (${START_EPOCH}) with the current epoch (${CURRENT_EPOCH})"
+    #log_info "Comparing DHCP server start epoch (${START_EPOCH}) with the current epoch (${CURRENT_EPOCH})"
     if [[ "$RESULT" -lt $START_TIME_THRESHOLD_SEC ]]; then
         return 1
     else
@@ -90,7 +88,7 @@ ON CONFLICT(mac_addr) DO UPDATE SET
 EOF
 
     if [[ $? -eq 0 ]]; then
-        log_info "Stored in trackerDB updated information for client mac=$mac_addr, hostname=$hostname"
+        log_info "Stored in trackerDB updated information for client mac=$mac_addr, hostname=$hostname: last_seen=$last_seen, Ddhcp_server_start_epoch=$dhcp_server_start_counter"
     else
         log_error "Failed to add/update client. Expect inconsistencies."
     fi
