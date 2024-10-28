@@ -12,7 +12,7 @@ var defaultDhcpClientTrackerDB = "/data/trackerdb.sqlite3"
 
 // location for a basic counter that is used to tag entries in the tracker DB
 // to understand if they are stale or not
-var defaultStartCounter = "/data/startcounter"
+var defaultStartEpoch = "/data/startepoch"
 
 // These absolute paths must be in sync with the Dockerfile
 var staticWebFilesDir = "/opt/web/static"

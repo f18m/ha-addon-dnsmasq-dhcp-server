@@ -37,6 +37,7 @@ func NewTestDB() DhcpClientTrackerDB {
 	}
 
 	// Create table
+	// NOTE: the 'dhcp_server_start_counter' column actually contains Epochs and is named like that for backward compat
 	createTableQuery := `
 	CREATE TABLE IF NOT EXISTS dhcp_clients (
 		mac_addr TEXT PRIMARY KEY,
@@ -68,6 +69,7 @@ func NewTestDBWithData(clientsInDB []DhcpClient) DhcpClientTrackerDB {
 }
 
 // TrackNewDhcpClient inserts a new DHCP client into the database.
+// This is used only during unit testing...
 func (d *DhcpClientTrackerDB) TrackNewDhcpClient(client DhcpClient) error {
 	insertQuery := `
 	INSERT INTO dhcp_clients (mac_addr, hostname, last_seen, dhcp_server_start_counter)
@@ -140,7 +142,7 @@ func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr
 		var mac string
 
 		// Scan the row data into the DhcpClient struct
-		err := rows.Scan(&mac, &client.Hostname, &lastSeenStr, &client.DhcpServerStartCounter)
+		err := rows.Scan(&mac, &client.Hostname, &lastSeenStr, &client.DhcpServerStartEpoch)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %v", err)
 		}

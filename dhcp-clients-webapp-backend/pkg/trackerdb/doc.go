@@ -14,7 +14,7 @@ Such file/database is persisted to disk (/data is persistent) but if a DHCP clie
 or does not contact dnsmasq server after a dnsmasq restart, then its entry gets deleted from dnsmasq.leases file.
 The tracker DB instead is built to maintain an history of _any_ DHCP client that ever connected to the
 dnsmasq server. Entries only get added to the tracker DB, never deleted. Each entry is added with a
-"last_seen" timestamp and also a "start counter index" which identifies which particular instance
+"last_seen" timestamp and also a "start epoch" which identifies which particular instance
 of dnsmasq received traffic from that DHCP client.
 
 Q: What do

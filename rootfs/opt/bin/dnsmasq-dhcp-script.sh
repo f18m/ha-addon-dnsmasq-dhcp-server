@@ -10,7 +10,6 @@ HOSTNAME="${4:-}"
 
 # constants
 DB_PATH=/data/trackerdb.sqlite3
-ADDON_DHCP_SERVER_START_COUNTER="/data/startcounter"
 ADDON_DHCP_SERVER_START_EPOCH="/data/startepoch"
 START_TIME_THRESHOLD_SEC=3
 
@@ -24,41 +23,34 @@ START_TIME_THRESHOLD_SEC=3
 LOG_SOCKET=/tmp/dnsmasq-script-log-socket
 
 log_info() {
-    #echo "$(date): INFO: $*" >>$LOGFILE
-    MSG="$(date): DNSMASQ-SCRIPT: INFO: $*"
+    MSG="dnsmasq-script[$$]: $(date -Iseconds): INFO: $*"
     echo "$MSG" | socat - UNIX-CONNECT:${LOG_SOCKET}
 }
 
 log_error() {
-    #echo "$(date): ERR: $*" >>$LOGFILE
-    MSG="$(date): DNSMASQ-SCRIPT: ERR: $*"
+    MSG="dnsmasq-script[$$]: $(date -Iseconds): ERR: $*"
     echo "$MSG" | socat - UNIX-CONNECT:${LOG_SOCKET}
 }
 
-# Reads the current start counter into global var DHCP_SERVER_START_COUNTER
-read_start_counter() {
-    if [[ -f "$ADDON_DHCP_SERVER_START_COUNTER" ]]; then
-        DHCP_SERVER_START_COUNTER=$(cat "$ADDON_DHCP_SERVER_START_COUNTER")
+# Reads the current start epoch into global var START_EPOCH
+read_start_epoch() {
+    if [[ -f "$ADDON_DHCP_SERVER_START_EPOCH" ]]; then
+        START_EPOCH=$(cat "$ADDON_DHCP_SERVER_START_EPOCH")
     else
-        DHCP_SERVER_START_COUNTER=0
+        # this is a sign something's wrong...
+        log_error "Failed to read the $ADDON_DHCP_SERVER_START_EPOCH"
+        START_EPOCH=1
     fi
-
-    log_info "Acquired DHCP server start counter: ${DHCP_SERVER_START_COUNTER}"
 }
 
 # Returns 1 if the dnsmasq just started or 0 if not
 dnsmasq_just_started() {  
-    if [[ -f "$ADDON_DHCP_SERVER_START_EPOCH" ]]; then
-        START_EPOCH=$(cat "$ADDON_DHCP_SERVER_START_EPOCH")
-    else
-        return 1
-    fi
-    
     # Perform the subtraction
     CURRENT_EPOCH=$(date +%s)
     RESULT=$((CURRENT_EPOCH - START_EPOCH))
 
     # Compare the result with 3
+    #log_info "Comparing DHCP server start epoch (${START_EPOCH}) with the current epoch (${CURRENT_EPOCH})"
     if [[ "$RESULT" -lt $START_TIME_THRESHOLD_SEC ]]; then
         return 1
     else
@@ -75,6 +67,7 @@ add_or_update_dhcp_client() {
     local dhcp_server_start_counter=$5
 
     # Create the table if it doesn't exist
+	# NOTE: the 'dhcp_server_start_counter' column actually contains Epochs and is named like that for backward compat
     sqlite3 "$db_path" <<EOF
 CREATE TABLE IF NOT EXISTS dhcp_clients (
     mac_addr TEXT PRIMARY KEY,
@@ -95,7 +88,7 @@ ON CONFLICT(mac_addr) DO UPDATE SET
 EOF
 
     if [[ $? -eq 0 ]]; then
-        log_info "Stored in trackerDB updated information for client mac=$mac_addr, hostname=$hostname"
+        log_info "Stored in trackerDB updated information for client mac=$mac_addr, hostname=$hostname: last_seen=$last_seen, Ddhcp_server_start_epoch=$dhcp_server_start_counter"
     else
         log_error "Failed to add/update client. Expect inconsistencies."
     fi
@@ -114,22 +107,25 @@ EOF
 #   When dnsmasq receives a HUP signal, the script will be invoked for existing leases with an "old" event.
 #  """
 #
-log_info "*** Triggered with mode=${MODE}, mac=${MAC_ADDRESS}, hostname=${HOSTNAME} ***"
+read_start_epoch
 if [[ "$MODE" = "add" ]]; then
-    read_start_counter
+    log_info "*** Triggered with mode=${MODE}, mac=${MAC_ADDRESS}, hostname=${HOSTNAME} ***"
     last_seen=$(date -u +"%Y-%m-%dT%H:%M:%SZ")  # ISO 8601 UTC format
-
-    add_or_update_dhcp_client "$DB_PATH" "$MAC_ADDRESS" "$HOSTNAME" "$last_seen" "$DHCP_SERVER_START_COUNTER"
+    add_or_update_dhcp_client "$DB_PATH" "$MAC_ADDRESS" "$HOSTNAME" "$last_seen" "$START_EPOCH"
 
 elif [[ "$MODE" = "old" ]]; then
-
     # at dnsmasq startup we get a bunch of these 'old' updates -- we need to filter them out
     dnsmasq_just_started
-    if [[ $? -eq 1 ]]; then 
-        log_info "Detected startup LEASE processing and ignoring it"
-    else
-        read_start_counter
+    if [[ $? -eq 0 ]]; then 
+        log_info "*** Triggered with mode=${MODE}, mac=${MAC_ADDRESS}, hostname=${HOSTNAME} ***"
         last_seen=$(date -u +"%Y-%m-%dT%H:%M:%SZ")  # ISO 8601 UTC format
-        add_or_update_dhcp_client "$DB_PATH" "$MAC_ADDRESS" "$HOSTNAME" "$last_seen" "$DHCP_SERVER_START_COUNTER"
+        add_or_update_dhcp_client "$DB_PATH" "$MAC_ADDRESS" "$HOSTNAME" "$last_seen" "$START_EPOCH"
+
+    # reduce logging at startup:
+    #else
+        #log_info "Detected startup LEASE processing and ignoring it"
     fi
+else
+    log_info "*** Triggered with mode=${MODE}, mac=${MAC_ADDRESS}, hostname=${HOSTNAME} ***"
+    log_info "Ignoring this trigger"
 fi

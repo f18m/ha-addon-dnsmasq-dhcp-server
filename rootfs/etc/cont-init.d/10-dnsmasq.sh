@@ -3,11 +3,14 @@
 # DNSMASQ config
 # ==============================================================================
 
-ADDON_DHCP_SERVER_START_COUNTER="/data/startcounter"
 ADDON_DHCP_SERVER_START_EPOCH="/data/startepoch"
 ADDON_CONFIG="/data/options.json"
 ADDON_CONFIG_RESOLVED="/data/options.resolved.json"
 DNSMASQ_CONFIG="/etc/dnsmasq.conf"
+DNSMASQ_LEASE_DATABASE="/data/dnsmasq.leases"
+
+# 5min is a reasonable threshold
+JUST_REBOOTED_THRESHOLD_SEC=300
 
 function ipvalid() {
   # Set up local variables
@@ -56,28 +59,38 @@ function dnsresolve() {
     fi
 }
 
-function bump_dhcp_server_start_counter() {
-    # Check if the file exists
-    if [[ -f "$ADDON_DHCP_SERVER_START_COUNTER" ]]; then
-        # Read the number from the file & increment it
-        NUMBER=$(cat "$ADDON_DHCP_SERVER_START_COUNTER")
-        NUMBER=$((NUMBER + 1))
-    else
-        # If the file doesn't exist, set NUMBER to 0
-        NUMBER=0
-    fi
-
-    # Write the new value to the file
-    echo "$NUMBER" > "$ADDON_DHCP_SERVER_START_COUNTER"
-    bashio::log.info "Updated DHCP start counter is: $NUMBER"
-
-    # Write also the current timestamp as Unix epoch
-    date +%s > "$ADDON_DHCP_SERVER_START_EPOCH"
+function bump_dhcp_server_start_epoch() {
+    updated_epoch="$(date +%s)"
+    echo $updated_epoch > "$ADDON_DHCP_SERVER_START_EPOCH"
+    bashio::log.info "Updated DHCP start epoch is: $updated_epoch"
 }
 
+function reset_dhcp_leases_database_if_just_rebooted() {
+    # Get the uptime in seconds
+    local uptime_seconds
+    uptime_seconds=$(awk '{print int($1)}' /proc/uptime)
 
-bashio::log.info "Advancing the DHCP server start counter by one..."
-bump_dhcp_server_start_counter
+    if [ "$uptime_seconds" -lt "$JUST_REBOOTED_THRESHOLD_SEC" ]; then
+        bashio::log.info "The HomeAssistant server has just been rebooted. Resetting DHCP lease database as requested in addon configuration."
+
+        # Get the current timestamp
+        local timestamp
+        timestamp=$(date +"%Y%m%d%H%M%S")
+
+        # the previuos database does not really get deleted, just moved in a file ignored by dnsmasq
+        mv ${DNSMASQ_LEASE_DATABASE} ${DNSMASQ_LEASE_DATABASE}.${timestamp}
+    else
+        bashio::log.info "The HomeAssistant server is up since ${uptime_seconds}secs. Skipping DHCP lease database reset."
+    fi
+}
+
+should_reset_on_reboot=$(bashio::config 'reset_dhcp_lease_database_on_reboot')
+if $should_reset_on_reboot ; then
+    reset_dhcp_leases_database_if_just_rebooted
+fi
+
+bashio::log.info "Advancing the DHCP server start epoch..."
+bump_dhcp_server_start_epoch
 
 bashio::log.info "Resolving NTP hostnames eventually provided..."
 dnsresolve

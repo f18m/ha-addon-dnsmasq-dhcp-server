@@ -3,9 +3,9 @@
 # as reported by the Github Action workflow 'publish.yaml', so that you can force HomeAssistant
 # to use the docker image of that feature branch instead of the docker image of 'main', by pointing
 # HomeAssistant to that feature branch
-version: 1.4.0
-slug: dnsmasq-dhcp
-name: Dnsmasq-DHCP
+version: beta
+slug: dnsmasq-dhcp-beta
+name: Dnsmasq-DHCP BETA
 description: A DHCP server based on dnsmasq
 url: https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/tree/main
 advanced: true
@@ -23,9 +23,12 @@ ingress_port: 8100
 panel_icon: mdi:ip-network-outline
 panel_title: DHCP
 options:
-  default_lease: 12h
-  # the address reservation lease might also be 'infinite'
-  address_reservation_lease: 12h
+  default_lease: 1h
+  # the address reservation lease might also be 'infinite' but this is discouraged since
+  # it means that the dHCP clients will never come back to this server to ACK their IP
+  # and this makes the whole DHCP server less useful... it's better to force the clients
+  # to some frequent check-in, since that becomes a basic heartbeat / client health check.
+  address_reservation_lease: 1h
   network:
     broadcast: 192.168.1.255
     gateway: 192.168.1.254
@@ -62,6 +65,12 @@ options:
   # provided as network.interface and will occupy a port there; the following parameter makes
   # that port configurable to avoid conflicts with other services
   web_ui_port: 8976
+  # the addon can detect whether the server which is running the addon has just rebooted;
+  # if that's the case and the following flag is set to "true", then the DHCP lease database
+  # is reset before starting the DHCP server; this is useful in case a loss of power of the
+  # HomeAssistant server means also a loss of power of several/all DHCP clients. In such a case
+  # the old DHCP lease database is not useful and actually misleading.
+  reset_dhcp_lease_database_on_reboot: false
 schema:
   default_lease: str
   address_reservation_lease: str
@@ -89,6 +98,7 @@ schema:
   log_dhcp: bool
   log_web_ui: bool
   web_ui_port: int
+  reset_dhcp_lease_database_on_reboot: bool
 startup: system
 privileged:
   - NET_ADMIN

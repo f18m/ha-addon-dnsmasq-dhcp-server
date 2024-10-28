@@ -1,8 +1,8 @@
 package uibackend
 
 import (
+	"dhcp-clients-webapp-backend/pkg/logger"
 	"dhcp-clients-webapp-backend/pkg/trackerdb"
-	"log"
 	"net"
 	"net/netip"
 	"testing"
@@ -70,7 +70,7 @@ func TestProcessLeaseUpdatesFromArray(t *testing.T) {
 		dhcpEndIP:   net.IPv4(192, 168, 0, 100),
 	}
 	backend := &UIBackend{
-		logger:    log.Default(),
+		logger:    logger.NewCustomLogger("unit tests"),
 		cfg:       backendcfg,
 		trackerDB: trackerdb.NewTestDB(),
 	}

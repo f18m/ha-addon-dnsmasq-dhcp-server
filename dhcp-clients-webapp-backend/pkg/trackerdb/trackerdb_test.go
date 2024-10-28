@@ -23,7 +23,7 @@ func CompareDhcpClients(client1, client2 DhcpClient) bool {
 	// Compare all fields
 	return client1.MacAddr.String() == client2.MacAddr.String() &&
 		client1.Hostname == client2.Hostname &&
-		client1.DhcpServerStartCounter == client2.DhcpServerStartCounter
+		client1.DhcpServerStartEpoch == client2.DhcpServerStartEpoch
 
 	// FIXME: understand why copying time.Time instances seems to alter them:
 	/*&&

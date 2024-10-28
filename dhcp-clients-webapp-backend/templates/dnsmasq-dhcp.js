@@ -199,7 +199,7 @@ function processWebSocketEvent(event) {
                 item.friendly_name, item.lease.hostname, item.lease.ip_addr,
                 item.lease.mac_addr, formatTimeLeft(item.lease.expires), static_ip_str]);
         });
-        table_current.clear().rows.add(tableData).draw();
+        table_current.clear().rows.add(tableData).draw(false /* do not reset page position */);
 
         // rerender the PAST table
         tableData = [];
@@ -217,7 +217,7 @@ function processWebSocketEvent(event) {
                 item.past_info.mac_addr, static_ip_str, 
                 formatTimeSince(item.past_info.last_seen), item.notes]);
         });
-        table_past.clear().rows.add(tableData).draw();
+        table_past.clear().rows.add(tableData).draw(false /* do not reset page position */);
 
         // compute DHCP pool usage
         var usagePerc = 0
