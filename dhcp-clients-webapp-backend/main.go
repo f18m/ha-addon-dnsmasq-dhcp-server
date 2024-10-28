@@ -1,15 +1,15 @@
 package main
 
 import (
+	"dhcp-clients-webapp-backend/pkg/logger"
 	"dhcp-clients-webapp-backend/pkg/uibackend"
-	"log"
-	"os"
 )
 
 func main() {
-	logger := log.New(os.Stderr, "UI Backend: ", log.LstdFlags)
-	logger.Print("Web backend starting")
+	logger := logger.NewCustomLogger("webui-backend")
+
+	logger.Info("Web backend starting")
 
 	ui := uibackend.NewUIBackend(logger)
-	logger.Fatal(ui.ListenAndServe())
+	ui.ListenAndServe()
 }

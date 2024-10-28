@@ -24,13 +24,13 @@ LOG_SOCKET=/tmp/dnsmasq-script-log-socket
 
 log_info() {
     #echo "$(date): INFO: $*" >>$LOGFILE
-    MSG="$(date): DNSMASQ-SCRIPT: INFO: $*"
+    MSG="dnsmasq-SCRIPT[$$]: $(date -Iseconds): INFO: $*"
     echo "$MSG" | socat - UNIX-CONNECT:${LOG_SOCKET}
 }
 
 log_error() {
     #echo "$(date): ERR: $*" >>$LOGFILE
-    MSG="$(date): DNSMASQ-SCRIPT: ERR: $*"
+    MSG="dnsmasq-SCRIPT[$$]: $(date -Iseconds): ERR: $*"
     echo "$MSG" | socat - UNIX-CONNECT:${LOG_SOCKET}
 }
 
@@ -109,20 +109,25 @@ EOF
 #   When dnsmasq receives a HUP signal, the script will be invoked for existing leases with an "old" event.
 #  """
 #
-log_info "*** Triggered with mode=${MODE}, mac=${MAC_ADDRESS}, hostname=${HOSTNAME} ***"
 read_start_epoch
 if [[ "$MODE" = "add" ]]; then
+    log_info "*** Triggered with mode=${MODE}, mac=${MAC_ADDRESS}, hostname=${HOSTNAME} ***"
     last_seen=$(date -u +"%Y-%m-%dT%H:%M:%SZ")  # ISO 8601 UTC format
     add_or_update_dhcp_client "$DB_PATH" "$MAC_ADDRESS" "$HOSTNAME" "$last_seen" "$START_EPOCH"
 
 elif [[ "$MODE" = "old" ]]; then
-
     # at dnsmasq startup we get a bunch of these 'old' updates -- we need to filter them out
     dnsmasq_just_started
-    if [[ $? -eq 1 ]]; then 
-        log_info "Detected startup LEASE processing and ignoring it"
-    else
+    if [[ $? -eq 0 ]]; then 
+        log_info "*** Triggered with mode=${MODE}, mac=${MAC_ADDRESS}, hostname=${HOSTNAME} ***"
         last_seen=$(date -u +"%Y-%m-%dT%H:%M:%SZ")  # ISO 8601 UTC format
         add_or_update_dhcp_client "$DB_PATH" "$MAC_ADDRESS" "$HOSTNAME" "$last_seen" "$START_EPOCH"
+
+    # reduce logging at startup:
+    #else
+        #log_info "Detected startup LEASE processing and ignoring it"
     fi
+else
+    log_info "*** Triggered with mode=${MODE}, mac=${MAC_ADDRESS}, hostname=${HOSTNAME} ***"
+    log_info "Ignoring this trigger"
 fi
