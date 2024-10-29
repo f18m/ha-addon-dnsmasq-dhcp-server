@@ -1,6 +1,7 @@
 package uibackend
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"dhcp-clients-webapp-backend/pkg/logger"
@@ -12,11 +13,13 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"os"
 	"slices"
 	"strconv"
 	"strings"
 	"sync"
+	texttemplate "text/template"
 	"time"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
@@ -469,11 +472,11 @@ func (b *UIBackend) hasIpAddressReservationByIP(ip netip.Addr, macExpected net.H
 	if hasReservation {
 		// the IP address provided is a reserved one...
 		// check if the MAC address is the one for which that IP was intended...
-		if strings.EqualFold(macExpected.String(), b.cfg.ipAddressReservationsByIP[ip].Mac) {
+		if strings.EqualFold(macExpected.String(), b.cfg.ipAddressReservationsByIP[ip].Mac.String()) {
 			return true
 		} else {
 			b.logger.Warnf("the IP %s was leased to MAC address %s, but in configuration it was reserved for MAC %s\n",
-				ip.String(), macExpected.String(), b.cfg.ipAddressReservationsByIP[ip].Mac)
+				ip.String(), macExpected.String(), b.cfg.ipAddressReservationsByIP[ip].Mac.String())
 		}
 	}
 	return false
@@ -482,6 +485,55 @@ func (b *UIBackend) hasIpAddressReservationByIP(ip netip.Addr, macExpected net.H
 func (b *UIBackend) hasIpAddressReservationByMAC(mac net.HardwareAddr) bool {
 	_, hasReservation := b.cfg.ipAddressReservationsByMAC[mac.String()]
 	return hasReservation
+}
+
+// isValidURI checks if the given string is a valid URI.
+func isValidURI(uri string) bool {
+	parsedURL, err := url.ParseRequestURI(uri)
+	return err == nil && parsedURL.Scheme != "" && parsedURL.Host != ""
+}
+
+func (b *UIBackend) evaluateLink(hostname string, ip netip.Addr, mac net.HardwareAddr) string {
+
+	var theTemplate *texttemplate.Template
+	var friendlyName string
+
+	r, hasFriendlyName := b.cfg.friendlyNames[mac.String()]
+	if hasFriendlyName {
+		theTemplate = &r.Link
+		friendlyName = r.FriendlyName
+	} else {
+		r, hasReservation := b.cfg.ipAddressReservationsByIP[ip]
+		if hasReservation {
+			theTemplate = &r.Link
+		}
+	}
+
+	if theTemplate == nil {
+		return ""
+	}
+
+	// Create a buffer to capture the output
+	var buf bytes.Buffer
+
+	// Execute the template with the provided data
+	err := theTemplate.Execute(&buf, map[string]string{
+		"mac":           mac.String(),
+		"ip":            ip.String(),
+		"hostname":      hostname,
+		"friendly_name": friendlyName,
+	})
+	if err != nil {
+		b.logger.Warnf("failed to render the link template [%v]", theTemplate)
+		return ""
+	}
+
+	lnk := buf.String()
+	if !isValidURI(lnk) {
+		b.logger.Warnf("rendering [%v] produced an invalid URI [%s]", theTemplate, lnk)
+		return ""
+	}
+	return lnk
 }
 
 // Process a slice of dnsmasq.Lease and store that into the UIBackend object
@@ -497,6 +549,7 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 		d.FriendlyName = b.getFriendlyNameFor(lease.MacAddr, lease.Hostname)
 		d.HasStaticIP = b.hasIpAddressReservationByIP(lease.IPAddr, lease.MacAddr)
 		d.IsInsideDHCPPool = IpInRange(lease.IPAddr, b.cfg.dhcpStartIP, b.cfg.dhcpEndIP)
+		d.EvaluatedLink = b.evaluateLink(lease.Hostname, lease.IPAddr, lease.MacAddr)
 
 		// processing complete:
 		b.dhcpClientData = append(b.dhcpClientData, d)

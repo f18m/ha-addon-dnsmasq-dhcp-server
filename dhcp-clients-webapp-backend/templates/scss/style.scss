@@ -39,6 +39,19 @@ $backgroundMonoText: lightgrey;
     //display: flex;
 }
 
+/*
+a[href*="http"]::after {
+    content: '⎋';
+    display: inline-block;
+    transform: rotate(90deg);
+    margin-inline-start: var(--space1);
+    vertical-align: middle;
+    font-size: 0.75em;
+}*/
+
+
+// tabs implementations
+
 .btn {
     font-size: 12px;
     font-weight: 600;

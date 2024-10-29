@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"text/template"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 )
@@ -31,8 +32,14 @@ type DhcpClientData struct {
 	IsInsideDHCPPool bool
 
 	// Sometimes the hostname provided by the DHCP client to the DHCP server is really awkward and
-	// non-informative, so we allow users to override that.
+	// non-informative, so we allow users to override that from configuration.
+	// If such an override is available in config, this field gets populated.
 	FriendlyName string
+
+	// In the configuration file it's possible to specify a golang template that is rendered to
+	// produce a string which is intended to be an URL/URI to show for each DHCP client in the web UI.
+	// If such link template is available in config, this field gets populated.
+	EvaluatedLink string
 }
 
 // MarshalJSON customizes the JSON serialization for DhcpClientData
@@ -47,6 +54,7 @@ func (d DhcpClientData) MarshalJSON() ([]byte, error) {
 		HasStaticIP      bool   `json:"has_static_ip"`
 		IsInsideDHCPPool bool   `json:"is_inside_dhcp_pool"`
 		FriendlyName     string `json:"friendly_name"`
+		EvaluatedLink    string `json:"evaluated_link"`
 	}{
 		Lease: struct {
 			Expires  int64  `json:"expires"`
@@ -62,6 +70,7 @@ func (d DhcpClientData) MarshalJSON() ([]byte, error) {
 		HasStaticIP:      d.HasStaticIP,
 		IsInsideDHCPPool: d.IsInsideDHCPPool,
 		FriendlyName:     d.FriendlyName,
+		EvaluatedLink:    d.EvaluatedLink,
 	})
 }
 
@@ -77,13 +86,15 @@ type PastDhcpClientData struct {
 type DhcpClientFriendlyName struct {
 	MacAddress   net.HardwareAddr
 	FriendlyName string
+	Link         template.Template
 }
 
 // IpAddressReservation represents a static IP configuration loaded from the addon configuration file
 type IpAddressReservation struct {
-	Name string `json:"name"`
-	Mac  string `json:"mac"`
-	IP   string `json:"ip"`
+	Name string
+	Mac  net.HardwareAddr
+	IP   netip.Addr
+	Link template.Template
 }
 
 // AddonConfig is used to unmarshal HomeAssistant option file correctly
@@ -121,11 +132,17 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 
 	// JSON parse
 	var cfg struct {
-		IpAddressReservations []IpAddressReservation `json:"ip_address_reservations"`
+		IpAddressReservations []struct {
+			Name string `json:"name"`
+			Mac  string `json:"mac"`
+			IP   string `json:"ip"`
+			Link string `json:"link"`
+		} `json:"ip_address_reservations"`
 
 		DhcpClientsFriendlyNames []struct {
 			Name string `json:"name"`
 			Mac  string `json:"mac"`
+			Link string `json:"link"`
 		} `json:"dhcp_clients_friendly_names"`
 
 		DhcpRange struct {
@@ -169,12 +186,24 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("invalid MAC address found inside 'ip_address_reservations': %s", r.Mac)
 		}
 
+		linkTemplate, err := template.New("linkTemplate").Parse(r.Link)
+		if err != nil {
+			return fmt.Errorf("invalid golang template found inside 'link': %s", r.Link)
+		}
+
 		// normalize the IP and MAC address format (e.g. to lowercase)
 		r.IP = ipAddr.String()
 		r.Mac = macAddr.String()
 
-		b.ipAddressReservationsByIP[ipAddr] = r
-		b.ipAddressReservationsByMAC[macAddr.String()] = r
+		ipReservation := IpAddressReservation{
+			Name: r.Name,
+			Mac:  macAddr,
+			IP:   ipAddr,
+			Link: *linkTemplate,
+		}
+
+		b.ipAddressReservationsByIP[ipAddr] = ipReservation
+		b.ipAddressReservationsByMAC[macAddr.String()] = ipReservation
 	}
 
 	// convert friendly names to a map of DhcpClientFriendlyName instances indexed by MAC address
@@ -184,9 +213,15 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("invalid MAC address found inside 'dhcp_clients_friendly_names': %s", client.Mac)
 		}
 
+		linkTemplate, err := template.New("linkTemplate").Parse(client.Link)
+		if err != nil {
+			return fmt.Errorf("invalid golang template found inside 'link': %s", client.Link)
+		}
+
 		b.friendlyNames[macAddr.String()] = DhcpClientFriendlyName{
 			MacAddress:   macAddr,
 			FriendlyName: client.Name,
+			Link:         *linkTemplate,
 		}
 	}
 

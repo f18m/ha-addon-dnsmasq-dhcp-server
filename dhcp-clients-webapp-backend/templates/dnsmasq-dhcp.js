@@ -100,6 +100,7 @@ function initCurrentTable() {
                 { title: '#', type: 'num' },
                 { title: 'Friendly Name', type: 'string' },
                 { title: 'Hostname', type: 'string' },
+                { title: 'Link', type: 'string' },
                 { title: 'IP Address', type: 'ip-address' },
                 { title: 'MAC Address', type: 'string' },
                 { title: 'Expires in', 'orderDataType': 'custom-date-order' },
@@ -194,10 +195,19 @@ function processWebSocketEvent(event) {
                 dhcp_static_ip += 1;
             }
 
+            external_link_symbol="🡕"
+            //external_link_symbol="⧉"
+            if (item.evaluated_link) {
+                link_str = "<a href=\"" + item.evaluated_link + "\" target=\"_blank\">" + item.evaluated_link + "</a> " + external_link_symbol
+            } else {
+                link_str = "N/A"
+            }
+
             // append new row
             tableData.push([index + 1,
-                item.friendly_name, item.lease.hostname, item.lease.ip_addr,
-                item.lease.mac_addr, formatTimeLeft(item.lease.expires), static_ip_str]);
+                item.friendly_name, item.lease.hostname, link_str,
+                item.lease.ip_addr, item.lease.mac_addr, 
+                formatTimeLeft(item.lease.expires), static_ip_str]);
         });
         table_current.clear().rows.add(tableData).draw(false /* do not reset page position */);
 

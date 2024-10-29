@@ -88,7 +88,7 @@ ON CONFLICT(mac_addr) DO UPDATE SET
 EOF
 
     if [[ $? -eq 0 ]]; then
-        log_info "Stored in trackerDB updated information for client mac=$mac_addr, hostname=$hostname: last_seen=$last_seen, Ddhcp_server_start_epoch=$dhcp_server_start_counter"
+        log_info "Stored in trackerDB updated information for client mac=$mac_addr, hostname=$hostname: last_seen=$last_seen, dhcp_server_start_epoch=$dhcp_server_start_counter"
     else
         log_error "Failed to add/update client. Expect inconsistencies."
     fi

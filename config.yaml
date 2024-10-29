@@ -3,9 +3,9 @@
 # as reported by the Github Action workflow 'publish.yaml', so that you can force HomeAssistant
 # to use the docker image of that feature branch instead of the docker image of 'main', by pointing
 # HomeAssistant to that feature branch
-version: 1.4.1
-slug: dnsmasq-dhcp
-name: Dnsmasq-DHCP
+version: beta
+slug: dnsmasq-dhcp-beta
+name: Dnsmasq-DHCP BETA
 description: A DHCP server based on dnsmasq
 url: https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/tree/main
 advanced: true
@@ -56,9 +56,15 @@ options:
     - mac: aa:bb:cc:dd:ee:ff
       name: "An-important-host-with-reserved-IP"
       ip: 192.168.1.15
+      # the 'link' property accepts a basic golang template. Available variables are 'mac', 'name' and 'ip'
+      # e.g. "http://{{ ip }}/landing/page"
+      link:
   dhcp_clients_friendly_names:
     - mac: dd:ee:aa:dd:bb:ee
       name: "This is a friendly name to label this host, even if it gets a dynamic IP"
+      # the 'link' property accepts a basic golang template. Available variables are 'mac', 'name' and 'ip'
+      # e.g. "http://{{ ip }}/landing/page/for/this/dynamic/host"
+      link:
   log_dhcp: true
   log_web_ui: false
   # this addon uses "host_network: true" so the internal HTTP server will bind on the interface
@@ -92,9 +98,11 @@ schema:
       # the name in this case must be a valid hostname as per RFC 1123 since it is passed to dnsmasq
       # that will refuse to start if an invalid hostname format is used
       name: match(^[a-zA-Z0-9\-.]*$)
+      link: "str?"
   dhcp_clients_friendly_names:
     - mac: match(^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$)
       name: str
+      link: "str?"
   log_dhcp: bool
   log_web_ui: bool
   web_ui_port: int

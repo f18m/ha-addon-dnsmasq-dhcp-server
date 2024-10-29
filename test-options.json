@@ -4,19 +4,22 @@
   "ip_address_reservations": [
     {
       "mac": "aa:bb:cc:dd:ee:00",
-      "name": "an-important-host-with-static-ip",
-      "ip": "192.168.1.15"
+      "name": "static-ip-important-host",
+      "ip": "192.168.1.15",
+      "link": "https://{{ .ip }}/important-host-land-page"
     },
     {
       "mac": "aa:bb:cc:dd:ee:01",
-      "name": "an-host-within-dhcp-range",
-      "ip": "192.168.1.55"
+      "name": "static-ip-within-dhcp-range",
+      "ip": "192.168.1.55",
+      "link": "https://{{ .ip }}/less-important"
     }
   ],
   "dhcp_clients_friendly_names": [
     {
-      "name": "a human-friendly name",
-      "mac": "4c:50:77:cf:3c:35"
+      "name": "a human-friendly name for a DHCP client with dynamic IP",
+      "mac": "4c:50:77:cf:3c:35",
+      "link": "https://{{ .ip }}/page-{{ .hostname }}"
     }
   ],
   "dhcp_range": {
