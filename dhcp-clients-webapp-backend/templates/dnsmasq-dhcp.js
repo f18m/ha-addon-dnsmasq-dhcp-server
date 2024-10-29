@@ -195,8 +195,10 @@ function processWebSocketEvent(event) {
                 dhcp_static_ip += 1;
             }
 
+            external_link_symbol="🡕"
+            //external_link_symbol="⧉"
             if (item.evaluated_link) {
-                link_str = "<a href=" + item.evaluated_link + ">" + item.evaluated_link + "</a>"
+                link_str = "<a href=\"" + item.evaluated_link + "\" target=\"_blank\">" + item.evaluated_link + "</a> " + external_link_symbol
             } else {
                 link_str = "N/A"
             }

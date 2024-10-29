@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /*
  SCSS style sheet for HA dnsmasq-dhcp addon
 
@@ -29,6 +30,15 @@
   margin: 0 auto;
 }
 
+/*
+a[href*="http"]::after {
+    content: '⎋';
+    display: inline-block;
+    transform: rotate(90deg);
+    margin-inline-start: var(--space1);
+    vertical-align: middle;
+    font-size: 0.75em;
+}*/
 .btn {
   font-size: 12px;
   font-weight: 600;

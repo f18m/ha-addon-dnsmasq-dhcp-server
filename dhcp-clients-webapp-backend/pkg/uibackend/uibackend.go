@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"os"
 	"slices"
 	"strconv"
@@ -486,6 +487,12 @@ func (b *UIBackend) hasIpAddressReservationByMAC(mac net.HardwareAddr) bool {
 	return hasReservation
 }
 
+// isValidURI checks if the given string is a valid URI.
+func isValidURI(uri string) bool {
+	parsedURL, err := url.ParseRequestURI(uri)
+	return err == nil && parsedURL.Scheme != "" && parsedURL.Host != ""
+}
+
 func (b *UIBackend) evaluateLink(hostname string, ip netip.Addr, mac net.HardwareAddr) string {
 
 	var theTemplate *texttemplate.Template
@@ -521,7 +528,12 @@ func (b *UIBackend) evaluateLink(hostname string, ip netip.Addr, mac net.Hardwar
 		return ""
 	}
 
-	return buf.String()
+	lnk := buf.String()
+	if !isValidURI(lnk) {
+		b.logger.Warnf("rendering [%v] produced an invalid URI [%s]", theTemplate, lnk)
+		return ""
+	}
+	return lnk
 }
 
 // Process a slice of dnsmasq.Lease and store that into the UIBackend object
