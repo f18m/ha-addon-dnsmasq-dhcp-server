@@ -86,7 +86,7 @@ type PastDhcpClientData struct {
 type DhcpClientFriendlyName struct {
 	MacAddress   net.HardwareAddr
 	FriendlyName string
-	Link         template.Template
+	Link         *template.Template // maybe nil
 }
 
 // IpAddressReservation represents a static IP configuration loaded from the addon configuration file
@@ -94,7 +94,7 @@ type IpAddressReservation struct {
 	Name string
 	Mac  net.HardwareAddr
 	IP   netip.Addr
-	Link template.Template
+	Link *template.Template // maybe nil
 }
 
 // AddonConfig is used to unmarshal HomeAssistant option file correctly
@@ -186,9 +186,12 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("invalid MAC address found inside 'ip_address_reservations': %s", r.Mac)
 		}
 
-		linkTemplate, err := template.New("linkTemplate").Parse(r.Link)
-		if err != nil {
-			return fmt.Errorf("invalid golang template found inside 'link': %s", r.Link)
+		var linkTemplate *template.Template
+		if r.Link != "" {
+			linkTemplate, err = template.New("linkTemplate").Parse(r.Link)
+			if err != nil {
+				return fmt.Errorf("invalid golang template found inside 'link': %s", r.Link)
+			}
 		}
 
 		// normalize the IP and MAC address format (e.g. to lowercase)
@@ -199,7 +202,7 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			Name: r.Name,
 			Mac:  macAddr,
 			IP:   ipAddr,
-			Link: *linkTemplate,
+			Link: linkTemplate,
 		}
 
 		b.ipAddressReservationsByIP[ipAddr] = ipReservation
@@ -213,15 +216,18 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("invalid MAC address found inside 'dhcp_clients_friendly_names': %s", client.Mac)
 		}
 
-		linkTemplate, err := template.New("linkTemplate").Parse(client.Link)
-		if err != nil {
-			return fmt.Errorf("invalid golang template found inside 'link': %s", client.Link)
+		var linkTemplate *template.Template
+		if client.Link != "" {
+			linkTemplate, err = template.New("linkTemplate").Parse(client.Link)
+			if err != nil {
+				return fmt.Errorf("invalid golang template found inside 'link': %s", client.Link)
+			}
 		}
 
 		b.friendlyNames[macAddr.String()] = DhcpClientFriendlyName{
 			MacAddress:   macAddr,
 			FriendlyName: client.Name,
-			Link:         *linkTemplate,
+			Link:         linkTemplate,
 		}
 	}
 

@@ -500,12 +500,12 @@ func (b *UIBackend) evaluateLink(hostname string, ip netip.Addr, mac net.Hardwar
 
 	r, hasFriendlyName := b.cfg.friendlyNames[mac.String()]
 	if hasFriendlyName {
-		theTemplate = &r.Link
+		theTemplate = r.Link
 		friendlyName = r.FriendlyName
 	} else {
 		r, hasReservation := b.cfg.ipAddressReservationsByIP[ip]
 		if hasReservation {
-			theTemplate = &r.Link
+			theTemplate = r.Link
 		}
 	}
 

@@ -22,8 +22,8 @@ func MustParseMAC(s string) net.HardwareAddr {
 	return mac
 }
 
-func MustParseTemplate(s string) template.Template {
-	return *template.Must(template.New("test").Parse(s))
+func MustParseTemplate(s string) *template.Template {
+	return template.Must(template.New("test").Parse(s))
 }
 
 func getMockLeases() []*dnsmasq.Lease {
