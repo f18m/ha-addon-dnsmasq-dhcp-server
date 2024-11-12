@@ -26,7 +26,24 @@
     --background-color: #121212;
   }
 }
-  
+
+body {
+  background-color: black;
+  color: white;
+}
+@media screen and (prefers-color-scheme: light) {
+  body {
+    background-color: white;
+    color: black;
+  }
+}
+
+@media screen and (prefers-color-scheme: dark) {
+    .dataTable > tbody > tr > td > a {
+        color: var(--btn-text-active);
+    }
+}
+
 
 /* styles used in the UI */
 
@@ -71,6 +88,8 @@ a[href*="http"]::after {
 }*/
 
 
+
+
 /* tabs implementations */
 
 .btn {
@@ -91,13 +110,13 @@ a[href*="http"]::after {
         position: relative;
 
         &::after {
-        content: '';
-        width: 100%;
-        height: 2px;
-        background-color: var(--btn-text-active);
-        position: absolute;
-        bottom: -2px;
-        left: 0;
+            content: '';
+            width: 100%;
+            height: 2px;
+            background-color: var(--btn-text-active);
+            position: absolute;
+            bottom: -2px;
+            left: 0;
         }
     }
 }

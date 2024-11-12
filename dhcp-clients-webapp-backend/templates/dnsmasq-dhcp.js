@@ -108,7 +108,8 @@ function initCurrentTable() {
             ],
             data: [],
             pageLength: 20,
-            responsive: true
+            responsive: true,
+            className: 'data-table'
         });
 }
 
@@ -135,14 +136,26 @@ function initPastTable() {
             ],
             data: [],
             pageLength: 20,
-            responsive: true
+            responsive: true,
+            className: 'data-table'
         });
+}
+
+function initTableDarkOrLightTheme() {
+    let prefers = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    let html = document.querySelector('html');
+    
+    html.classList.add(prefers);
+    html.setAttribute('data-bs-theme', prefers);
+
+    console.log("Settings data-bs-theme to ", prefers);
 }
 
 function initAll() {
     initCurrentTable()
     initPastTable()
     initTabs()
+    initTableDarkOrLightTheme()
 }
 
 function processWebSocketEvent(event) {
