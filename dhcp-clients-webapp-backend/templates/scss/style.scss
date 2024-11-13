@@ -5,7 +5,7 @@
 */
 
 
-/* be light/dark mode friendly */
+/* define colors */
 
 :root {
   --btn-text-inactive: #101927;
@@ -16,7 +16,15 @@
   --background-color: white; // General background color
 }
 
-@media (prefers-color-scheme: dark) {
+body {
+  background-color: white;
+  color: black;
+}
+
+
+/* be dark-mode friendly */
+
+@media screen and (prefers-color-scheme: dark) {
   :root {
     --btn-text-inactive: #e0e0e0; // Lighter for dark mode
     --background-tab: #222;
@@ -25,23 +33,19 @@
     --text-color: white;
     --background-color: #121212;
   }
-}
 
-body {
-  background-color: black;
-  color: white;
-}
-@media screen and (prefers-color-scheme: light) {
+  // note that the override of the body foreground/background color will 
+  // be inherited also by the DataTable
   body {
-    background-color: white;
-    color: black;
+    background-color: black;
+    color: white;
   }
-}
-
-@media screen and (prefers-color-scheme: dark) {
-    .dataTable > tbody > tr > td > a {
-        color: var(--btn-text-active);
-    }
+  
+  // in dark mode the usual blue of the links in the datatable is hard to read,
+  // change it to a soft blue
+  .dataTable > tbody > tr > td > a {
+    color: var(--btn-text-active);
+  }
 }
 
 

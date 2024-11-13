@@ -4,7 +4,7 @@
 
  NOTE: portions of this file have been taken from https://codepen.io/serhatbek/pen/bGyVLpM?editors=1111
 */
-/* be light/dark mode friendly */
+/* define colors */
 :root {
   --btn-text-inactive: #101927;
   --background-tab: #f7f7f7;
@@ -14,7 +14,13 @@
   --background-color: white;
 }
 
-@media (prefers-color-scheme: dark) {
+body {
+  background-color: white;
+  color: black;
+}
+
+/* be dark-mode friendly */
+@media screen and (prefers-color-scheme: dark) {
   :root {
     --btn-text-inactive: #e0e0e0;
     --background-tab: #222;
@@ -23,19 +29,10 @@
     --text-color: white;
     --background-color: #121212;
   }
-}
-body {
-  background-color: black;
-  color: white;
-}
-
-@media screen and (prefers-color-scheme: light) {
   body {
-    background-color: white;
-    color: black;
+    background-color: black;
+    color: white;
   }
-}
-@media screen and (prefers-color-scheme: dark) {
   .dataTable > tbody > tr > td > a {
     color: var(--btn-text-active);
   }
