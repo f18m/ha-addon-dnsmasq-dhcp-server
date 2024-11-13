@@ -4,14 +4,56 @@
  NOTE: portions of this file have been taken from https://codepen.io/serhatbek/pen/bGyVLpM?editors=1111
 */
 
-// colors
-$btnTextInactive: #101927;
-$backgroundTab: #f7f7f7;
-$btnTextActive: #2955ac;
-$backgroundMonoText: lightgrey;
+
+/* define colors */
+
+:root {
+  --btn-text-inactive: #101927;
+  --background-tab: #f7f7f7;
+  --btn-text-active: #2955ac;
+  --background-mono-text: lightgrey;
+  --text-color: black;  // General text color
+  --background-color: white; // General background color
+}
+
+body {
+  background-color: white;
+  color: black;
+}
+
+
+/* be dark-mode friendly */
+
+@media screen and (prefers-color-scheme: dark) {
+  :root {
+    --btn-text-inactive: #e0e0e0; // Lighter for dark mode
+    --background-tab: #222;
+    --btn-text-active: #64b5f6; // Lighter blue
+    --background-mono-text: #444;
+    --text-color: white;
+    --background-color: #121212;
+  }
+
+  // note that the override of the body foreground/background color will 
+  // be inherited also by the DataTable
+  body {
+    background-color: black;
+    color: white;
+  }
+  
+  // in dark mode the usual blue of the links in the datatable is hard to read,
+  // change it to a soft blue
+  .dataTable > tbody > tr > td > a {
+    color: var(--btn-text-active);
+  }
+}
+
+
+/* styles used in the UI */
 
 .topLevel {
     margin-left: 10px;
+    color: var(--text-color); // Use the variable
 }
 
 .solidBorder {
@@ -20,7 +62,7 @@ $backgroundMonoText: lightgrey;
 
 .monoText {
     font-family: monospace;
-    background-color: $backgroundMonoText; 
+    background-color: var(--background-mono-text);
     padding-left: 3px;
     padding-right: 3px;
     padding-top: 1px;
@@ -50,7 +92,9 @@ a[href*="http"]::after {
 }*/
 
 
-// tabs implementations
+
+
+/* tabs implementations */
 
 .btn {
     font-size: 12px;
@@ -59,36 +103,36 @@ a[href*="http"]::after {
     background: transparent;
     outline: transparent;
     border: transparent;
-    color: $btnTextInactive;
+    color: var(--btn-text-inactive);
     transition: 300ms all ease-in-out;
     @media only screen and (max-width: 576px) {
         padding: 10px 8px;
     }
 
     &.active {
-        color: $btnTextActive;
+        color: var(--btn-text-active);
         position: relative;
 
         &::after {
-        content: '';
-        width: 100%;
-        height: 2px;
-        background-color: #2955ac;
-        position: absolute;
-        bottom: -2px;
-        left: 0;
+            content: '';
+            width: 100%;
+            height: 2px;
+            background-color: var(--btn-text-active);
+            position: absolute;
+            bottom: -2px;
+            left: 0;
         }
     }
 }
 
 .tabs {
-    background-color: $backgroundTab;
+    background-color: var(--background-tab);
     border-radius: 8px;
     padding: 16px 16px 16px 16px;
 
     &__pills {
         //width: fit-content;
-        border-bottom: 2px solid rgba($color: $btnTextInactive, $alpha: 0.2);
+        border-bottom: 2px solid rgba($color: var(--btn-text-inactive), $alpha: 0.2);
     }
 
     &__panels {

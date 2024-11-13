@@ -39,6 +39,8 @@ The two screenshots show the Current and the Past DHCP clients tabs.
 The tables of DHCP clients are updated in real-time (no manual refresh needed) and can be sorted on any column.
 Plus they're responsive and thus adapt nicely to small screens (cellphones).
 
+Last the Web UI supports both light and dark modes.
+
 ## Development
 
 See [Home Assistant addon guide](https://developers.home-assistant.io/docs/add-ons)

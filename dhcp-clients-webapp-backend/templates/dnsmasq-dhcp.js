@@ -108,7 +108,8 @@ function initCurrentTable() {
             ],
             data: [],
             pageLength: 20,
-            responsive: true
+            responsive: true,
+            className: 'data-table'
         });
 }
 
@@ -135,14 +136,27 @@ function initPastTable() {
             ],
             data: [],
             pageLength: 20,
-            responsive: true
+            responsive: true,
+            className: 'data-table'
         });
+}
+
+function initTableDarkOrLightTheme() {
+    let prefers = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    let html = document.querySelector('html');
+    
+    // see https://datatables.net/manual/styling/dark-mode#Auto-detection
+    html.classList.add(prefers);
+    html.setAttribute('data-bs-theme', prefers);
+
+    console.log("Adapting the web UI to the auto-detected color-scheme: " + prefers);
 }
 
 function initAll() {
     initCurrentTable()
     initPastTable()
     initTabs()
+    initTableDarkOrLightTheme()
 }
 
 function processWebSocketEvent(event) {
