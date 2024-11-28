@@ -2,7 +2,7 @@
 configuration:
   default_lease:
     name: Default DHCP lease time 
-    description: This can be given in seconds, minutes (m) or hours (h).
+    description: This represents the default DHCP lease time for all DHCP clients except those having an IP address reservation. This can be given in seconds, minutes (m) or hours (h) or you can use 'infinite'.
   address_reservation_lease:
     name: DHCP lease time for IP address reservations
     description: This can be given in seconds, minutes (m) or hours (h) or you can use 'infinite'.

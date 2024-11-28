@@ -23,17 +23,25 @@ ingress_port: 8100
 panel_icon: mdi:ip-network-outline
 panel_title: DHCP
 options:
+  # default lease time for all DHCP clients except those having an IP address reservation.
   default_lease: 1h
   # the address reservation lease might also be 'infinite' but this is discouraged since
   # it means that the dHCP clients will never come back to this server to ACK their IP
   # and this makes the whole DHCP server less useful... it's better to force the clients
   # to some frequent check-in, since that becomes a basic heartbeat / client health check.
   address_reservation_lease: 1h
+
+  # network section defines a number of properties that help populate DHCP answers.
   network:
-    broadcast: 192.168.1.255
-    gateway: 192.168.1.254
+    # the interface on which the DHCP server will listen for DHCP requests on port 67
     interface: enp1s0
+    # the broadcast IP address to advertise in DHCP answers
+    broadcast: 192.168.1.255
+    # the gateway IP address to advertise in DHCP answers
+    gateway: 192.168.1.254
+    # the netmask to advertise in DHCP answers
     netmask: 255.255.255.0
+    # dns servers to advertise in DHCP answers
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -49,10 +57,14 @@ options:
       #- time3.google.com
       # example3: the entry 0.0.0.0 means "the address of the machine running dnsmasq"
       #- 0.0.0.0
+  
+  dns_server:
+    enable: true
+
   dhcp_range:
     start_ip: 192.168.1.50
     end_ip: 192.168.1.250
-  ip_address_reservations: 
+  ip_address_reservations:  # TODO: rename to dhcp_ip_address_reservations for consistency around DHCP-related opts
     - mac: aa:bb:cc:dd:ee:ff
       name: "An-important-host-with-reserved-IP"
       ip: 192.168.1.15
