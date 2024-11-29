@@ -101,6 +101,8 @@ schema:
       - str
     ntp:
       - str
+  dns_server:
+    enable: bool
   dhcp_range:
     start_ip: str
     end_ip: str
