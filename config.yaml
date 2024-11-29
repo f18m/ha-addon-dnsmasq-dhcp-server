@@ -41,10 +41,12 @@ options:
     gateway: 192.168.1.254
     # the netmask to advertise in DHCP answers
     netmask: 255.255.255.0
-    # dns servers to advertise in DHCP answers
+    # dns servers to advertise in DHCP answers OR used as upstream DNS servers when
+    # dns_server.enable=true
     dns:
       - 8.8.8.8
       - 8.8.4.4
+    dns_domain: home
     ntp:
       # define NTP servers to provide to DHCP clients (not all clients will honor this setting though)
       # example1: online NTP servers: check https://www.ntppool.org/zone/@ for details about continental zones:
@@ -99,6 +101,7 @@ schema:
     netmask: str
     dns:
       - str
+    dns_domain: str
     ntp:
       - str
   dns_server:
