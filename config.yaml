@@ -57,10 +57,9 @@ options:
       #- time3.google.com
       # example3: the entry 0.0.0.0 means "the address of the machine running dnsmasq"
       #- 0.0.0.0
-  
   dns_server:
+    # should this addon provide also a DNS server?
     enable: true
-
   dhcp_range:
     start_ip: 192.168.1.50
     end_ip: 192.168.1.250
@@ -77,6 +76,7 @@ options:
       # the 'link' property accepts a basic golang template. Available variables are 'mac', 'name' and 'ip'
       # e.g. "http://{{ ip }}/landing/page/for/this/dynamic/host"
       link:
+  log_dns: true
   log_dhcp: true
   log_web_ui: false
   # this addon uses "host_network: true" so the internal HTTP server will bind on the interface
@@ -117,6 +117,7 @@ schema:
     - mac: match(^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$)
       name: str
       link: "str?"
+  log_dns: bool
   log_dhcp: bool
   log_web_ui: bool
   web_ui_port: int
