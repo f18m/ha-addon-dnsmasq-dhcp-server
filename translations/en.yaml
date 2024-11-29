@@ -50,6 +50,9 @@ configuration:
     name: DHCP Clients Friendly Names
     description: List of MAC addresses / friendly-name pairs to help identify the DHCP clients in the Web UI. Strict regex validation is performed on MAC addresses.
 
+  log_dns:
+    name: Log DNS
+    description: Log all details about DNS requests served by the server
   log_dhcp:
     name: Log DHCP
     description: Log all details about DHCP requests served by the server
