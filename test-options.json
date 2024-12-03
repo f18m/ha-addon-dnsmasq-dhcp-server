@@ -35,6 +35,7 @@
     "netmask": "255.255.255.0",
     "subnet": "192.168.1.0",
     "dns_servers": [
+      "0.0.0.0", 
       "8.8.8.8",
       "8.8.4.4"
     ],
@@ -49,13 +50,14 @@
   },
   "dns_server": {
     "enable": true,
+    "dns_domain": "lan",
     "cache_size": 10000,
-    "log_requests": true 
+    "log_requests": false,
+    "upstream_servers": [
+      "8.8.8.8",
+      "8.8.4.4"
+    ]
   },
-  "dns_upstream_servers": [
-    "8.8.8.8",
-    "8.8.4.4"
-  ],
   "web_ui": {
     "log_requests": true,
     "port": 8976

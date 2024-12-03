@@ -64,9 +64,9 @@ configuration:
   # log_dns:
   #   name: Log DNS
   #   description: Log all details about DNS requests served by the server
-  dns_upstream_servers:
-    name: DNS Upstream Servers
-    description: List of DNS servers to which queries are forwarded when local DNS resolver does not have the answer in cache
+  # upstream_servers:
+  #   name: DNS Upstream Servers
+  #   description: List of DNS servers to which queries are forwarded when local DNS resolver does not have the answer in cache
   web_ui:
     name: Web UI Settings
     description: All settings related to the web UI

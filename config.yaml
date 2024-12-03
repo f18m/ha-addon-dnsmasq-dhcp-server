@@ -54,13 +54,13 @@ options:
     gateway: 192.168.1.254
     # the netmask to advertise in DHCP answers
     netmask: 255.255.255.0
+    # DNS domain to advertise in DHCP answers
+    dns_domain: lan
     # DNS servers to advertise in DHCP answers (primary, secondary, tertiary, etc)
     dns_servers:
       - 0.0.0.0  # the special value 0.0.0.0 indicates the IP address of this host -- useful only if dns_server.enable=true
       - 8.8.8.8
       - 8.8.4.4
-    # DNS domain to advertise in DHCP answers
-    dns_domain: lan
     ntp_servers:
       # define NTP servers to provide to DHCP clients (not all clients will honor this setting though)
       # example1: online NTP servers: check https://www.ntppool.org/zone/@ for details about continental zones:
@@ -95,9 +95,10 @@ options:
     log_requests: true
     # DNS domain to resolve locally
     dns_domain: lan
-  dns_upstream_servers:
-    - 8.8.8.8
-    - 8.8.4.4
+    # upstream servers to which queries are forwarded when the answer is not cached locally
+    upstream_servers:
+      - 8.8.8.8
+      - 8.8.4.4
   web_ui:
     log_activity: false
     # this addon uses "host_network: true" so the internal HTTP server will bind on the interface
@@ -138,8 +139,8 @@ schema:
     cache_size: int
     log_requests: bool
     dns_domain: str
-  dns_upstream_servers:
-    - str
+    upstream_servers:
+      - str
   web_ui:
     log_activity: bool
     port: int
