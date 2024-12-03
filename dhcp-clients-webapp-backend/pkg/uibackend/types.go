@@ -132,12 +132,12 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 
 	// JSON parse
 	var cfg struct {
-		IpAddressReservations []struct {
+		DhcpIpAddressReservations []struct {
 			Name string `json:"name"`
 			Mac  string `json:"mac"`
 			IP   string `json:"ip"`
 			Link string `json:"link"`
-		} `json:"ip_address_reservations"`
+		} `json:"dhcp_ip_address_reservations"`
 
 		DhcpClientsFriendlyNames []struct {
 			Name string `json:"name"`
@@ -145,18 +145,18 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			Link string `json:"link"`
 		} `json:"dhcp_clients_friendly_names"`
 
-		DhcpRange struct {
-			StartIP string `json:"start_ip"`
-			EndIP   string `json:"end_ip"`
-		} `json:"dhcp_range"`
+		DhcpServer struct {
+			StartIP                 string `json:"start_ip"`
+			EndIP                   string `json:"end_ip"`
+			LogDHCP                 bool   `json:"log_requests"`
+			DefaultLease            string `json:"default_lease"`
+			AddressReservationLease string `json:"address_reservation_lease"`
+		} `json:"dhcp_server"`
 
-		LogDHCP  bool `json:"log_dhcp"`
-		LogWebUI bool `json:"log_web_ui"`
-
-		WebUIPort int `json:"web_ui_port"`
-
-		DefaultLease            string `json:"default_lease"`
-		AddressReservationLease string `json:"address_reservation_lease"`
+		WebUI struct {
+			Log  bool `json:"log_requests"`
+			Port int  `json:"port"`
+		} `json:"web_ui"`
 	}
 	err := json.Unmarshal(data, &cfg)
 	if err != nil {
@@ -164,19 +164,19 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 	}
 
 	// convert DHCP IP strings to net.IP
-	b.dhcpStartIP = net.ParseIP(cfg.DhcpRange.StartIP)
-	b.dhcpEndIP = net.ParseIP(cfg.DhcpRange.EndIP)
+	b.dhcpStartIP = net.ParseIP(cfg.DhcpServer.StartIP)
+	b.dhcpEndIP = net.ParseIP(cfg.DhcpServer.EndIP)
 	if b.dhcpStartIP == nil || b.dhcpEndIP == nil {
 		return fmt.Errorf("invalid DHCP range found in addon config file")
 	}
 
 	// ensure we have a valid port for web UI
-	if cfg.WebUIPort <= 0 || cfg.WebUIPort > 32768 {
-		return fmt.Errorf("invalid web UI port number: %d", cfg.WebUIPort)
+	if cfg.WebUI.Port <= 0 || cfg.WebUI.Port > 32768 {
+		return fmt.Errorf("invalid web UI port number: %d", cfg.WebUI.Port)
 	}
 
 	// convert IP address reservations to a map indexed by IP
-	for _, r := range cfg.IpAddressReservations {
+	for _, r := range cfg.DhcpIpAddressReservations {
 		ipAddr, err := netip.ParseAddr(r.IP)
 		if err != nil {
 			return fmt.Errorf("invalid IP address found inside 'ip_address_reservations': %s", r.IP)
@@ -232,11 +232,11 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 	}
 
 	// copy basic settings
-	b.logDHCP = cfg.LogDHCP
-	b.logWebUI = cfg.LogWebUI
-	b.webUIPort = cfg.WebUIPort
-	b.defaultLease = cfg.DefaultLease
-	b.addressReservationLease = cfg.AddressReservationLease
+	b.logDHCP = cfg.DhcpServer.LogDHCP
+	b.logWebUI = cfg.WebUI.Log
+	b.webUIPort = cfg.WebUI.Port
+	b.defaultLease = cfg.DhcpServer.DefaultLease
+	b.addressReservationLease = cfg.DhcpServer.AddressReservationLease
 
 	return nil
 }

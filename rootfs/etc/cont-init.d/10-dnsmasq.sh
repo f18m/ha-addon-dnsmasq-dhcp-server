@@ -27,7 +27,7 @@ function ipvalid() {
 }
 
 function dnsresolve() {
-    NTP_SERVERS="$(jq --raw-output '.network.ntp[]' ${ADDON_CONFIG} 2>/dev/null)"
+    NTP_SERVERS="$(jq --raw-output '.dhcp_network.ntp[]' ${ADDON_CONFIG} 2>/dev/null)"
     if [[ ! -z "${NTP_SERVERS}" ]]; then
         bashio::log.info "NTP servers are ${NTP_SERVERS/$'\n'/,}"
 
@@ -52,7 +52,7 @@ function dnsresolve() {
             NTP_SERVERS_RESOLVED=${NTP_SERVERS_RESOLVED::-1}
 
             # add DNS-resolved IP addresses
-            jq -c ".network.ntp_resolved=[$NTP_SERVERS_RESOLVED]" ${ADDON_CONFIG} >${ADDON_CONFIG_RESOLVED}
+            jq -c ".dhcp_network.ntp_resolved=[$NTP_SERVERS_RESOLVED]" ${ADDON_CONFIG} >${ADDON_CONFIG_RESOLVED}
         fi
     else
         cp ${ADDON_CONFIG} ${ADDON_CONFIG_RESOLVED}
@@ -84,7 +84,7 @@ function reset_dhcp_leases_database_if_just_rebooted() {
     fi
 }
 
-should_reset_on_reboot=$(bashio::config 'reset_dhcp_lease_database_on_reboot')
+should_reset_on_reboot=$(bashio::config '.dhcp_server.reset_dhcp_lease_database_on_reboot')
 if $should_reset_on_reboot ; then
     reset_dhcp_leases_database_if_just_rebooted
 fi
