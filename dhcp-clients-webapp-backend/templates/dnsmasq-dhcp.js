@@ -50,13 +50,21 @@ function formatTimeSince(unixPastTimestamp) {
         return "Timestamp in future?";
     }
 
-    // Calculate the remaining time in hours, minutes, and seconds
-    const hoursLeft = Math.floor(timeDifference / (1000 * 60 * 60));
-    const minutesLeft = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
-    const secondsLeft = Math.floor((timeDifference % (1000 * 60)) / 1000);
+    // Calculate the time difference in days, hours, minutes, and seconds
+    const msecsInDay = 1000 * 60 * 60 * 24;
+    const msecsInHour = 1000 * 60 * 60;
+    const msecsInMinute = 1000 * 60;
 
-    // Format the remaining time as a string "HH:MM:SS"
-    return `${hoursLeft.toString().padStart(2, '0')}:${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`;
+    const days = Math.floor(timeDifference / msecsInDay);
+    const hours = Math.floor((timeDifference % msecsInDay) / msecsInHour);
+    const minutes = Math.floor((timeDifference % msecsInHour) / msecsInMinute);
+    const seconds = Math.floor((timeDifference % msecsInMinute) / 1000);
+
+    // Format the time as a string
+    const dayPart = days > 0 ? `${days} day${days > 1 ? 's' : ''}, ` : '';
+    const timePart = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    return dayPart + timePart;
 }
 
 function initTabs() {

@@ -1,14 +1,22 @@
-# Home Assistant Add-on: Dnsmasq as DHCP server
+# Home Assistant Add-on: Dnsmasq as DNS and DHCP server
 
-A DHCP server based on the [dnsmasq](https://thekelleys.org.uk/dnsmasq/doc.html) utility rather than the [ISC dhcpd](https://www.isc.org/dhcp/) utility.
-Dnsmasq is on many aspects more feature-complete than the ISC DHCP server. Moreover ISC DHCP is discontinued.
+This addon provides 
+* a DNS server (optional)
+* a DHCP server
+that are meant to be used in your HomeAssistant Local Area Network (LAN), to make HomeAssistant the central point of 
+the network configuration: IP address allocations, FQDN resolutions, etc.
+
+The DNS/DHCP server is based on the [dnsmasq](https://thekelleys.org.uk/dnsmasq/doc.html) utility. 
+This is in contrast to several similar solutions that employ instead the [ISC dhcpd](https://www.isc.org/dhcp/) utility.
+Dnsmasq is on many aspects more feature-complete than the ISC DHCP server. Moreover ISC DHCP is discontinued since 2022.
+
 This addon also implements a UI webpage to view the list of DHCP clients with all relevant information that can be obtained through DHCP.
 
 ![Supports aarch64 Architecture][aarch64-shield] ![Supports amd64 Architecture][amd64-shield] ![Supports armv7 Architecture][armv7-shield] ![Supports i386 Architecture][i386-shield]
 
 ## About
 
-This addon setups and manages a Dnsmasq instance configured to run as a DHCP server (despite the name 'dnsmasq' also provides DHCP server functionalities, not only DNS).
+This addon setups and manages a Dnsmasq instance configured to run as a DNS and DHCP server (despite the name 'dnsmasq' also provides DHCP server functionalities, not only DNS).
 
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
@@ -27,6 +35,7 @@ This addon setups and manages a Dnsmasq instance configured to run as a DHCP ser
   in their DHCP requests.
 * **NTP and DNS server options**: you can advertise in DHCP OFFER packets whatever NTP and DNS server you want.
 * **Past DHCP clients**: the addon keeps track of _any_ DHCP client ever connected to your network, and allows you to check if some important device in your network was connected in the past but somehow has failed to renew its DHCP lease (e.g. it is shut down).
+* **DNS local cache**: speed up DNS in your network by using this addon as your home DNS server: dnsmasq will cache DNS resolutions from upstream servers to dramatically lower DNS resolution latency; in addition dnsmasq will be able to resolve any of your home device to your LAN IP address.
 
 ## Web UI
 
