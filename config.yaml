@@ -79,20 +79,20 @@ options:
       ip: 192.168.1.15
       # the 'link' property accepts a basic golang template. Available variables are 'mac', 'name' and 'ip'
       # e.g. "http://{{ ip }}/landing/page"
-      link:
+      link: "http://{{ .ip }}/landing-page/for/this/host"
   dhcp_clients_friendly_names:
     - mac: dd:ee:aa:dd:bb:ee
       name: "This is a friendly name to label this host, even if it gets a dynamic IP"
       # the 'link' property accepts a basic golang template. Available variables are 'mac', 'name' and 'ip'
       # e.g. "http://{{ ip }}/landing/page/for/this/dynamic/host"
-      link:
+      link: "http://{{ .ip }}/landing-page/for/this/host"
   dns_server:
     # should this addon provide also a DNS server?
     enable: true
     # how many entries should be cached on the DNS server to reduce traffic to upstream DNS servers?
     # the max size for this cache is 10k entries according to dnsmasq docs
     cache_size: 10000
-    log_requests: true
+    log_requests: false
     # DNS domain to resolve locally
     dns_domain: lan
     # upstream servers to which queries are forwarded when the answer is not cached locally

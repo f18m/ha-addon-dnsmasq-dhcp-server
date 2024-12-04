@@ -154,7 +154,7 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 		} `json:"dhcp_server"`
 
 		WebUI struct {
-			Log  bool `json:"log_requests"`
+			Log  bool `json:"log_activity"`
 			Port int  `json:"port"`
 		} `json:"web_ui"`
 	}
