@@ -61,7 +61,7 @@ type UIBackend struct {
 	// channel used to broadcast tabular data from backend->frontend
 	broadcastCh chan struct{}
 
-	// channel used to link a goroutine watching for DHCP lease file changes and the lease file processor
+	// channel used to link a goroutine watching for DHCP lease file changes and the DHCP lease file processor
 	leasesCh chan []*dnsmasq.Lease
 }
 
@@ -224,10 +224,17 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 		return cmp.Compare(a.PastInfo.LastSeen.Unix(), b.PastInfo.LastSeen.Unix())
 	})
 
+	dnsStats, err := getDnsStats()
+	if err != nil {
+		b.logger.Warnf("failed to get updated DNS stats: %s", err.Error())
+		// keep going
+	}
+
 	// finally build the websocket message
 	return WebSocketMessage{
 		CurrentClients: currentClients,
 		PastClients:    pastClients,
+		DnsStats:       dnsStats,
 	}
 }
 
