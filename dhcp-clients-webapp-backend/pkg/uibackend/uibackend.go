@@ -224,7 +224,9 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 		return cmp.Compare(a.PastInfo.LastSeen.Unix(), b.PastInfo.LastSeen.Unix())
 	})
 
-	dnsStats, err := getDnsStats()
+	// this code is meant to be executed on the same machine/container where dnsmasq is running, so
+	// that's why we pass "localhost" as DNS server host:
+	dnsStats, err := getDnsStats("localhost", b.cfg.dnsPort)
 	if err != nil {
 		b.logger.Warnf("failed to get updated DNS stats: %s", err.Error())
 		// keep going

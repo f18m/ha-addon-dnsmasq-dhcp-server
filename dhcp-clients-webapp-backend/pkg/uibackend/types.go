@@ -60,6 +60,7 @@ type AddonConfig struct {
 	// DNS
 	dnsEnable bool
 	dnsDomain string
+	dnsPort   int
 }
 
 // UnmarshalJSON reads the configuration of this Home Assistant addon and converts it
@@ -92,6 +93,7 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 		DnsServer struct {
 			Enable    bool   `json:"enable"`
 			DnsDomain string `json:"dns_domain"`
+			Port      int    `json:"port"`
 		} `json:"dns_server"`
 
 		WebUI struct {
@@ -180,6 +182,7 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 	b.addressReservationLease = cfg.DhcpServer.AddressReservationLease
 	b.dnsEnable = cfg.DnsServer.Enable
 	b.dnsDomain = cfg.DnsServer.DnsDomain
+	b.dnsPort = cfg.DnsServer.Port
 
 	return nil
 }

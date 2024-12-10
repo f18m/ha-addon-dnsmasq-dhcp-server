@@ -50,6 +50,7 @@
   },
   "dns_server": {
     "enable": true,
+    "port": 53,
     "dns_domain": "lan",
     "cache_size": 10000,
     "log_requests": false,

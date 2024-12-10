@@ -70,10 +70,8 @@ func chaosTXTQueryInteger(server, query string, timeout time.Duration) (int, err
 	return intVal, nil
 }
 
-func getDnsStats() (DnsServerStats, error) {
-
-	// this code is meant to be executed on the same machine/container where dnsmasq is running, so:
-	dnsServer := "localhost"
+func getDnsStats(serverHost string, serverPort int) (DnsServerStats, error) {
+	dnsServer := fmt.Sprintf("%s:%d", serverHost, serverPort)
 
 	// since the server is local, the max query duration is expected to be small
 	dnsTimeout := time.Duration(500 * time.Millisecond)
