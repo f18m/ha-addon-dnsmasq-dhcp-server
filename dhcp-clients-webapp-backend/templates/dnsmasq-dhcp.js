@@ -7,7 +7,8 @@
 /* Note that all variables prefixed with "templated_" are globals as well, defined in the HTML template file */
 var table_current = null;
 var table_past = null;
-var dhcp_clients_ws = new WebSocket(templated_webSocketURI);
+var table_dns_upstreams = null;
+var backend_ws = new WebSocket(templated_webSocketURI);
 
 
 /* FUNCTIONS */
@@ -50,13 +51,21 @@ function formatTimeSince(unixPastTimestamp) {
         return "Timestamp in future?";
     }
 
-    // Calculate the remaining time in hours, minutes, and seconds
-    const hoursLeft = Math.floor(timeDifference / (1000 * 60 * 60));
-    const minutesLeft = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
-    const secondsLeft = Math.floor((timeDifference % (1000 * 60)) / 1000);
+    // Calculate the time difference in days, hours, minutes, and seconds
+    const msecsInDay = 1000 * 60 * 60 * 24;
+    const msecsInHour = 1000 * 60 * 60;
+    const msecsInMinute = 1000 * 60;
 
-    // Format the remaining time as a string "HH:MM:SS"
-    return `${hoursLeft.toString().padStart(2, '0')}:${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`;
+    const days = Math.floor(timeDifference / msecsInDay);
+    const hours = Math.floor((timeDifference % msecsInDay) / msecsInHour);
+    const minutes = Math.floor((timeDifference % msecsInHour) / msecsInMinute);
+    const seconds = Math.floor((timeDifference % msecsInMinute) / 1000);
+
+    // Format the time as a string
+    const dayPart = days > 0 ? `${days}d, ` : '';
+    const timePart = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    return dayPart + timePart;
 }
 
 function initTabs() {
@@ -141,6 +150,23 @@ function initPastTable() {
         });
 }
 
+function initDnsUpstreamServersTable() {
+    console.log("Initializing table for DNS upstream servers");
+
+    table_dns_upstreams = new DataTable('#dns_upstream_servers', {
+            columns: [
+                { title: '#', type: 'num' },
+                { title: 'Upstream DNS server', type: 'string' },
+                { title: 'Queries sent', type: 'num' },
+                { title: 'Queries failed', type: 'num' },
+            ],
+            data: [],
+            responsive: true,
+            className: 'data-table',
+            "dom": 'rtip'
+        });
+}
+
 function initTableDarkOrLightTheme() {
     let prefers = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     let html = document.querySelector('html');
@@ -155,8 +181,118 @@ function initTableDarkOrLightTheme() {
 function initAll() {
     initCurrentTable()
     initPastTable()
+    initDnsUpstreamServersTable()
     initTabs()
     initTableDarkOrLightTheme()
+}
+
+function processWebSocketDHCPCurrentClients(data) {
+    console.log("Websocket connection: received " + data.current_clients.length + " current DHCP clients from websocket");
+
+    // rerender the CURRENT table
+    tableData = [];
+    dhcp_addresses_used = 0;
+    dhcp_static_ip = 0;
+    data.current_clients.forEach(function (item, index) {
+        console.log(`CurrentItem ${index + 1}:`, item);
+
+        if (item.is_inside_dhcp_pool)
+            dhcp_addresses_used += 1;
+
+        static_ip_str = "NO";
+        if (item.has_static_ip) {
+            static_ip_str = "YES";
+            dhcp_static_ip += 1;
+        }
+
+        external_link_symbol="🡕"
+        //external_link_symbol="⧉"
+        if (item.evaluated_link) {
+            link_str = "<a href=\"" + item.evaluated_link + "\" target=\"_blank\">" + item.evaluated_link + "</a> " + external_link_symbol
+        } else {
+            link_str = "N/A"
+        }
+
+        // append new row
+        tableData.push([index + 1,
+            item.friendly_name, item.lease.hostname, link_str,
+            item.lease.ip_addr, item.lease.mac_addr, 
+            formatTimeLeft(item.lease.expires), static_ip_str]);
+    });
+    table_current.clear().rows.add(tableData).draw(false /* do not reset page position */);
+
+    return [dhcp_static_ip, dhcp_addresses_used]
+}
+
+function processWebSocketDHCPPastClients(data) {
+    console.log("Websocket connection: received " + data.past_clients.length + " past DHCP clients from websocket");
+
+    // rerender the PAST table
+    tableData = [];
+    data.past_clients.forEach(function (item, index) {
+        console.log(`PastItem ${index + 1}:`, item);
+
+        static_ip_str = "NO";
+        if (item.has_static_ip) {
+            static_ip_str = "YES";
+        }
+
+        // append new row
+        tableData.push([index + 1,
+            item.friendly_name, item.past_info.hostname, 
+            item.past_info.mac_addr, static_ip_str, 
+            formatTimeSince(item.past_info.last_seen), item.notes]);
+    });
+    table_past.clear().rows.add(tableData).draw(false /* do not reset page position */);
+}
+
+function updateDHCPStatus(data, dhcp_static_ip, dhcp_addresses_used, messageElem) {
+    // compute DHCP pool usage
+    var usagePerc = 0
+    if (templated_dhcpPoolSize > 0) {
+        usagePerc = 100 * dhcp_addresses_used / templated_dhcpPoolSize
+
+        // truncate to only 1 digit accuracy
+        usagePerc = Math.round(usagePerc * 10) / 10
+    }
+
+    // format server uptime
+    uptime_str = formatTimeSince(templated_dhcpServerStartTime)
+
+    // update the message
+    messageElem.innerHTML = "<span class='boldText'>" + data.current_clients.length + " DHCP current clients</span> hold a DHCP lease.<br/>" + 
+                        dhcp_static_ip + " have a static IP address configuration.<br/>" +
+                        dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.<br/>" +
+                        "<span class='boldText'>" + data.past_clients.length + " DHCP past clients</span> contacted the server some time ago but failed to do so since last DHCP server restart, " + 
+                        uptime_str + " hh:mm:ss ago.<br/>";
+}
+
+function updateDNSStatus(data, messageElem) {
+    console.log(`DnsStats:`, data.dns_stats);
+
+    // rerender the UPSTREAM SERVERS table
+    tableData = [];
+    if (data.dns_stats.upstream_servers_stats != null) {
+        data.dns_stats.upstream_servers_stats.forEach(function (item, index) {
+            console.log(`Upstream ${index + 1}:`, item);
+
+            // append new row
+            tableData.push([index + 1,
+                item.server_url, 
+                item.queries_sent, 
+                item.queries_failed]);
+        });
+        table_dns_upstreams.clear().rows.add(tableData).draw(false /* do not reset page position */);
+    }
+
+    // update the message
+    messageElem.innerHTML = 
+        "Cache size: <span class='boldText'>" + data.dns_stats.cache_size + "</span><br/>" +
+        "Cache insertions: <span class='boldText'>" + data.dns_stats.cache_insertions + "</span><br/>" +
+        "Cache evictions: <span class='boldText'>" + data.dns_stats.cache_evictions + "</span><br/>" +
+        "Cache misses: <span class='boldText'>" + data.dns_stats.cache_misses + "</span><br/>" +
+        "Cache hits: <span class='boldText'>" + data.dns_stats.cache_hits + "</span><br/>"
+        ;
 }
 
 function processWebSocketEvent(event) {
@@ -167,7 +303,8 @@ function processWebSocketEvent(event) {
         console.error('Error while parsing JSON:', error);
     }
 
-    var message = document.getElementById("message");
+    var dhcpMsgElem = document.getElementById("dhcp_stats_message");
+    var dnsMsgElem = document.getElementById("dns_stats_message");
 
     if (data === null) {
         console.log("Websocket connection: received an empty JSON");
@@ -176,108 +313,48 @@ function processWebSocketEvent(event) {
         table_current.clear().draw();
         table_past.clear().draw();
 
-        message.innerText = "No DHCP clients so far.";
+        dhcpMsgElem.innerText = "No DHCP clients so far.";
+        dnsMsgElem.innerText = "No DNS stats so far.";
 
     } else if (!("current_clients" in data) || 
-                !("past_clients" in data)) {
+                !("past_clients" in data) ||
+                !("dns_stats" in data)) {
         console.error("Websocket connection: expecting a JSON matching the golang WebSocketMessage type, received something else", data);
 
         // clear the table
         table_current.clear().draw();
         table_past.clear().draw();
 
-        message.innerText = "Internal error. Please report upstream together with Javascript logs.";
+        dhcpMsgElem.innerText = "Internal error. Please report upstream together with Javascript logs.";
+        dnsMsgElem.innerText = "Internal error. Please report upstream together with Javascript logs.";
 
     } else {
         // console.log("DEBUG:" + JSON.stringify(data))
-        console.log("Websocket connection: received " + data.current_clients.length + " current clients from websocket");
-        console.log("Websocket connection: received " + data.past_clients.length + " past clients from websocket");
 
-        // rerender the CURRENT table
-        tableData = [];
-        dhcp_addresses_used = 0;
-        dhcp_static_ip = 0;
-        data.current_clients.forEach(function (item, index) {
-            console.log(`CurrentItem ${index + 1}:`, item);
+        // process DHCP 
+        [dhcp_static_ip, dhcp_addresses_used] = processWebSocketDHCPCurrentClients(data)
+        processWebSocketDHCPPastClients(data)
+        updateDHCPStatus(data, dhcp_static_ip, dhcp_addresses_used, dhcpMsgElem)
 
-            if (item.is_inside_dhcp_pool)
-                dhcp_addresses_used += 1;
-
-            static_ip_str = "NO";
-            if (item.has_static_ip) {
-                static_ip_str = "YES";
-                dhcp_static_ip += 1;
-            }
-
-            external_link_symbol="🡕"
-            //external_link_symbol="⧉"
-            if (item.evaluated_link) {
-                link_str = "<a href=\"" + item.evaluated_link + "\" target=\"_blank\">" + item.evaluated_link + "</a> " + external_link_symbol
-            } else {
-                link_str = "N/A"
-            }
-
-            // append new row
-            tableData.push([index + 1,
-                item.friendly_name, item.lease.hostname, link_str,
-                item.lease.ip_addr, item.lease.mac_addr, 
-                formatTimeLeft(item.lease.expires), static_ip_str]);
-        });
-        table_current.clear().rows.add(tableData).draw(false /* do not reset page position */);
-
-        // rerender the PAST table
-        tableData = [];
-        data.past_clients.forEach(function (item, index) {
-            console.log(`PastItem ${index + 1}:`, item);
-
-            static_ip_str = "NO";
-            if (item.has_static_ip) {
-                static_ip_str = "YES";
-            }
-
-            // append new row
-            tableData.push([index + 1,
-                item.friendly_name, item.past_info.hostname, 
-                item.past_info.mac_addr, static_ip_str, 
-                formatTimeSince(item.past_info.last_seen), item.notes]);
-        });
-        table_past.clear().rows.add(tableData).draw(false /* do not reset page position */);
-
-        // compute DHCP pool usage
-        var usagePerc = 0
-        if (templated_dhcpPoolSize > 0) {
-            usagePerc = 100 * dhcp_addresses_used / templated_dhcpPoolSize
-
-            // truncate to only 1 digit accuracy
-            usagePerc = Math.round(usagePerc * 10) / 10
-        }
-
-        // format server uptime
-        uptime_str = formatTimeSince(templated_dhcpServerStartTime)
-
-        // update the message
-        message.innerHTML = "<span class='boldText'>" + data.current_clients.length + " DHCP current clients</span> hold a DHCP lease.<br/>" + 
-                            dhcp_static_ip + " have a static IP address configuration.<br/>" +
-                            dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.<br/>" +
-                            "<span class='boldText'>" + data.past_clients.length + " DHCP past clients</span> contacted the server some while ago but failed to do so since last DHCP server restart, " + 
-                            uptime_str + " hh:mm:ss ago.<br/>";
+        // process DNS
+        updateDNSStatus(data, dnsMsgElem)
     }
 }
 
 // websocket
-dhcp_clients_ws.onopen = function (event) {
+backend_ws.onopen = function (event) {
     console.log("Websocket connection to " + templated_webSocketURI + " was successfully opened");
 };
 
-dhcp_clients_ws.onclose = function (event) {
+backend_ws.onclose = function (event) {
     console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
 }
 
-dhcp_clients_ws.onerror = function (event) {
+backend_ws.onerror = function (event) {
     console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
 }
 
-dhcp_clients_ws.onmessage = function (event) {
+backend_ws.onmessage = function (event) {
     console.log("Websocket received event", event.code, event.reason, event.wasClean)
     processWebSocketEvent(event)
 }

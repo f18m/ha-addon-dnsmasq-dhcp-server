@@ -1,21 +1,40 @@
 ---
 configuration:
-  default_lease:
-    name: Default DHCP lease time 
-    description: This can be given in seconds, minutes (m) or hours (h).
-  address_reservation_lease:
-    name: DHCP lease time for IP address reservations
-    description: This can be given in seconds, minutes (m) or hours (h) or you can use 'infinite'.
+  interface:
+    name: Network interface
+    description: The interface on which the DHCP/DNS server will listen; DHCP requests are listened on port 67; DNS requests are listened on port 53
 
-  network:
-    name: Local Area Network settings
-    description: Contains the definition of the network where the DHCP server will be listening
-  dhcp_range:
-    name: DHCP Server IP Pool
-    description: Defines the range of IP addresses to be served dynamically to the clients
+  dhcp_server:
+    name: DHCP Server settings
+    description: Contains some critical configs for the DHCP server
+  # default_lease:
+  #   name: Default DHCP lease time 
+  #   description: This represents the default DHCP lease time for all DHCP clients except those having an IP address reservation. This can be given in seconds, minutes (m) or hours (h) or you can use 'infinite'.
+  # address_reservation_lease:
+  #   name: DHCP lease time for IP address reservations
+  #   description: This can be given in seconds, minutes (m) or hours (h) or you can use 'infinite'.
+  # start_ip:
+  #     name: DHCP Start IP address
+  #     description: The first IP address of the DHCP range that defines the DHCP address pool.
+  # end_ip:
+  #     name: DHCP End IP address
+  #     description: The last IP address of the DHCP range that defines the DHCP address pool.
+  # log_requests:
+  #   name: Log DHCP
+  #   description: Log all details about DHCP requests served by the server
+  # reset_dhcp_lease_database_on_reboot:
+  #   name: Reset DHCP Lease Database On Reboot
+  #   description: |
+  #     The addon can detect whether the server which is running the addon has just rebooted;
+  #     if that's the case and the following flag is set to "true", then the DHCP lease database
+  #     is reset before starting the DHCP server; this is useful in case a loss of power of the
+  #     HomeAssistant server means also a loss of power of several/all DHCP clients. In such a case
+  #     the old DHCP lease database is not useful and actually misleading.
 
+  dhcp_network:
+    name: Local Area Network Settings
+    description: Contains the properties of the network where the DHCP server will be serving
   # FIXME: somehow the below syntax does not work
-  # network:
   #   broadcast:
   #     name: Network Broadcast Address
   #     description: Check Wikipedia 'Broadcast Address' page for more info. Typical examples of broadcast addresses are 192.168.0.255 or 192.168.1.255.
@@ -32,26 +51,26 @@ configuration:
   #     name: List of DNS servers 
   #     description: DNS servers to advertise inside DHCP OFFER messages.
 
-  # dhcp_range:
-  #   start_ip:
-  #     name: DHCP Start IP address
-  #     description: The first IP address of the DHCP range that defines the DHCP address pool.
-  #   end_ip:
-  #     name: DHCP End IP address
-  #     description: The last IP address of the DHCP range that defines the DHCP address pool.
-  ip_address_reservations:
-    name: IP Address Reservations
+  dhcp_ip_address_reservations:
+    name: DHCP IP Address Reservations
     description: List of MAC addresses / IP addresses pairs that are reserved. Strict regex validation is performed on MAC addresses and hostnames (use alphanumeric chars plus dot or hyphens only).
   dhcp_clients_friendly_names:
     name: DHCP Clients Friendly Names
     description: List of MAC addresses / friendly-name pairs to help identify the DHCP clients in the Web UI. Strict regex validation is performed on MAC addresses.
 
-  log_dhcp:
-    name: Log DHCP
-    description: Log all details about DHCP requests served by the server
-  log_web_ui:
-    name: Log Web UI
-    description: Log all HTTP requests served by the add-on UI
-  web_ui_port:
-    name: Web UI Port
-    description: Port used by the internal HTTP server. Change only if you get a conflict on the default port.
+  dns_server:
+    name: DNS Server Settings
+    description: Enables the possibility to use dnsmasq as a local DNS resolver
+  # log_dns:
+  #   name: Log DNS
+  #   description: Log all details about DNS requests served by the server
+  # upstream_servers:
+  #   name: DNS Upstream Servers
+  #   description: List of DNS servers to which queries are forwarded when local DNS resolver does not have the answer in cache
+  web_ui:
+    name: Web UI Settings
+    description: All settings related to the web UI
+  # port:
+  #   name: Web UI Port
+  #   description: Port used by the internal HTTP server. Change only if you get a conflict on the default port.
+  

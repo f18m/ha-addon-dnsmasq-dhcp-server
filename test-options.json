@@ -1,7 +1,6 @@
 {
-  "default_lease": "12h",
-  "address_reservation_lease": "24h",
-  "ip_address_reservations": [
+  "interface": "enp3s0",
+  "dhcp_ip_address_reservations": [
     {
       "mac": "aa:bb:cc:dd:ee:00",
       "name": "static-ip-important-host",
@@ -22,21 +21,25 @@
       "link": "https://{{ .ip }}/page-{{ .hostname }}"
     }
   ],
-  "dhcp_range": {
+  "dhcp_server": {
+    "default_lease": "12h",
+    "address_reservation_lease": "24h",
     "start_ip": "192.168.1.50",
-    "end_ip": "192.168.1.100"
+    "end_ip": "192.168.1.100",
+    "log_requests": true,
+    "reset_dhcp_lease_database_on_reboot": false
   },
-  "network": {
+  "dhcp_network": {
     "broadcast": "192.168.1.255",
     "gateway": "192.168.1.254",
-    "interface": "enp3s0",
     "netmask": "255.255.255.0",
     "subnet": "192.168.1.0",
-    "dns": [
+    "dns_servers": [
+      "0.0.0.0", 
       "8.8.8.8",
       "8.8.4.4"
     ],
-    "ntp": [
+    "ntp_servers": [
       "0.2.3.4",
       "ntp.pool.org",
       "0.europe.ntp.pool.org",
@@ -45,7 +48,19 @@
       "1.2.3.4"
     ]
   },
-  "log_dhcp": true,
-  "log_web_ui": true,
-  "web_ui_port": 8976
+  "dns_server": {
+    "enable": true,
+    "port": 53,
+    "dns_domain": "lan",
+    "cache_size": 10000,
+    "log_requests": false,
+    "upstream_servers": [
+      "8.8.8.8",
+      "8.8.4.4"
+    ]
+  },
+  "web_ui": {
+    "log_requests": true,
+    "port": 8976
+  }
 }

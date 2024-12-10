@@ -26,10 +26,10 @@ function ipvalid() {
   return 0
 }
 
-function dnsresolve() {
-    NTP_SERVERS="$(jq --raw-output '.network.ntp[]' ${ADDON_CONFIG} 2>/dev/null)"
+function resolve_ntp_servers() {
+    NTP_SERVERS="$(jq --raw-output '.dhcp_network.ntp_servers[]' ${ADDON_CONFIG_RESOLVED} 2>/dev/null)"
     if [[ ! -z "${NTP_SERVERS}" ]]; then
-        bashio::log.info "NTP servers are ${NTP_SERVERS/$'\n'/,}"
+        bashio::log.info "NTP servers are ${NTP_SERVERS//$'\n'/,}"
 
         NTP_SERVERS_RESOLVED=""
         for srv in ${NTP_SERVERS}; do
@@ -52,10 +52,57 @@ function dnsresolve() {
             NTP_SERVERS_RESOLVED=${NTP_SERVERS_RESOLVED::-1}
 
             # add DNS-resolved IP addresses
-            jq -c ".network.ntp_resolved=[$NTP_SERVERS_RESOLVED]" ${ADDON_CONFIG} >${ADDON_CONFIG_RESOLVED}
+            jq --compact-output ".dhcp_network.ntp_resolved=[$NTP_SERVERS_RESOLVED]" \
+                ${ADDON_CONFIG_RESOLVED} >${ADDON_CONFIG_RESOLVED}.tmp
+            mv ${ADDON_CONFIG_RESOLVED}.tmp ${ADDON_CONFIG_RESOLVED}
         fi
-    else
-        cp ${ADDON_CONFIG} ${ADDON_CONFIG_RESOLVED}
+    fi
+}
+
+function get_dnsmasq_interface_ip_address() {
+    INTERFACE="$(jq --raw-output '.interface' ${ADDON_CONFIG} 2>/dev/null)"
+
+    # Get the IP address of the specified interface
+    INTERFACE_IP=$(ip -4 addr show "$INTERFACE" | grep -o 'inet [0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}' | awk '{print $2}')
+    if [[ -z "$INTERFACE_IP" ]]; then
+        echo "Error: Unable to determine IP address for interface $INTERFACE" >&2
+        exit 2
+    fi
+
+    echo "The IP address associated with the dnsmasq interface ${INTERFACE} is: ${INTERFACE_IP}"
+}
+
+function process_dns_servers() {
+    # fill the INTERFACE_IP global variable:
+    get_dnsmasq_interface_ip_address
+
+    DNS_SERVERS="$(jq --raw-output '.dhcp_network.dns_servers[]' ${ADDON_CONFIG} 2>/dev/null)"
+    if [[ ! -z "${DNS_SERVERS}" ]]; then
+        bashio::log.info "DNS servers are ${DNS_SERVERS//$'\n'/,}"
+
+        DNS_SERVERS_RESOLVED=""
+        for srv in ${DNS_SERVERS}; do
+            if ipvalid "$srv"; then
+                if [[ "$srv" == "0.0.0.0" ]]; then
+                    DNS_SERVERS_RESOLVED+="\"${INTERFACE_IP}\","
+                else
+                    DNS_SERVERS_RESOLVED+="\"${srv}\","
+                fi
+            else
+                echo "Found invalid DNS server in DHCP network config: ${srv}. Skipping."
+            fi
+        done
+
+        if [[ ! -z "${DNS_SERVERS_RESOLVED}" ]]; then
+            # pop last comma:
+            DNS_SERVERS_RESOLVED=${DNS_SERVERS_RESOLVED::-1}
+            echo "List of processed DNS servers is: ${DNS_SERVERS_RESOLVED}"
+
+            # add post-processed DNS servers
+            jq --compact-output ".dhcp_network.dns_servers_processed=[$DNS_SERVERS_RESOLVED]" \
+                ${ADDON_CONFIG_RESOLVED} >${ADDON_CONFIG_RESOLVED}.tmp
+            mv ${ADDON_CONFIG_RESOLVED}.tmp ${ADDON_CONFIG_RESOLVED}
+        fi
     fi
 }
 
@@ -84,7 +131,11 @@ function reset_dhcp_leases_database_if_just_rebooted() {
     fi
 }
 
-should_reset_on_reboot=$(bashio::config 'reset_dhcp_lease_database_on_reboot')
+should_reset_on_reboot=$(bashio::config 'dhcp_server.reset_dhcp_lease_database_on_reboot')
+if [[ "$should_reset_on_reboot" = "null" ]]; then
+    should_reset_on_reboot=false
+fi
+bashio::log.info The setting reset_dhcp_lease_database_on_reboot is ${should_reset_on_reboot}"..."
 if $should_reset_on_reboot ; then
     reset_dhcp_leases_database_if_just_rebooted
 fi
@@ -92,8 +143,14 @@ fi
 bashio::log.info "Advancing the DHCP server start epoch..."
 bump_dhcp_server_start_epoch
 
+# by deafult the resolved config is equal to the original config
+cp ${ADDON_CONFIG} ${ADDON_CONFIG_RESOLVED}
+
+# do some processing:
 bashio::log.info "Resolving NTP hostnames eventually provided..."
-dnsresolve
+resolve_ntp_servers
+bashio::log.info "Processing DHCP DNS server list..."
+process_dns_servers
 
 bashio::log.info "Configuring dnsmasq..."
 tempio \

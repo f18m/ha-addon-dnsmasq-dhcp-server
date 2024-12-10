@@ -11,6 +11,182 @@ import (
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 )
 
+// DhcpClientFriendlyName is the 1:1 binding between a MAC address and a human-friendly name
+type DhcpClientFriendlyName struct {
+	MacAddress   net.HardwareAddr
+	FriendlyName string
+	Link         *template.Template // maybe nil
+}
+
+// IpAddressReservation represents a static IP configuration loaded from the addon configuration file
+type IpAddressReservation struct {
+	Name string
+	Mac  net.HardwareAddr
+	IP   netip.Addr
+	Link *template.Template // maybe nil
+}
+
+// AddonConfig is used to unmarshal HomeAssistant option file correctly.
+// This must be updated every time the config.yaml of the addon is changed;
+// however this structure contains only fields that are relevant to the
+// UI backend behavior. In other words the addon config.yaml might contain
+// more settings than those listed here.
+type AddonConfig struct {
+	// Static IP addresses, as read from the configuration
+	ipAddressReservationsByIP  map[netip.Addr]IpAddressReservation
+	ipAddressReservationsByMAC map[string]IpAddressReservation
+
+	// DHCP client friendly names, as read from the configuration
+	// The key of this map is the MAC address formatted as string (since net.HardwareAddr is not a valid map key type)
+	friendlyNames map[string]DhcpClientFriendlyName
+
+	// DHCP range
+	// NOTE: if in the future we want to support more complex DHCP configurations where the DHCP pool
+	//       consists of multiple disjoint IP address ranges, then we should consider using:
+	//       the iprange.Pool object to represent that
+	dhcpStartIP net.IP
+	dhcpEndIP   net.IP
+
+	// Log this backend activities?
+	logDHCP  bool
+	logWebUI bool
+
+	webUIPort int
+
+	// Lease times
+	defaultLease            string
+	addressReservationLease string
+
+	// DNS
+	dnsEnable bool
+	dnsDomain string
+	dnsPort   int
+}
+
+// UnmarshalJSON reads the configuration of this Home Assistant addon and converts it
+// into maps and slices that get stored into the UIBackend instance
+func (b *AddonConfig) UnmarshalJSON(data []byte) error {
+
+	// JSON parse
+	var cfg struct {
+		DhcpIpAddressReservations []struct {
+			Name string `json:"name"`
+			Mac  string `json:"mac"`
+			IP   string `json:"ip"`
+			Link string `json:"link"`
+		} `json:"dhcp_ip_address_reservations"`
+
+		DhcpClientsFriendlyNames []struct {
+			Name string `json:"name"`
+			Mac  string `json:"mac"`
+			Link string `json:"link"`
+		} `json:"dhcp_clients_friendly_names"`
+
+		DhcpServer struct {
+			StartIP                 string `json:"start_ip"`
+			EndIP                   string `json:"end_ip"`
+			LogDHCP                 bool   `json:"log_requests"`
+			DefaultLease            string `json:"default_lease"`
+			AddressReservationLease string `json:"address_reservation_lease"`
+		} `json:"dhcp_server"`
+
+		DnsServer struct {
+			Enable    bool   `json:"enable"`
+			DnsDomain string `json:"dns_domain"`
+			Port      int    `json:"port"`
+		} `json:"dns_server"`
+
+		WebUI struct {
+			Log  bool `json:"log_activity"`
+			Port int  `json:"port"`
+		} `json:"web_ui"`
+	}
+	err := json.Unmarshal(data, &cfg)
+	if err != nil {
+		return err
+	}
+
+	// convert DHCP IP strings to net.IP
+	b.dhcpStartIP = net.ParseIP(cfg.DhcpServer.StartIP)
+	b.dhcpEndIP = net.ParseIP(cfg.DhcpServer.EndIP)
+	if b.dhcpStartIP == nil || b.dhcpEndIP == nil {
+		return fmt.Errorf("invalid DHCP range found in addon config file")
+	}
+
+	// ensure we have a valid port for web UI
+	if cfg.WebUI.Port <= 0 || cfg.WebUI.Port > 32768 {
+		return fmt.Errorf("invalid web UI port number: %d", cfg.WebUI.Port)
+	}
+
+	// convert IP address reservations to a map indexed by IP
+	for _, r := range cfg.DhcpIpAddressReservations {
+		ipAddr, err := netip.ParseAddr(r.IP)
+		if err != nil {
+			return fmt.Errorf("invalid IP address found inside 'ip_address_reservations': %s", r.IP)
+		}
+		macAddr, err := net.ParseMAC(r.Mac)
+		if err != nil {
+			return fmt.Errorf("invalid MAC address found inside 'ip_address_reservations': %s", r.Mac)
+		}
+
+		var linkTemplate *template.Template
+		if r.Link != "" {
+			linkTemplate, err = template.New("linkTemplate").Parse(r.Link)
+			if err != nil {
+				return fmt.Errorf("invalid golang template found inside 'link': %s", r.Link)
+			}
+		}
+
+		// normalize the IP and MAC address format (e.g. to lowercase)
+		r.IP = ipAddr.String()
+		r.Mac = macAddr.String()
+
+		ipReservation := IpAddressReservation{
+			Name: r.Name,
+			Mac:  macAddr,
+			IP:   ipAddr,
+			Link: linkTemplate,
+		}
+
+		b.ipAddressReservationsByIP[ipAddr] = ipReservation
+		b.ipAddressReservationsByMAC[macAddr.String()] = ipReservation
+	}
+
+	// convert friendly names to a map of DhcpClientFriendlyName instances indexed by MAC address
+	for _, client := range cfg.DhcpClientsFriendlyNames {
+		macAddr, err := net.ParseMAC(client.Mac)
+		if err != nil {
+			return fmt.Errorf("invalid MAC address found inside 'dhcp_clients_friendly_names': %s", client.Mac)
+		}
+
+		var linkTemplate *template.Template
+		if client.Link != "" {
+			linkTemplate, err = template.New("linkTemplate").Parse(client.Link)
+			if err != nil {
+				return fmt.Errorf("invalid golang template found inside 'link': %s", client.Link)
+			}
+		}
+
+		b.friendlyNames[macAddr.String()] = DhcpClientFriendlyName{
+			MacAddress:   macAddr,
+			FriendlyName: client.Name,
+			Link:         linkTemplate,
+		}
+	}
+
+	// copy basic settings
+	b.logDHCP = cfg.DhcpServer.LogDHCP
+	b.logWebUI = cfg.WebUI.Log
+	b.webUIPort = cfg.WebUI.Port
+	b.defaultLease = cfg.DhcpServer.DefaultLease
+	b.addressReservationLease = cfg.DhcpServer.AddressReservationLease
+	b.dnsEnable = cfg.DnsServer.Enable
+	b.dnsDomain = cfg.DnsServer.DnsDomain
+	b.dnsPort = cfg.DnsServer.Port
+
+	return nil
+}
+
 // DhcpClientData holds all the information the backend has about a particular DHCP client,
 // currently "connected" to the dnsmasq server.
 // In this context "connected" means: that sent DHCP traffic since the dnsmasq server was started.
@@ -82,163 +258,24 @@ type PastDhcpClientData struct {
 	Notes        string               `json:"notes"`
 }
 
-// DhcpClientFriendlyName is the 1:1 binding between a MAC address and a human-friendly name
-type DhcpClientFriendlyName struct {
-	MacAddress   net.HardwareAddr
-	FriendlyName string
-	Link         *template.Template // maybe nil
+type DnsUpstreamStats struct {
+	// ServerURL typical content (as reported by dnsmasq) looks like "8.8.8.8#53", i.e. IP#PORT
+	ServerURL string `json:"server_url"`
+
+	QueriesSent   int `json:"queries_sent"`
+	QueriesFailed int `json:"queries_failed"`
 }
 
-// IpAddressReservation represents a static IP configuration loaded from the addon configuration file
-type IpAddressReservation struct {
-	Name string
-	Mac  net.HardwareAddr
-	IP   netip.Addr
-	Link *template.Template // maybe nil
-}
-
-// AddonConfig is used to unmarshal HomeAssistant option file correctly
-// This must be updated every time the config.yaml of the addon is changed
-type AddonConfig struct {
-	// Static IP addresses, as read from the configuration
-	ipAddressReservationsByIP  map[netip.Addr]IpAddressReservation
-	ipAddressReservationsByMAC map[string]IpAddressReservation
-
-	// DHCP client friendly names, as read from the configuration
-	// The key of this map is the MAC address formatted as string (since net.HardwareAddr is not a valid map key type)
-	friendlyNames map[string]DhcpClientFriendlyName
-
-	// DHCP range
-	// NOTE: if in the future we want to support more complex DHCP configurations where the DHCP pool
-	//       consists of multiple disjoint IP address ranges, then we should consider using:
-	//       the iprange.Pool object to represent that
-	dhcpStartIP net.IP
-	dhcpEndIP   net.IP
-
-	// Log this backend activities?
-	logDHCP  bool
-	logWebUI bool
-
-	webUIPort int
-
-	// Lease times
-	defaultLease            string
-	addressReservationLease string
-}
-
-// readAddonConfig reads the configuration of this Home Assistant addon and converts it
-// into maps and slices that get stored into the UIBackend instance
-func (b *AddonConfig) UnmarshalJSON(data []byte) error {
-
-	// JSON parse
-	var cfg struct {
-		IpAddressReservations []struct {
-			Name string `json:"name"`
-			Mac  string `json:"mac"`
-			IP   string `json:"ip"`
-			Link string `json:"link"`
-		} `json:"ip_address_reservations"`
-
-		DhcpClientsFriendlyNames []struct {
-			Name string `json:"name"`
-			Mac  string `json:"mac"`
-			Link string `json:"link"`
-		} `json:"dhcp_clients_friendly_names"`
-
-		DhcpRange struct {
-			StartIP string `json:"start_ip"`
-			EndIP   string `json:"end_ip"`
-		} `json:"dhcp_range"`
-
-		LogDHCP  bool `json:"log_dhcp"`
-		LogWebUI bool `json:"log_web_ui"`
-
-		WebUIPort int `json:"web_ui_port"`
-
-		DefaultLease            string `json:"default_lease"`
-		AddressReservationLease string `json:"address_reservation_lease"`
-	}
-	err := json.Unmarshal(data, &cfg)
-	if err != nil {
-		return err
-	}
-
-	// convert DHCP IP strings to net.IP
-	b.dhcpStartIP = net.ParseIP(cfg.DhcpRange.StartIP)
-	b.dhcpEndIP = net.ParseIP(cfg.DhcpRange.EndIP)
-	if b.dhcpStartIP == nil || b.dhcpEndIP == nil {
-		return fmt.Errorf("invalid DHCP range found in addon config file")
-	}
-
-	// ensure we have a valid port for web UI
-	if cfg.WebUIPort <= 0 || cfg.WebUIPort > 32768 {
-		return fmt.Errorf("invalid web UI port number: %d", cfg.WebUIPort)
-	}
-
-	// convert IP address reservations to a map indexed by IP
-	for _, r := range cfg.IpAddressReservations {
-		ipAddr, err := netip.ParseAddr(r.IP)
-		if err != nil {
-			return fmt.Errorf("invalid IP address found inside 'ip_address_reservations': %s", r.IP)
-		}
-		macAddr, err := net.ParseMAC(r.Mac)
-		if err != nil {
-			return fmt.Errorf("invalid MAC address found inside 'ip_address_reservations': %s", r.Mac)
-		}
-
-		var linkTemplate *template.Template
-		if r.Link != "" {
-			linkTemplate, err = template.New("linkTemplate").Parse(r.Link)
-			if err != nil {
-				return fmt.Errorf("invalid golang template found inside 'link': %s", r.Link)
-			}
-		}
-
-		// normalize the IP and MAC address format (e.g. to lowercase)
-		r.IP = ipAddr.String()
-		r.Mac = macAddr.String()
-
-		ipReservation := IpAddressReservation{
-			Name: r.Name,
-			Mac:  macAddr,
-			IP:   ipAddr,
-			Link: linkTemplate,
-		}
-
-		b.ipAddressReservationsByIP[ipAddr] = ipReservation
-		b.ipAddressReservationsByMAC[macAddr.String()] = ipReservation
-	}
-
-	// convert friendly names to a map of DhcpClientFriendlyName instances indexed by MAC address
-	for _, client := range cfg.DhcpClientsFriendlyNames {
-		macAddr, err := net.ParseMAC(client.Mac)
-		if err != nil {
-			return fmt.Errorf("invalid MAC address found inside 'dhcp_clients_friendly_names': %s", client.Mac)
-		}
-
-		var linkTemplate *template.Template
-		if client.Link != "" {
-			linkTemplate, err = template.New("linkTemplate").Parse(client.Link)
-			if err != nil {
-				return fmt.Errorf("invalid golang template found inside 'link': %s", client.Link)
-			}
-		}
-
-		b.friendlyNames[macAddr.String()] = DhcpClientFriendlyName{
-			MacAddress:   macAddr,
-			FriendlyName: client.Name,
-			Link:         linkTemplate,
-		}
-	}
-
-	// copy basic settings
-	b.logDHCP = cfg.LogDHCP
-	b.logWebUI = cfg.LogWebUI
-	b.webUIPort = cfg.WebUIPort
-	b.defaultLease = cfg.DefaultLease
-	b.addressReservationLease = cfg.AddressReservationLease
-
-	return nil
+// DnsServerStats contains all the available dnsmasq DNS server metrics
+type DnsServerStats struct {
+	// The domain names are cachesize.bind, insertions.bind, evictions.bind, misses.bind, hits.bind, auth.bind and servers.bind unless disabled at compile-time. An example command to query this, using the dig utility would be
+	// dig +short chaos txt cachesize.bind
+	CacheSize       int                `json:"cache_size"`
+	CacheInsertions int                `json:"cache_insertions"`
+	CacheEvictions  int                `json:"cache_evictions"`
+	CacheMisses     int                `json:"cache_misses"`
+	CacheHits       int                `json:"cache_hits"`
+	UpstreamServers []DnsUpstreamStats `json:"upstream_servers_stats"`
 }
 
 // WebSocketMessage defines which contents get transmitted over the websocket in the
@@ -255,4 +292,7 @@ type WebSocketMessage struct {
 	// PastClients contains the list of clients that were connected in the past, but never
 	// obtained a DHCP lease since the last dnsmasq server restart.
 	PastClients []PastDhcpClientData `json:"past_clients"`
+
+	// DnsStats provides a live feed about DNS server basic metrics.
+	DnsStats DnsServerStats `json:"dns_stats"`
 }

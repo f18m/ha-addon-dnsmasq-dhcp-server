@@ -58,7 +58,11 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # build & push for TAG builds
+        
+      # -------------------------------------------------------------------------- #
+      #                       build & push for tagged builds                       #
+      # -------------------------------------------------------------------------- #
+
       - name: Check coherency between tag and config.yaml
         run: |
           git_tag=${GITHUB_REF##*/}
@@ -89,7 +93,11 @@ jobs:
             --docker-hub ghcr.io/f18m
         if: ${{ needs.check_tag.outputs.is_tag == 'true' }}
 
-      # build & push for non-TAG builds
+
+      # -------------------------------------------------------------------------- #
+      #                       build & push for non-TAG builds                      #
+      # -------------------------------------------------------------------------- #
+
       - name: Metadata extraction
         id: meta
         uses: docker/metadata-action@v5
@@ -99,13 +107,14 @@ jobs:
           echo "Docker image will be versioned as: ${{ steps.meta.outputs.version }}"
         if: ${{ needs.check_tag.outputs.is_tag == 'false' }}
 
+      # notice that we build only 1 arch to speedup
       # notice the additional --version and --no-latest flags
       # compared to the variant for TAG builds:
       - name: Docker build and push (non-tag builds)
         uses: home-assistant/builder@master
         with:
           args: |
-            --armv7 --amd64 --aarch64 --i386 \
+            --amd64 \
             --target myaddon \
             --docker-hub ghcr.io/f18m \
             --version ${{ steps.meta.outputs.version }} \
