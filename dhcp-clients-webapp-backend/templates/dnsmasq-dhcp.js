@@ -50,13 +50,21 @@ function formatTimeSince(unixPastTimestamp) {
         return "Timestamp in future?";
     }
 
-    // Calculate the remaining time in hours, minutes, and seconds
-    const hoursLeft = Math.floor(timeDifference / (1000 * 60 * 60));
-    const minutesLeft = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
-    const secondsLeft = Math.floor((timeDifference % (1000 * 60)) / 1000);
+    // Calculate the time difference in days, hours, minutes, and seconds
+    const msecsInDay = 1000 * 60 * 60 * 24;
+    const msecsInHour = 1000 * 60 * 60;
+    const msecsInMinute = 1000 * 60;
 
-    // Format the remaining time as a string "HH:MM:SS"
-    return `${hoursLeft.toString().padStart(2, '0')}:${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`;
+    const days = Math.floor(timeDifference / msecsInDay);
+    const hours = Math.floor((timeDifference % msecsInDay) / msecsInHour);
+    const minutes = Math.floor((timeDifference % msecsInHour) / msecsInMinute);
+    const seconds = Math.floor((timeDifference % msecsInMinute) / 1000);
+
+    // Format the time as a string
+    const dayPart = days > 0 ? `${days}d, ` : '';
+    const timePart = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    return dayPart + timePart;
 }
 
 function initTabs() {
@@ -167,7 +175,7 @@ function processWebSocketEvent(event) {
         console.error('Error while parsing JSON:', error);
     }
 
-    var message = document.getElementById("message");
+    var message = document.getElementById("dhcp_stats_message");
 
     if (data === null) {
         console.log("Websocket connection: received an empty JSON");
@@ -259,7 +267,7 @@ function processWebSocketEvent(event) {
         message.innerHTML = "<span class='boldText'>" + data.current_clients.length + " DHCP current clients</span> hold a DHCP lease.<br/>" + 
                             dhcp_static_ip + " have a static IP address configuration.<br/>" +
                             dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.<br/>" +
-                            "<span class='boldText'>" + data.past_clients.length + " DHCP past clients</span> contacted the server some while ago but failed to do so since last DHCP server restart, " + 
+                            "<span class='boldText'>" + data.past_clients.length + " DHCP past clients</span> contacted the server some time ago but failed to do so since last DHCP server restart, " + 
                             uptime_str + " hh:mm:ss ago.<br/>";
     }
 }

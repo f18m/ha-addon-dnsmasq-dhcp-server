@@ -97,8 +97,11 @@ type IpAddressReservation struct {
 	Link *template.Template // maybe nil
 }
 
-// AddonConfig is used to unmarshal HomeAssistant option file correctly
-// This must be updated every time the config.yaml of the addon is changed
+// AddonConfig is used to unmarshal HomeAssistant option file correctly.
+// This must be updated every time the config.yaml of the addon is changed;
+// however this structure contains only fields that are relevant to the
+// UI backend behavior. In other words the addon config.yaml might contain
+// more settings than those listed here.
 type AddonConfig struct {
 	// Static IP addresses, as read from the configuration
 	ipAddressReservationsByIP  map[netip.Addr]IpAddressReservation
@@ -124,20 +127,24 @@ type AddonConfig struct {
 	// Lease times
 	defaultLease            string
 	addressReservationLease string
+
+	// DNS
+	dnsEnable bool
+	dnsDomain string
 }
 
-// readAddonConfig reads the configuration of this Home Assistant addon and converts it
+// UnmarshalJSON reads the configuration of this Home Assistant addon and converts it
 // into maps and slices that get stored into the UIBackend instance
 func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 
 	// JSON parse
 	var cfg struct {
-		IpAddressReservations []struct {
+		DhcpIpAddressReservations []struct {
 			Name string `json:"name"`
 			Mac  string `json:"mac"`
 			IP   string `json:"ip"`
 			Link string `json:"link"`
-		} `json:"ip_address_reservations"`
+		} `json:"dhcp_ip_address_reservations"`
 
 		DhcpClientsFriendlyNames []struct {
 			Name string `json:"name"`
@@ -145,18 +152,23 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			Link string `json:"link"`
 		} `json:"dhcp_clients_friendly_names"`
 
-		DhcpRange struct {
-			StartIP string `json:"start_ip"`
-			EndIP   string `json:"end_ip"`
-		} `json:"dhcp_range"`
+		DhcpServer struct {
+			StartIP                 string `json:"start_ip"`
+			EndIP                   string `json:"end_ip"`
+			LogDHCP                 bool   `json:"log_requests"`
+			DefaultLease            string `json:"default_lease"`
+			AddressReservationLease string `json:"address_reservation_lease"`
+		} `json:"dhcp_server"`
 
-		LogDHCP  bool `json:"log_dhcp"`
-		LogWebUI bool `json:"log_web_ui"`
+		DnsServer struct {
+			Enable    bool   `json:"enable"`
+			DnsDomain string `json:"dns_domain"`
+		} `json:"dns_server"`
 
-		WebUIPort int `json:"web_ui_port"`
-
-		DefaultLease            string `json:"default_lease"`
-		AddressReservationLease string `json:"address_reservation_lease"`
+		WebUI struct {
+			Log  bool `json:"log_activity"`
+			Port int  `json:"port"`
+		} `json:"web_ui"`
 	}
 	err := json.Unmarshal(data, &cfg)
 	if err != nil {
@@ -164,19 +176,19 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 	}
 
 	// convert DHCP IP strings to net.IP
-	b.dhcpStartIP = net.ParseIP(cfg.DhcpRange.StartIP)
-	b.dhcpEndIP = net.ParseIP(cfg.DhcpRange.EndIP)
+	b.dhcpStartIP = net.ParseIP(cfg.DhcpServer.StartIP)
+	b.dhcpEndIP = net.ParseIP(cfg.DhcpServer.EndIP)
 	if b.dhcpStartIP == nil || b.dhcpEndIP == nil {
 		return fmt.Errorf("invalid DHCP range found in addon config file")
 	}
 
 	// ensure we have a valid port for web UI
-	if cfg.WebUIPort <= 0 || cfg.WebUIPort > 32768 {
-		return fmt.Errorf("invalid web UI port number: %d", cfg.WebUIPort)
+	if cfg.WebUI.Port <= 0 || cfg.WebUI.Port > 32768 {
+		return fmt.Errorf("invalid web UI port number: %d", cfg.WebUI.Port)
 	}
 
 	// convert IP address reservations to a map indexed by IP
-	for _, r := range cfg.IpAddressReservations {
+	for _, r := range cfg.DhcpIpAddressReservations {
 		ipAddr, err := netip.ParseAddr(r.IP)
 		if err != nil {
 			return fmt.Errorf("invalid IP address found inside 'ip_address_reservations': %s", r.IP)
@@ -232,11 +244,13 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 	}
 
 	// copy basic settings
-	b.logDHCP = cfg.LogDHCP
-	b.logWebUI = cfg.LogWebUI
-	b.webUIPort = cfg.WebUIPort
-	b.defaultLease = cfg.DefaultLease
-	b.addressReservationLease = cfg.AddressReservationLease
+	b.logDHCP = cfg.DhcpServer.LogDHCP
+	b.logWebUI = cfg.WebUI.Log
+	b.webUIPort = cfg.WebUI.Port
+	b.defaultLease = cfg.DhcpServer.DefaultLease
+	b.addressReservationLease = cfg.DhcpServer.AddressReservationLease
+	b.dnsEnable = cfg.DnsServer.Enable
+	b.dnsDomain = cfg.DnsServer.DnsDomain
 
 	return nil
 }

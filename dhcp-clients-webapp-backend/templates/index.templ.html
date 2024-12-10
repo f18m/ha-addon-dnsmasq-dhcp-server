@@ -31,24 +31,29 @@
     </script>
 </head>
 <body>
-    <h1 class="topLevel">DHCP Clients</h1>
-
-    <p class="topLevel" id="addon_cfg">
-        The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }} - {{ .DhcpEndIP }}</span>.
-        The default lease time is <span class="monoText">{{ .DefaultLease }}</span>.
-        The lease time for clients with IP address reservations is <span class="monoText">{{ .AddressReservationLease }}</span>.<br/>
-    </p>
-    <p class="topLevel" id="message"></p>
+    <h1 class="topLevel">Dnsmasq-DHCP addon</h1>
 
     <div class="container">
         <div class="tabs">
           <div class="tabs__pills">
-            <button class="btn active" data-id="current_clients">Current DHCP Clients</button>
-            <button class="btn" data-id="past_clients">Past DHCP Clients</button>
+            <button class="btn active" data-id="dhcp_summary">DHCP Summary</button>
+            <button class="btn" data-id="dhcp_current_clients">Current DHCP Clients</button>
+            <button class="btn" data-id="dhcp_past_clients">Past DHCP Clients</button>
+            <button class="btn" data-id="dns_summary">DNS Summary</button>
           </div>
     
           <div class="tabs__panels">
-            <div id="current_clients" class="active">
+            <div id="dhcp_summary" class="active">
+                <h2>DHCP Server Summary</h2>
+
+                <p class="topLevel" id="dhcp_addon_cfg">
+                    The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }} - {{ .DhcpEndIP }}</span>.<br/>
+                    The default lease time is <span class="monoText">{{ .DefaultLease }}</span>.
+                    The lease time for clients with IP address reservations is <span class="monoText">{{ .AddressReservationLease }}</span>.<br/>
+                </p>
+                <p class="topLevel" id="dhcp_stats_message"></p>                
+            </div>
+            <div id="dhcp_current_clients">
                             
                 <!-- the Datatables.net table will be attached to this TABLE element -->
                 <table id="current_table" class="display" width="100%"></table>
@@ -67,10 +72,21 @@
                         <span class="monoText">HH:MM:SS</span>.</li>
                 </ul>
             </div>
-            <div id="past_clients">
+            <div id="dhcp_past_clients">
                 
                 <!-- the Datatables.net table will be attached to this TABLE element -->
                 <table id="past_table" class="display" width="100%"></table>
+
+            </div>
+            <div id="dns_summary">
+                <h2>DNS Server Summary</h2>
+
+                <p class="topLevel" id="dns_addon_cfg">
+                    DNS server is: <span class="monoText">{{ .DnsEnabled }}</span><br/>
+                    DNS domain: <span class="monoText">{{ .DnsDomain }}</span>
+                </p>
+
+                <p class="topLevel" id="dns_stats_message"></p>  
 
             </div>
           </div>

@@ -46,6 +46,13 @@ non-informative, so Dnsmasq-DHCP allow users to override that by specifying a hu
 name for a particular DHCP client (using its MAC address as identifier).
 
 
+### HomeAssistant mDNS
+
+HomeAssistant runs an [mDNS](https://en.wikipedia.org/wiki/Multicast_DNS) server on port 5353.
+This is not impacted in any way by the DNS server functionality offered by this addon.
+
+
+
 ## Links
 
 - [dnsmasq manual page](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html)
