@@ -89,9 +89,12 @@ options:
   dns_server:
     # should this addon provide also a DNS server?
     enable: true
+    # on which port the dnsmasq DNS server must listen to?
+    port: 53
     # how many entries should be cached on the DNS server to reduce traffic to upstream DNS servers?
     # the max size for this cache is 10k entries according to dnsmasq docs
     cache_size: 10000
+    # log_requests will enable logging all DNS requests... which results in a very verbose log!!
     log_requests: false
     # DNS domain to resolve locally
     dns_domain: lan
@@ -136,6 +139,7 @@ schema:
       link: "str?"
   dns_server:
     enable: bool
+    port: int
     cache_size: int
     log_requests: bool
     dns_domain: str

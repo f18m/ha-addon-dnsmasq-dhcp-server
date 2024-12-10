@@ -16,7 +16,7 @@ This addon also implements a UI webpage to view the list of DHCP clients with al
 
 ## About
 
-This addon setups and manages a Dnsmasq instance configured to run as a DNS and DHCP server (despite the name 'dnsmasq' also provides DHCP server functionalities, not only DNS).
+This addon setups and manages a Dnsmasq instance configured to run both as a DNS and DHCP server (despite the name 'dnsmasq' also provides DHCP server functionalities, not only DNS).
 
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
@@ -64,3 +64,16 @@ The UI nginx reverse-proxy configuration has been adapted from:
 ## How to Install
 
 Check out the [addon docs](DOCS.md). Open an issue if you hit any problem.
+
+## Similar Addons
+
+* [dnsmasq](https://github.com/home-assistant/addons/tree/master/dnsmasq): a simple DNS server addon (no DHCP).
+* [AdGuard Home](https://github.com/hassio-addons/addon-adguard-home): network-wide ads & trackers blocking DNS server. It also includes an embedded DHCP server.
+
+## Other Noteworthy Projects
+
+* [pihole](https://pi-hole.net/): pi-hole embeds a modified dnsmasq variant (they named it FTL, Faster Than Light) which provides a bunch of DNS metrics that are missing from the regular dnsmasq binary.
+
+## Future Developments
+
+It might be interesting to 

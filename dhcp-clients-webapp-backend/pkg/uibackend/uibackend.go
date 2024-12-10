@@ -156,7 +156,7 @@ func (b *UIBackend) logRequestMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (b *UIBackend) getWebSocketMessage() WebSocketMessage {
+func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 
 	// get a copy of latest status -- lock it during the copy, to avoid race conditions
 	// with the dnsmasq.leases watcher goroutine:
@@ -239,7 +239,7 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 	}
 	defer ws.Close()
 
-	msg := b.getWebSocketMessage()
+	msg := b.generateWebSocketMessage()
 	b.logger.Infof("Received new websocket client: pushing %d/%d current/past DHCP clients to it",
 		len(msg.CurrentClients), len(msg.PastClients))
 
@@ -273,7 +273,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 
 	ticker := time.NewTicker(10 * time.Second)
 
-	msg := b.getWebSocketMessage()
+	msg := b.generateWebSocketMessage()
 	for {
 		select {
 		case <-b.broadcastCh:
@@ -291,7 +291,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 
 		if len(b.clients) > 0 {
 			// regen message
-			msg = b.getWebSocketMessage()
+			msg = b.generateWebSocketMessage()
 
 			// loop over all clients
 			numSuccess := 0
@@ -388,17 +388,27 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		dhcpPoolSize = int(iprange.New(b.cfg.dhcpStartIP, b.cfg.dhcpEndIP).Size().Int64())
 	}
 
+	// DNS
+	dnsEnableString := "disabled"
+	if b.cfg.dnsEnable {
+		dnsEnableString = "enabled"
+	}
+
 	templateData := struct {
 		// websockets
 		WebSocketURI string
 
-		// config info that are handy to have in the UI page
+		// DHCP config info that are handy to have in the UI page
 		DhcpStartIP             string
 		DhcpEndIP               string
 		DhcpPoolSize            int
 		DefaultLease            string
 		AddressReservationLease string
 		DHCPServerStartTime     int64
+
+		// DNS config info
+		DnsEnabled string
+		DnsDomain  string
 
 		// embedded contents
 		CssFileContent        template.CSS
@@ -420,6 +430,11 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		// time of this app
 		DHCPServerStartTime: b.startTimestamp.Unix(),
 
+		// DNS config info
+		DnsEnabled: dnsEnableString,
+		DnsDomain:  b.cfg.dnsDomain,
+
+		// embedded contents
 		CssFileContent:        template.CSS(b.cssContents),
 		JavascriptFileContent: template.JS(b.jsContents),
 	}
@@ -522,6 +537,7 @@ func (b *UIBackend) evaluateLink(hostname string, ip netip.Addr, mac net.Hardwar
 		"ip":            ip.String(),
 		"hostname":      hostname,
 		"friendly_name": friendlyName,
+		"dns_domain":    b.cfg.dnsDomain,
 	})
 	if err != nil {
 		b.logger.Warnf("failed to render the link template [%v]", theTemplate)

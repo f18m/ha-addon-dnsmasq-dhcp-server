@@ -97,8 +97,11 @@ type IpAddressReservation struct {
 	Link *template.Template // maybe nil
 }
 
-// AddonConfig is used to unmarshal HomeAssistant option file correctly
-// This must be updated every time the config.yaml of the addon is changed
+// AddonConfig is used to unmarshal HomeAssistant option file correctly.
+// This must be updated every time the config.yaml of the addon is changed;
+// however this structure contains only fields that are relevant to the
+// UI backend behavior. In other words the addon config.yaml might contain
+// more settings than those listed here.
 type AddonConfig struct {
 	// Static IP addresses, as read from the configuration
 	ipAddressReservationsByIP  map[netip.Addr]IpAddressReservation
@@ -124,9 +127,13 @@ type AddonConfig struct {
 	// Lease times
 	defaultLease            string
 	addressReservationLease string
+
+	// DNS
+	dnsEnable bool
+	dnsDomain string
 }
 
-// readAddonConfig reads the configuration of this Home Assistant addon and converts it
+// UnmarshalJSON reads the configuration of this Home Assistant addon and converts it
 // into maps and slices that get stored into the UIBackend instance
 func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 
@@ -152,6 +159,11 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			DefaultLease            string `json:"default_lease"`
 			AddressReservationLease string `json:"address_reservation_lease"`
 		} `json:"dhcp_server"`
+
+		DnsServer struct {
+			Enable    bool   `json:"enable"`
+			DnsDomain string `json:"dns_domain"`
+		} `json:"dns_server"`
 
 		WebUI struct {
 			Log  bool `json:"log_activity"`
@@ -237,6 +249,8 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 	b.webUIPort = cfg.WebUI.Port
 	b.defaultLease = cfg.DhcpServer.DefaultLease
 	b.addressReservationLease = cfg.DhcpServer.AddressReservationLease
+	b.dnsEnable = cfg.DnsServer.Enable
+	b.dnsDomain = cfg.DnsServer.DnsDomain
 
 	return nil
 }

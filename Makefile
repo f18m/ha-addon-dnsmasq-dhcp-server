@@ -60,10 +60,13 @@ test-docker-image:
 		${DOCKER_RUN_OPTIONS} \
 		${IMAGETAG}:localtest
 
-
+# NOTE: in the HTTP link below the port is actually the one in test-options.json, and currently it's 8976
 test-docker-image-live: 
 	docker build -f Dockerfile.live -t debug-image-live .
+	@echo
 	@echo "Starting container of image debug-image-live" 
+	@echo "Point your browser at http://localhost:8976"
+	@echo
 	docker run \
 		--rm \
 		--name $(TEST_CONTAINER_NAME) \
