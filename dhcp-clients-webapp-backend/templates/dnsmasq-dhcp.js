@@ -7,7 +7,8 @@
 /* Note that all variables prefixed with "templated_" are globals as well, defined in the HTML template file */
 var table_current = null;
 var table_past = null;
-var dhcp_clients_ws = new WebSocket(templated_webSocketURI);
+var table_dns_upstreams = null;
+var backend_ws = new WebSocket(templated_webSocketURI);
 
 
 /* FUNCTIONS */
@@ -149,6 +150,23 @@ function initPastTable() {
         });
 }
 
+function initDnsUpstreamServersTable() {
+    console.log("Initializing table for DNS upstream servers");
+
+    table_dns_upstreams = new DataTable('#dns_upstream_servers', {
+            columns: [
+                { title: '#', type: 'num' },
+                { title: 'Upstream DNS server', type: 'string' },
+                { title: 'Queries sent', type: 'num' },
+                { title: 'Queries failed', type: 'num' },
+            ],
+            data: [],
+            responsive: true,
+            className: 'data-table',
+            "dom": 'rtip'
+        });
+}
+
 function initTableDarkOrLightTheme() {
     let prefers = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     let html = document.querySelector('html');
@@ -163,6 +181,7 @@ function initTableDarkOrLightTheme() {
 function initAll() {
     initCurrentTable()
     initPastTable()
+    initDnsUpstreamServersTable()
     initTabs()
     initTableDarkOrLightTheme()
 }
@@ -202,7 +221,7 @@ function processWebSocketDHCPCurrentClients(data) {
     });
     table_current.clear().rows.add(tableData).draw(false /* do not reset page position */);
 
-    return dhcp_static_ip, dhcp_addresses_used
+    return [dhcp_static_ip, dhcp_addresses_used]
 }
 
 function processWebSocketDHCPPastClients(data) {
@@ -248,6 +267,34 @@ function updateDHCPStatus(data, dhcp_static_ip, dhcp_addresses_used, messageElem
                         uptime_str + " hh:mm:ss ago.<br/>";
 }
 
+function updateDNSStatus(data, messageElem) {
+    console.log(`DnsStats:`, data.dns_stats);
+
+    // rerender the UPSTREAM SERVERS table
+    tableData = [];
+    if (data.dns_stats.upstream_servers_stats != null) {
+        data.dns_stats.upstream_servers_stats.forEach(function (item, index) {
+            console.log(`Upstream ${index + 1}:`, item);
+
+            // append new row
+            tableData.push([index + 1,
+                item.server_url, 
+                item.queries_sent, 
+                item.queries_failed]);
+        });
+        table_dns_upstreams.clear().rows.add(tableData).draw(false /* do not reset page position */);
+    }
+
+    // update the message
+    messageElem.innerHTML = 
+        "Cache size: <span class='boldText'>" + data.dns_stats.cache_size + "</span><br/>" +
+        "Cache insertions: <span class='boldText'>" + data.dns_stats.cache_insertions + "</span><br/>" +
+        "Cache evictions: <span class='boldText'>" + data.dns_stats.cache_evictions + "</span><br/>" +
+        "Cache misses: <span class='boldText'>" + data.dns_stats.cache_misses + "</span><br/>" +
+        "Cache hits: <span class='boldText'>" + data.dns_stats.cache_hits + "</span><br/>"
+        ;
+}
+
 function processWebSocketEvent(event) {
 
     try {
@@ -256,7 +303,8 @@ function processWebSocketEvent(event) {
         console.error('Error while parsing JSON:', error);
     }
 
-    var message = document.getElementById("dhcp_stats_message");
+    var dhcpMsgElem = document.getElementById("dhcp_stats_message");
+    var dnsMsgElem = document.getElementById("dns_stats_message");
 
     if (data === null) {
         console.log("Websocket connection: received an empty JSON");
@@ -265,7 +313,8 @@ function processWebSocketEvent(event) {
         table_current.clear().draw();
         table_past.clear().draw();
 
-        message.innerText = "No DHCP clients so far.";
+        dhcpMsgElem.innerText = "No DHCP clients so far.";
+        dnsMsgElem.innerText = "No DNS stats so far.";
 
     } else if (!("current_clients" in data) || 
                 !("past_clients" in data) ||
@@ -276,35 +325,36 @@ function processWebSocketEvent(event) {
         table_current.clear().draw();
         table_past.clear().draw();
 
-        message.innerText = "Internal error. Please report upstream together with Javascript logs.";
+        dhcpMsgElem.innerText = "Internal error. Please report upstream together with Javascript logs.";
+        dnsMsgElem.innerText = "Internal error. Please report upstream together with Javascript logs.";
 
     } else {
         // console.log("DEBUG:" + JSON.stringify(data))
 
         // process DHCP 
-        dhcp_static_ip, dhcp_addresses_used = processWebSocketDHCPCurrentClients(data)
+        [dhcp_static_ip, dhcp_addresses_used] = processWebSocketDHCPCurrentClients(data)
         processWebSocketDHCPPastClients(data)
-        updateDHCPStatus(data, dhcp_static_ip, dhcp_addresses_used, message)
+        updateDHCPStatus(data, dhcp_static_ip, dhcp_addresses_used, dhcpMsgElem)
 
         // process DNS
-        
+        updateDNSStatus(data, dnsMsgElem)
     }
 }
 
 // websocket
-dhcp_clients_ws.onopen = function (event) {
+backend_ws.onopen = function (event) {
     console.log("Websocket connection to " + templated_webSocketURI + " was successfully opened");
 };
 
-dhcp_clients_ws.onclose = function (event) {
+backend_ws.onclose = function (event) {
     console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
 }
 
-dhcp_clients_ws.onerror = function (event) {
+backend_ws.onerror = function (event) {
     console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
 }
 
-dhcp_clients_ws.onmessage = function (event) {
+backend_ws.onmessage = function (event) {
     console.log("Websocket received event", event.code, event.reason, event.wasClean)
     processWebSocketEvent(event)
 }
