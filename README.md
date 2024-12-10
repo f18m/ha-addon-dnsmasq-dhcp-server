@@ -1,8 +1,8 @@
 # Home Assistant Add-on: Dnsmasq as DNS and DHCP server
 
 This addon provides 
-* a DNS server (optional)
 * a DHCP server
+* a DNS server (optional)
 that are meant to be used in your HomeAssistant Local Area Network (LAN), to make HomeAssistant the central point of 
 the network configuration: IP address allocations, FQDN resolutions, etc.
 
@@ -39,9 +39,18 @@ This addon setups and manages a Dnsmasq instance configured to run both as a DNS
 
 ## Web UI
 
-These are screenshots from the addon UI v1.4.0:
+These are screenshots from the addon UI v2.0.0.
+
+DHCP basic summary:
+
+<img src="docs/screenshot1.png" alt="WebUI screenshot"/>
+
+DHCP current clients, with DHCP lease expiration time indicator, custom link using local DNS resolver (for the `lan` domain):
 
 <img src="docs/screenshot2.png" alt="WebUI screenshot"/>
+
+DNS basic stats:
+
 <img src="docs/screenshot3.png" alt="WebUI screenshot"/>
 
 The two screenshots show the Current and the Past DHCP clients tabs.
@@ -63,12 +72,14 @@ The UI nginx reverse-proxy configuration has been adapted from:
 
 ## How to Install
 
-Check out the [addon docs](DOCS.md). Open an issue if you hit any problem.
+Check out the [addon docs](DOCS.md). Open an [issue](https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/issues) if you hit any problem.
 
 ## Similar Addons
 
 * [dnsmasq](https://github.com/home-assistant/addons/tree/master/dnsmasq): a simple DNS server addon (no DHCP).
 * [AdGuard Home](https://github.com/hassio-addons/addon-adguard-home): network-wide ads & trackers blocking DNS server. It also includes an embedded DHCP server.
+
+Please note that you can use this addon in tandem with similar addons and e.g. configure AdGuard Home to fallback to the DNS server provided by this addon only for hosts having the `lan` top-level domain.
 
 ## Other Noteworthy Projects
 
