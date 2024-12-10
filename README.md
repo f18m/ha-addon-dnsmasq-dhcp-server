@@ -76,4 +76,7 @@ Check out the [addon docs](DOCS.md). Open an issue if you hit any problem.
 
 ## Future Developments
 
-It might be interesting to 
+* need to write more docs about the addon configuration settings
+* would be nice to provide some indication about the DNS cache metrics, see e.g. the explanations at https://docs.pi-hole.net/ftldns/dns-cache/ 
+* would be nice to provide an HomeAssistant sensor about DHCP clients transitioning from "current" to "past"
+
