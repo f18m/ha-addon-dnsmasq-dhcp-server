@@ -547,6 +547,8 @@ func (b *UIBackend) evaluateLink(hostname string, ip netip.Addr, mac net.Hardwar
 		"hostname":      hostname,
 		"friendly_name": friendlyName,
 		"dns_domain":    b.cfg.dnsDomain,
+		// 'fqdn' is something that should be resolvable by the dnsmasq DNS server:
+		"fqdn": fmt.Sprintf("%s.%s", hostname, b.cfg.dnsDomain),
 	})
 	if err != nil {
 		b.logger.Warnf("failed to render the link template [%v]", theTemplate)
