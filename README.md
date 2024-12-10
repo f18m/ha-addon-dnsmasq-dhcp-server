@@ -59,18 +59,7 @@ Plus they're responsive and thus adapt nicely to small screens (cellphones).
 
 Last the Web UI supports both light and dark modes.
 
-## Development
-
-See [Home Assistant addon guide](https://developers.home-assistant.io/docs/add-ons)
-
-This addon is based on other 2 addons maintained by Home Assistant team:
-* https://github.com/home-assistant/addons/tree/master/dnsmasq
-* https://github.com/home-assistant/addons/tree/master/dhcp_server
-
-The UI nginx reverse-proxy configuration has been adapted from:
-* https://github.com/alexbelgium/hassio-addons/tree/master/photoprism/
-
-## How to Install
+## How to Install and How to Configure
 
 Check out the [addon docs](DOCS.md). Open an [issue](https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/issues) if you hit any problem.
 
@@ -91,3 +80,14 @@ Please note that you can use this addon in tandem with similar addons and e.g. c
 * would be nice to provide some indication about the DNS cache metrics, see e.g. the explanations at https://docs.pi-hole.net/ftldns/dns-cache/ 
 * would be nice to provide an HomeAssistant sensor about DHCP clients transitioning from "current" to "past"
 
+
+## Development
+
+See [Home Assistant addon guide](https://developers.home-assistant.io/docs/add-ons)
+
+This addon is based on other 2 addons maintained by Home Assistant team:
+* https://github.com/home-assistant/addons/tree/master/dnsmasq
+* https://github.com/home-assistant/addons/tree/master/dhcp_server
+
+The UI nginx reverse-proxy configuration has been adapted from:
+* https://github.com/alexbelgium/hassio-addons/tree/master/photoprism/
