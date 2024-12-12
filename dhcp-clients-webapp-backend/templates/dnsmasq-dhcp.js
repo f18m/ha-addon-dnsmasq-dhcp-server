@@ -118,7 +118,12 @@ function initCurrentTable() {
             data: [],
             pageLength: 20,
             responsive: true,
-            className: 'data-table'
+            className: 'data-table',
+            layout: {
+                topStart: null,
+                topEnd: 'search',
+                bottomStart: 'pageLength'
+            }
         });
 }
 
@@ -146,7 +151,12 @@ function initPastTable() {
             data: [],
             pageLength: 20,
             responsive: true,
-            className: 'data-table'
+            className: 'data-table',
+            layout: {
+                topStart: null,
+                topEnd: 'search',
+                bottomStart: 'pageLength'
+            }
         });
 }
 
@@ -163,7 +173,10 @@ function initDnsUpstreamServersTable() {
             data: [],
             responsive: true,
             className: 'data-table',
-            "dom": 'rtip'
+            layout: {
+                topStart: null,
+                topEnd: null
+            }
         });
 }
 
