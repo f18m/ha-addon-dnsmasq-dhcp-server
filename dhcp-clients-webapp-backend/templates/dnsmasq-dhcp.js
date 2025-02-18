@@ -118,7 +118,12 @@ function initCurrentTable() {
             data: [],
             pageLength: 20,
             responsive: true,
-            className: 'data-table'
+            className: 'data-table',
+            layout: {
+                topStart: null,
+                topEnd: 'search',
+                bottomStart: 'pageLength'
+            }
         });
 }
 
@@ -146,7 +151,32 @@ function initPastTable() {
             data: [],
             pageLength: 20,
             responsive: true,
-            className: 'data-table'
+            className: 'data-table',
+            layout: {
+                topStart: null,
+                topEnd: 'search',
+                bottomStart: 'pageLength'
+            }
+        });
+}
+
+function initDnsUpstreamServersTable() {
+    console.log("Initializing table for DNS upstream servers");
+
+    table_dns_upstreams = new DataTable('#dns_upstream_servers', {
+            columns: [
+                { title: '#', type: 'num' },
+                { title: 'Upstream DNS server', type: 'string' },
+                { title: 'Queries sent', type: 'num' },
+                { title: 'Queries failed', type: 'num' },
+            ],
+            data: [],
+            responsive: true,
+            className: 'data-table',
+            layout: {
+                topStart: null,
+                topEnd: null
+            }
         });
 }
 
