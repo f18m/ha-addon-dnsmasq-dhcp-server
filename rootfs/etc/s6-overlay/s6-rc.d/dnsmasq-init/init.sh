@@ -131,6 +131,13 @@ function reset_dhcp_leases_database_if_just_rebooted() {
     fi
 }
 
+
+#
+# MAIN
+#
+
+bashio::log.info "Starting dnsmasq configuration..."
+
 should_reset_on_reboot=$(bashio::config 'dhcp_server.reset_dhcp_lease_database_on_reboot')
 if [[ "$should_reset_on_reboot" = "null" ]]; then
     should_reset_on_reboot=false
@@ -160,3 +167,5 @@ tempio \
 
 bashio::log.info "Full dnsmasq config:"
 cat -n $DNSMASQ_CONFIG
+
+bashio::log.info "Successfully completed dnsmasq configuration."

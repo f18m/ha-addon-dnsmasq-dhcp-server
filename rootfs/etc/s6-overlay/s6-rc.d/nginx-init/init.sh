@@ -28,7 +28,7 @@ if [ "$web_ui_port" = "null" ]; then
     web_ui_port=8976
 fi
 
-bashio::log.info "Configuring nginx ingress..."
+bashio::log.info "Starting nginx ingress configuration..."
 bashio::log.info "ingress_port=${ingress_port}"
 bashio::log.info "ingress_interface=${ingress_interface}"
 bashio::log.info "ingress_entry=${ingress_entry}"
