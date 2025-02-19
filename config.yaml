@@ -130,11 +130,11 @@ schema:
   dhcp_server:
     default_lease: str
     address_reservation_lease: str
-    ip_ranges:
-      - start: str
-        end: str
     reset_dhcp_lease_database_on_reboot: bool
     log_requests: bool
+  dhcp_ip_ranges:
+    - start: str
+      end: str
   dhcp_network:
     broadcast: str
     gateway: str
