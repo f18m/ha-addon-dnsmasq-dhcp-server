@@ -180,23 +180,6 @@ function initDnsUpstreamServersTable() {
         });
 }
 
-function initDnsUpstreamServersTable() {
-    console.log("Initializing table for DNS upstream servers");
-
-    table_dns_upstreams = new DataTable('#dns_upstream_servers', {
-            columns: [
-                { title: '#', type: 'num' },
-                { title: 'Upstream DNS server', type: 'string' },
-                { title: 'Queries sent', type: 'num' },
-                { title: 'Queries failed', type: 'num' },
-            ],
-            data: [],
-            responsive: true,
-            className: 'data-table',
-            "dom": 'rtip'
-        });
-}
-
 function initTableDarkOrLightTheme() {
     let prefers = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     let html = document.querySelector('html');
