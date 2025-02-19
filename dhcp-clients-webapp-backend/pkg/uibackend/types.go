@@ -1,12 +1,14 @@
 package uibackend
 
 import (
+	"dhcp-clients-webapp-backend/pkg/ippool"
 	"dhcp-clients-webapp-backend/pkg/trackerdb"
 	"encoding/json"
 	"fmt"
+	htmltemplate "html/template"
 	"net"
 	"net/netip"
-	"text/template"
+	texttemplate "text/template"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 )
@@ -15,7 +17,7 @@ import (
 type DhcpClientFriendlyName struct {
 	MacAddress   net.HardwareAddr
 	FriendlyName string
-	Link         *template.Template // maybe nil
+	Link         *texttemplate.Template // maybe nil
 }
 
 // IpAddressReservation represents a static IP configuration loaded from the addon configuration file
@@ -23,14 +25,11 @@ type IpAddressReservation struct {
 	Name string
 	Mac  net.HardwareAddr
 	IP   netip.Addr
-	Link *template.Template // maybe nil
+	Link *texttemplate.Template // maybe nil
 }
 
-// AddonConfig is used to unmarshal HomeAssistant option file correctly.
-// This must be updated every time the config.yaml of the addon is changed;
-// however this structure contains only fields that are relevant to the
-// UI backend behavior. In other words the addon config.yaml might contain
-// more settings than those listed here.
+// AddonConfig contains the configuration provided by the user to the Home Assistant addon
+// in the HomeAssistant YAML editor
 type AddonConfig struct {
 	// Static IP addresses, as read from the configuration
 	ipAddressReservationsByIP  map[netip.Addr]IpAddressReservation
@@ -40,12 +39,8 @@ type AddonConfig struct {
 	// The key of this map is the MAC address formatted as string (since net.HardwareAddr is not a valid map key type)
 	friendlyNames map[string]DhcpClientFriendlyName
 
-	// DHCP range
-	// NOTE: if in the future we want to support more complex DHCP configurations where the DHCP pool
-	//       consists of multiple disjoint IP address ranges, then we should consider using:
-	//       the iprange.Pool object to represent that
-	dhcpStartIP net.IP
-	dhcpEndIP   net.IP
+	// Multiple IP ranges all together form the DHCP pool
+	dhcpPool ippool.Pool
 
 	// Log this backend activities?
 	logDHCP  bool
@@ -67,7 +62,11 @@ type AddonConfig struct {
 // into maps and slices that get stored into the UIBackend instance
 func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 
-	// JSON parse
+	// JSON structure.
+	// This must be updated every time the config.yaml of the addon is changed;
+	// however this structure contains only fields that are relevant to the
+	// UI backend behavior. In other words the addon config.yaml might contain
+	// more settings than those listed here.
 	var cfg struct {
 		DhcpIpAddressReservations []struct {
 			Name string `json:"name"`
@@ -83,11 +82,13 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 		} `json:"dhcp_clients_friendly_names"`
 
 		DhcpServer struct {
-			StartIP                 string `json:"start_ip"`
-			EndIP                   string `json:"end_ip"`
 			LogDHCP                 bool   `json:"log_requests"`
 			DefaultLease            string `json:"default_lease"`
 			AddressReservationLease string `json:"address_reservation_lease"`
+			IpRanges                []struct {
+				Start string `json:"start"`
+				End   string `json:"end"`
+			} `json:"ip_ranges"`
 		} `json:"dhcp_server"`
 
 		DnsServer struct {
@@ -106,11 +107,14 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// convert DHCP IP strings to net.IP
-	b.dhcpStartIP = net.ParseIP(cfg.DhcpServer.StartIP)
-	b.dhcpEndIP = net.ParseIP(cfg.DhcpServer.EndIP)
-	if b.dhcpStartIP == nil || b.dhcpEndIP == nil {
-		return fmt.Errorf("invalid DHCP range found in addon config file")
+	// convert DHCP IP addresses (strings) to iprange.Pool == []iprange.Range
+	for _, r := range cfg.DhcpServer.IpRanges {
+		dhcpR := ippool.NewRangeFromString(r.Start, r.End)
+		if !dhcpR.IsValid() {
+			return fmt.Errorf("invalid DHCP range %s-%s found in addon config file", r.Start, r.End)
+		}
+
+		b.dhcpPool.Ranges = append(b.dhcpPool.Ranges, dhcpR)
 	}
 
 	// ensure we have a valid port for web UI
@@ -129,9 +133,9 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("invalid MAC address found inside 'ip_address_reservations': %s", r.Mac)
 		}
 
-		var linkTemplate *template.Template
+		var linkTemplate *texttemplate.Template
 		if r.Link != "" {
-			linkTemplate, err = template.New("linkTemplate").Parse(r.Link)
+			linkTemplate, err = texttemplate.New("linkTemplate").Parse(r.Link)
 			if err != nil {
 				return fmt.Errorf("invalid golang template found inside 'link': %s", r.Link)
 			}
@@ -159,9 +163,9 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("invalid MAC address found inside 'dhcp_clients_friendly_names': %s", client.Mac)
 		}
 
-		var linkTemplate *template.Template
+		var linkTemplate *texttemplate.Template
 		if client.Link != "" {
-			linkTemplate, err = template.New("linkTemplate").Parse(client.Link)
+			linkTemplate, err = texttemplate.New("linkTemplate").Parse(client.Link)
 			if err != nil {
 				return fmt.Errorf("invalid golang template found inside 'link': %s", client.Link)
 			}
@@ -295,4 +299,31 @@ type WebSocketMessage struct {
 
 	// DnsStats provides a live feed about DNS server basic metrics.
 	DnsStats DnsServerStats `json:"dns_stats"`
+}
+
+// HtmlTemplateIpRange is used inside HtmlTemplate
+type HtmlTemplateIpRange struct {
+	Start string
+	End   string
+}
+
+// HtmlTemplate is the struct used to render the "index.templ.html" file
+type HtmlTemplate struct {
+	// websockets
+	WebSocketURI string
+
+	// DHCP config info that are handy to have in the UI page
+	DhcpRanges              []HtmlTemplateIpRange
+	DhcpPoolSize            int64
+	DefaultLease            string
+	AddressReservationLease string
+	DHCPServerStartTime     int64
+
+	// DNS config info
+	DnsEnabled string
+	DnsDomain  string
+
+	// embedded contents
+	CssFileContent        htmltemplate.CSS
+	JavascriptFileContent htmltemplate.JS
 }

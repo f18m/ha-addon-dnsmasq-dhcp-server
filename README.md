@@ -94,3 +94,6 @@ The UI nginx reverse-proxy configuration has been adapted from:
 
 For the init system used by HA addons, see:
 * https://github.com/just-containers/s6-overlay
+
+For the templating language used in e.g. [dnsmasq config](./rootfs/usr/share/tempio/dnsmasq.config)
+* https://github.com/home-assistant/tempio

@@ -27,6 +27,8 @@
         var templated_webSocketURI = {{ .WebSocketURI }}
         var templated_dhcpServerStartTime = {{ .DHCPServerStartTime }}
 
+        // the .JavascriptFileContent is a template variable that contains the Javascript code
+        // that uses the templated_* variables
         {{ .JavascriptFileContent }}
     </script>
 </head>
@@ -47,9 +49,14 @@
                 <h2>DHCP Server Summary</h2>
 
                 <p class="topLevel" id="dhcp_addon_cfg">
-                    The configured DHCP range is: <span class="monoText">{{ .DhcpStartIP }} - {{ .DhcpEndIP }}</span>.<br/>
                     The default lease time is <span class="monoText">{{ .DefaultLease }}</span>.
                     The lease time for clients with IP address reservations is <span class="monoText">{{ .AddressReservationLease }}</span>.<br/>
+                    The configured DHCP range are: 
+                    {{ range .DhcpRanges }}
+                    <li>
+                        <ul><span class="monoText">{{ .Start }} - {{ .End }}</span></ul>
+                    </li>
+                    {{ end }}
                 </p>
                 <p class="topLevel" id="dhcp_stats_message"></p>                
             </div>
