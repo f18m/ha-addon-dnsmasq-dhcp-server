@@ -4,7 +4,7 @@
 
 Follow these steps to get the add-on installed on your system:
 
-1. Add Francesco Montorsi HA addons store by clicking here: [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Ff18m%2Fha-addons-repo)
+1. Add my HA addons store by clicking here: [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Ff18m%2Fha-addons-repo)
 
 By doing so you should get to your HomeAssistant configuration page for addon digital archives and you should be asked to add `https://github.com/f18m/ha-addons-repo` to the list. Hit "Add".
 
@@ -84,6 +84,29 @@ to block ADs in your LAN.
 HomeAssistant runs an [mDNS](https://en.wikipedia.org/wiki/Multicast_DNS) server on port 5353.
 This is not impacted in any way by the DNS server functionality offered by this addon.
 
+
+## Using the Beta version
+
+The _beta_ version of `Dnsmasq-DHCP` is where most bugfixes are first deployed and tested.
+Only if they are working fine, they will be merged in the _stable_ version.
+
+Since the beta version does not employ a real version scheme, to make sure you're running
+the latest build of the beta, please run:
+
+```
+docker pull ghcr.io/f18m/amd64-addon-dnsmasq-dhcp:beta
+```
+
+on your HomeAssistant server. 
+
+To switch from the _stable_ version to the _beta_ version, just use:
+
+```
+docker pull ghcr.io/f18m/amd64-addon-dnsmasq-dhcp:beta
+cd /usr/share/hassio/addons/data/79957c2e_dnsmasq-dhcp && cp -av * ../79957c2e_dnsmasq-dhcp-beta/
+```
+
+Then stop the _stable_version of the addon from HomeAssistant UI and start the _beta_ variant.
 
 
 ## Links

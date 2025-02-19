@@ -91,3 +91,6 @@ This addon is based on other 2 addons maintained by Home Assistant team:
 
 The UI nginx reverse-proxy configuration has been adapted from:
 * https://github.com/alexbelgium/hassio-addons/tree/master/photoprism/
+
+For the init system used by HA addons, see:
+* https://github.com/just-containers/s6-overlay
