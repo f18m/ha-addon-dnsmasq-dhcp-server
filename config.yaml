@@ -36,16 +36,6 @@ options:
     # and this makes the whole DHCP server less useful... it's better to force the clients
     # to some frequent check-in, since that becomes a basic heartbeat / client health check.
     address_reservation_lease: 1h
-    # DHCP start-end IP pools
-    ip_ranges: 
-      - start: 192.168.1.50
-        end: 192.168.1.150
-      - start: 192.168.1.220
-        end: 192.168.1.230
-      # you can also provide IP ranges of different networks in case e.g. the DHCP server
-      # is attached to multiple network interfaces (attached to different networks) or
-      # the same network interface has multiple IP addresses
-
     # the addon can detect whether the server which is running the addon has just rebooted;
     # if that's the case and the following flag is set to "true", then the DHCP lease database
     # is reset before starting the DHCP server; this is useful in case a loss of power of the
@@ -54,6 +44,16 @@ options:
     reset_dhcp_lease_database_on_reboot: false
     # shall log every DHCP request?
     log_requests: true
+
+  dhcp_pool:
+    - start: 192.168.1.50
+      end: 192.168.1.150
+    - start: 192.168.1.220
+      end: 192.168.1.230
+    # you can also provide IP ranges of different networks in case e.g. the DHCP server
+    # is attached to multiple network interfaces (attached to different networks) or
+    # the same network interface has multiple IP addresses
+
   # network section defines a number of properties that are used to populate DHCP answers.
   dhcp_network:
     # the broadcast IP address to advertise in DHCP answers
@@ -132,7 +132,7 @@ schema:
     address_reservation_lease: str
     reset_dhcp_lease_database_on_reboot: bool
     log_requests: bool
-  dhcp_ip_ranges:
+  dhcp_pool:
     - start: str
       end: str
   dhcp_network:

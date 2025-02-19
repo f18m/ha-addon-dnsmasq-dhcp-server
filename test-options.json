@@ -24,11 +24,19 @@
   "dhcp_server": {
     "default_lease": "12h",
     "address_reservation_lease": "24h",
-    "start_ip": "192.168.1.50",
-    "end_ip": "192.168.1.100",
     "log_requests": true,
     "reset_dhcp_lease_database_on_reboot": false
   },
+  "dhcp_pool": [
+    {
+      "start": "192.168.1.50",
+      "end": "192.168.1.100"
+    },
+    {
+      "start": "192.168.2.50",
+      "end": "192.168.2.100"
+    }
+  ],
   "dhcp_network": {
     "broadcast": "192.168.1.255",
     "gateway": "192.168.1.254",

@@ -85,11 +85,12 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			LogDHCP                 bool   `json:"log_requests"`
 			DefaultLease            string `json:"default_lease"`
 			AddressReservationLease string `json:"address_reservation_lease"`
-			IpRanges                []struct {
-				Start string `json:"start"`
-				End   string `json:"end"`
-			} `json:"ip_ranges"`
 		} `json:"dhcp_server"`
+
+		DhcpPool []struct {
+			Start string `json:"start"`
+			End   string `json:"end"`
+		} `json:"dhcp_pool"`
 
 		DnsServer struct {
 			Enable    bool   `json:"enable"`
@@ -108,7 +109,7 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 	}
 
 	// convert DHCP IP addresses (strings) to iprange.Pool == []iprange.Range
-	for _, r := range cfg.DhcpServer.IpRanges {
+	for _, r := range cfg.DhcpPool {
 		dhcpR := ippool.NewRangeFromString(r.Start, r.End)
 		if !dhcpR.IsValid() {
 			return fmt.Errorf("invalid DHCP range %s-%s found in addon config file", r.Start, r.End)
