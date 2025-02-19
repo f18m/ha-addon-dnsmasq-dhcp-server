@@ -57,11 +57,16 @@ options:
     netmask: 255.255.255.0
     # DNS domain to advertise in DHCP answers
     dns_domain: lan
-    # DNS servers to advertise in DHCP answers (primary, secondary, tertiary, etc)
+    # DNS servers to advertise in DHCP answers.
+    # Note that even if online someone is naming these as "primary" and "secondary" DNS servers,
+    # the DHCP clients are free to use them in any order they like, or even to use only one of them.
+    # There is no "primary" or "secondary".
+    # In particular if you use dns_server.enable=true, then you want to provide ONLY 0.0.0.0
+    # (the IP address of the machine running dnsmasq) as DNS server. 
+    # If you use dns_server.enable=false, you want to provide some public DNS server (and you can provide
+    # more than one if you like), e.g. 8.8.8.8, 1.1.1.1, etc.
     dns_servers:
       - 0.0.0.0  # the special value 0.0.0.0 indicates the IP address of this host -- useful only if dns_server.enable=true
-      - 8.8.8.8
-      - 8.8.4.4
     ntp_servers:
       # define NTP servers to provide to DHCP clients (not all clients will honor this setting though)
       # example1: online NTP servers: check https://www.ntppool.org/zone/@ for details about continental zones:

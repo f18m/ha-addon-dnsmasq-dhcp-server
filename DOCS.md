@@ -23,6 +23,8 @@ You will also need all details about the network where the DHCP server should be
 * the upstream NTP servers
 * an IP address range free to be used to provision addresses to DHCP dynamic clients
 
+Once you have collected all these info, you can start editing the `Dnsmasq-DHCP` addon configuration. 
+
 ## Configuration
 
 The `Dnsmasq-DHCP` addon configuration is documented in the 'Configuration' tab of the
