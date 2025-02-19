@@ -1,6 +1,7 @@
 #!/usr/bin/with-contenv bashio
+
 # ==============================================================================
-# DNSMASQ config
+# DNSMASQ constants
 # ==============================================================================
 
 ADDON_DHCP_SERVER_START_EPOCH="/data/startepoch"
@@ -11,6 +12,10 @@ DNSMASQ_LEASE_DATABASE="/data/dnsmasq.leases"
 
 # 5min is a reasonable threshold
 JUST_REBOOTED_THRESHOLD_SEC=300
+
+# ==============================================================================
+# FUNCTIONS
+# ==============================================================================
 
 function log_info() {
     bashio::log.info "dnsmasq-init.sh: $@"

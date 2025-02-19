@@ -2,9 +2,24 @@
 # shellcheck shell=bash
 set -e
 
-#################
-# NGINX SETTING #
-#################
+##################
+# NGINX SETTINGS #
+##################
+
+NGINX_INGRESS_CONF= ${NGINX_INGRESS_CONF}
+
+# ==============================================================================
+# FUNCTIONS
+# ==============================================================================
+
+function log_info() {
+    bashio::log.info "nginx-init.sh: $@"
+}
+
+
+#
+# MAIN
+#
 
 declare ingress_interface
 declare ingress_port
@@ -28,15 +43,12 @@ if [ "$web_ui_port" = "null" ]; then
     web_ui_port=8976
 fi
 
-bashio::log.info "Starting nginx ingress configuration..."
-bashio::log.info "ingress_port=${ingress_port}"
-bashio::log.info "ingress_interface=${ingress_interface}"
-bashio::log.info "ingress_entry=${ingress_entry}"
-bashio::log.info "web_ui_port=${web_ui_port}"
+log_info "Starting nginx ingress configuration..."
+log_info "Settings are: ingress_port=${ingress_port}, ingress_interface=${ingress_interface}, ingress_entry=${ingress_entry}, web_ui_port=${web_ui_port}"
 
-sed -i "s/%%port%%/${ingress_port}/g" /etc/nginx/servers/ingress.conf
-sed -i "s/%%interface%%/${ingress_interface}/g" /etc/nginx/servers/ingress.conf
-sed -i "s|%%ingress_entry%%|${ingress_entry}|g" /etc/nginx/servers/ingress.conf
-sed -i "s|%%web_ui_port%%|${web_ui_port}|g" /etc/nginx/servers/ingress.conf
+sed -i "s/%%port%%/${ingress_port}/g"            ${NGINX_INGRESS_CONF}
+sed -i "s/%%interface%%/${ingress_interface}/g"  ${NGINX_INGRESS_CONF}
+sed -i "s|%%ingress_entry%%|${ingress_entry}|g"  ${NGINX_INGRESS_CONF}
+sed -i "s|%%web_ui_port%%|${web_ui_port}|g"      ${NGINX_INGRESS_CONF}
 
-bashio::log.info "nginx ingress config complete."
+log_info "nginx ingress config complete."
