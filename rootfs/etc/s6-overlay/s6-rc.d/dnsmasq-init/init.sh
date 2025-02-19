@@ -159,6 +159,9 @@ tempio \
     -template /usr/share/tempio/dnsmasq.config \
     -out "${DNSMASQ_CONFIG}"
 
+# make the config file a bit more compact by removing empty lines
+sed -i '/^$/d' $DNSMASQ_CONFIG
+
 log_info "Full dnsmasq config:"
 cat -n $DNSMASQ_CONFIG
 
