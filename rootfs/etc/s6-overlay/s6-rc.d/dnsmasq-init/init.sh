@@ -44,13 +44,13 @@ function resolve_ntp_servers() {
         for srv in ${NTP_SERVERS}; do
             if ipvalid "$srv"; then
                 # no need to carry out any DNS resolution
-                echo "Using NTP IP $srv without any DNS resolution"
+                log_info "Using NTP IP $srv without any DNS resolution"
                 NTP_SERVERS_RESOLVED+="\"${srv}\","
             else
                 # run the DNS resolution and pick the first IP address
                 ip_addr="$(dig +short $srv | head -1)"
                 if [[ ! -z "${ip_addr}" ]]; then
-                    echo "DNS resolved $srv -> $ip_addr"
+                    log_info "DNS resolved $srv -> $ip_addr"
                     NTP_SERVERS_RESOLVED+="\"${ip_addr}\","
                 fi
             fi
@@ -83,14 +83,14 @@ function process_dns_servers() {
                 # of the right IP address to advertise through DHCP
                 DNS_SERVERS_RESOLVED+="\"${srv}\","
             else
-                echo "Found invalid DNS server in DHCP network config: ${srv}. Skipping."
+                log_info "Found invalid DNS server in DHCP network config: ${srv}. Skipping."
             fi
         done
 
         if [[ ! -z "${DNS_SERVERS_RESOLVED}" ]]; then
             # pop last comma:
             DNS_SERVERS_RESOLVED=${DNS_SERVERS_RESOLVED::-1}
-            echo "List of processed DNS servers is: ${DNS_SERVERS_RESOLVED}"
+            log_info "List of processed DNS servers is: ${DNS_SERVERS_RESOLVED}"
 
             # add post-processed DNS servers
             jq --compact-output ".dhcp_network.dns_servers_processed=[$DNS_SERVERS_RESOLVED]" \
