@@ -12,6 +12,10 @@ DNSMASQ_LEASE_DATABASE="/data/dnsmasq.leases"
 # 5min is a reasonable threshold
 JUST_REBOOTED_THRESHOLD_SEC=300
 
+function log_info() {
+    bashio::log.info "dnsmasq-init.sh: $@"
+}
+
 function ipvalid() {
   # Set up local variables
   local ip=${1:-NO_IP_PROVIDED}
@@ -29,7 +33,7 @@ function ipvalid() {
 function resolve_ntp_servers() {
     NTP_SERVERS="$(jq --raw-output '.dhcp_network.ntp_servers[]' ${ADDON_CONFIG_RESOLVED} 2>/dev/null)"
     if [[ ! -z "${NTP_SERVERS}" ]]; then
-        bashio::log.info "NTP servers are ${NTP_SERVERS//$'\n'/,}"
+        log_info "NTP servers are ${NTP_SERVERS//$'\n'/,}"
 
         NTP_SERVERS_RESOLVED=""
         for srv in ${NTP_SERVERS}; do
@@ -62,7 +66,7 @@ function resolve_ntp_servers() {
 function process_dns_servers() {
     DNS_SERVERS="$(jq --raw-output '.dhcp_network.dns_servers[]' ${ADDON_CONFIG} 2>/dev/null)"
     if [[ ! -z "${DNS_SERVERS}" ]]; then
-        bashio::log.info "DNS servers are ${DNS_SERVERS//$'\n'/,}"
+        log_info "DNS servers are ${DNS_SERVERS//$'\n'/,}"
 
         DNS_SERVERS_RESOLVED=""
         for srv in ${DNS_SERVERS}; do
@@ -94,7 +98,7 @@ function process_dns_servers() {
 function bump_dhcp_server_start_epoch() {
     updated_epoch="$(date +%s)"
     echo $updated_epoch > "$ADDON_DHCP_SERVER_START_EPOCH"
-    bashio::log.info "Updated DHCP start epoch is: $updated_epoch"
+    log_info "Updated DHCP start epoch is: $updated_epoch"
 }
 
 function reset_dhcp_leases_database_if_just_rebooted() {
@@ -103,7 +107,7 @@ function reset_dhcp_leases_database_if_just_rebooted() {
     uptime_seconds=$(awk '{print int($1)}' /proc/uptime)
 
     if [ "$uptime_seconds" -lt "$JUST_REBOOTED_THRESHOLD_SEC" ]; then
-        bashio::log.info "The HomeAssistant server has just been rebooted. Resetting DHCP lease database as requested in addon configuration."
+        log_info "The HomeAssistant server has just been rebooted. Resetting DHCP lease database as requested in addon configuration."
 
         # Get the current timestamp
         local timestamp
@@ -112,7 +116,7 @@ function reset_dhcp_leases_database_if_just_rebooted() {
         # the previuos database does not really get deleted, just moved in a file ignored by dnsmasq
         mv ${DNSMASQ_LEASE_DATABASE} ${DNSMASQ_LEASE_DATABASE}.${timestamp}
     else
-        bashio::log.info "The HomeAssistant server is up since ${uptime_seconds}secs. Skipping DHCP lease database reset."
+        log_info "The HomeAssistant server is up since ${uptime_seconds}secs. Skipping DHCP lease database reset."
     fi
 }
 
@@ -121,36 +125,36 @@ function reset_dhcp_leases_database_if_just_rebooted() {
 # MAIN
 #
 
-bashio::log.info "Starting dnsmasq configuration..."
+log_info "Starting dnsmasq configuration..."
 
 should_reset_on_reboot=$(bashio::config 'dhcp_server.reset_dhcp_lease_database_on_reboot')
 if [[ "$should_reset_on_reboot" = "null" ]]; then
     should_reset_on_reboot=false
 fi
-bashio::log.info The setting reset_dhcp_lease_database_on_reboot is ${should_reset_on_reboot}"..."
+log_info The setting reset_dhcp_lease_database_on_reboot is ${should_reset_on_reboot}"..."
 if $should_reset_on_reboot ; then
     reset_dhcp_leases_database_if_just_rebooted
 fi
 
-bashio::log.info "Advancing the DHCP server start epoch..."
+log_info "Advancing the DHCP server start epoch..."
 bump_dhcp_server_start_epoch
 
 # by default the resolved config is equal to the original config
 cp ${ADDON_CONFIG} ${ADDON_CONFIG_RESOLVED}
 
 # do some processing:
-bashio::log.info "Resolving NTP hostnames eventually provided..."
+log_info "Resolving NTP hostnames eventually provided..."
 resolve_ntp_servers
-bashio::log.info "Processing DHCP DNS server list..."
+log_info "Processing DHCP DNS server list..."
 process_dns_servers
 
-bashio::log.info "Configuring dnsmasq..."
+log_info "Configuring dnsmasq..."
 tempio \
     -conf ${ADDON_CONFIG_RESOLVED} \
     -template /usr/share/tempio/dnsmasq.config \
     -out "${DNSMASQ_CONFIG}"
 
-bashio::log.info "Full dnsmasq config:"
+log_info "Full dnsmasq config:"
 cat -n $DNSMASQ_CONFIG
 
-bashio::log.info "Successfully completed dnsmasq configuration."
+log_info "Successfully completed dnsmasq configuration."
