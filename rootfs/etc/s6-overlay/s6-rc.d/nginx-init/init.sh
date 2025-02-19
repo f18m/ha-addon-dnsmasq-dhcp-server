@@ -6,7 +6,7 @@ set -e
 # NGINX SETTINGS #
 ##################
 
-NGINX_INGRESS_CONF= ${NGINX_INGRESS_CONF}
+NGINX_INGRESS_CONF=/etc/nginx/servers/ingress.conf
 
 # ==============================================================================
 # FUNCTIONS
@@ -46,9 +46,9 @@ fi
 log_info "Starting nginx ingress configuration..."
 log_info "Settings are: ingress_port=${ingress_port}, ingress_interface=${ingress_interface}, ingress_entry=${ingress_entry}, web_ui_port=${web_ui_port}"
 
-sed -i "s/%%port%%/${ingress_port}/g"            ${NGINX_INGRESS_CONF}
-sed -i "s/%%interface%%/${ingress_interface}/g"  ${NGINX_INGRESS_CONF}
-sed -i "s|%%ingress_entry%%|${ingress_entry}|g"  ${NGINX_INGRESS_CONF}
-sed -i "s|%%web_ui_port%%|${web_ui_port}|g"      ${NGINX_INGRESS_CONF}
+sed -i "s/%%port%%/${ingress_port}/g"           ${NGINX_INGRESS_CONF}
+sed -i "s/%%interface%%/${ingress_interface}/g" ${NGINX_INGRESS_CONF}
+sed -i "s|%%ingress_entry%%|${ingress_entry}|g" ${NGINX_INGRESS_CONF}
+sed -i "s|%%web_ui_port%%|${web_ui_port}|g"     ${NGINX_INGRESS_CONF}
 
 log_info "nginx ingress config complete."
