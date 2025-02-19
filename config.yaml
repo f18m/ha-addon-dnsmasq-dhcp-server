@@ -23,10 +23,11 @@ ingress_port: 8100
 panel_icon: mdi:ip-network-outline
 panel_title: DHCP
 options:
-  # the interface on which the DHCP/DNS server will listen
+  # the interfaces on which the DHCP/DNS server will listen
   # DHCP requests are listened on port 67
-  # DNS requests are listened on port 53
-  interface: enp1s0
+  # DNS requests are listened on port 53 (DNS port is configurable via dns_server.port key)
+  interfaces:
+    - enp1s0
   dhcp_server:
     # default lease time for all DHCP clients except those having an IP address reservation.
     default_lease: 1h
@@ -109,7 +110,11 @@ options:
     # that port configurable to avoid conflicts with other services
     port: 8976
 schema:
-  interface: str
+  interfaces:
+    # we expect a list of valid network interfaces; the character "@" which typically appears in
+    # veth pairs (used by docker) is not allowed on-purpose to avoid mistakes where the user
+    # provides a docker veth pair as interface for dnsmasq (this is typically not a good idea)
+    - match(^([a-z][a-z0-9\.:]*)$)
   dhcp_server:
     default_lease: str
     address_reservation_lease: str

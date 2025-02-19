@@ -1,5 +1,5 @@
 {
-  "interface": "enp3s0",
+  "interfaces": [ "enp3s0" ],
   "dhcp_ip_address_reservations": [
     {
       "mac": "aa:bb:cc:dd:ee:00",

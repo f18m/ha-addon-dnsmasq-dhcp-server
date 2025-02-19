@@ -59,23 +59,7 @@ function resolve_ntp_servers() {
     fi
 }
 
-function get_dnsmasq_interface_ip_address() {
-    INTERFACE="$(jq --raw-output '.interface' ${ADDON_CONFIG} 2>/dev/null)"
-
-    # Get the IP address of the specified interface
-    INTERFACE_IP=$(ip -4 addr show "$INTERFACE" | grep -o 'inet [0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}' | awk '{print $2}')
-    if [[ -z "$INTERFACE_IP" ]]; then
-        echo "Error: Unable to determine IP address for interface $INTERFACE" >&2
-        exit 2
-    fi
-
-    echo "The IP address associated with the dnsmasq interface ${INTERFACE} is: ${INTERFACE_IP}"
-}
-
 function process_dns_servers() {
-    # fill the INTERFACE_IP global variable:
-    get_dnsmasq_interface_ip_address
-
     DNS_SERVERS="$(jq --raw-output '.dhcp_network.dns_servers[]' ${ADDON_CONFIG} 2>/dev/null)"
     if [[ ! -z "${DNS_SERVERS}" ]]; then
         bashio::log.info "DNS servers are ${DNS_SERVERS//$'\n'/,}"
@@ -83,11 +67,12 @@ function process_dns_servers() {
         DNS_SERVERS_RESOLVED=""
         for srv in ${DNS_SERVERS}; do
             if ipvalid "$srv"; then
-                if [[ "$srv" == "0.0.0.0" ]]; then
-                    DNS_SERVERS_RESOLVED+="\"${INTERFACE_IP}\","
-                else
-                    DNS_SERVERS_RESOLVED+="\"${srv}\","
-                fi
+                # NOTE that dnsmasq supports the special address 0.0.0.0 which 
+                # is taken to mean "the address of the machine running dnsmasq".
+                # Since dnsmasq might be listening on multiple network interfaces, each
+                # with a different IP address, we need to delegate to dnsmasq the selection
+                # of the right IP address to advertise through DHCP
+                DNS_SERVERS_RESOLVED+="\"${srv}\","
             else
                 echo "Found invalid DNS server in DHCP network config: ${srv}. Skipping."
             fi
@@ -150,7 +135,7 @@ fi
 bashio::log.info "Advancing the DHCP server start epoch..."
 bump_dhcp_server_start_epoch
 
-# by deafult the resolved config is equal to the original config
+# by default the resolved config is equal to the original config
 cp ${ADDON_CONFIG} ${ADDON_CONFIG_RESOLVED}
 
 # do some processing:

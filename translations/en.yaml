@@ -1,8 +1,8 @@
 ---
 configuration:
-  interface:
-    name: Network interface
-    description: The interface on which the DHCP/DNS server will listen; DHCP requests are listened on port 67; DNS requests are listened on port 53
+  interfaces:
+    name: List of Network Interfaces
+    description: The interfaces on which the DHCP/DNS server will listen; DHCP requests are listened on port 67; DNS requests are listened on port 53
 
   dhcp_server:
     name: DHCP Server settings

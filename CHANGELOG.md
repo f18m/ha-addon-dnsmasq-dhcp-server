@@ -3,7 +3,15 @@
 For the changelog please check https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/releases
 
 
-## Migrating from vresion 1.x to 2.x
+## Migrating from version 2.0 to 2.1
+
+If you have a valid configuration for version 2.0.x, you need to adjust the YAML configuration when migrating
+to version 2.1.
+
+1. The top-level "interface" key has been renamed to "interfaces" (plural) and now expects a YAML list of network interface names
+
+
+## Migrating from version 1.x to 2.x
 
 If you used the addon version 1.x, you need to adjust the YAML configuration to match the 2.x YAML config schema:
 
