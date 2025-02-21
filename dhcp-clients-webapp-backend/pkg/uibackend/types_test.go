@@ -3,37 +3,56 @@ package uibackend
 import (
 	"net"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIpNetworkInfo_HasValidIPs(t *testing.T) {
-	nw := IpNetworkInfo{
-		Start:   net.IP{192, 168, 3, 4},
-		End:     net.IP{192, 168, 7, 8},
-		Gateway: net.IP{192, 168, 11, 12},
-		Netmask: net.IPMask{255, 255, 0, 0}, // equivalent to /16
-	}
-	if !nw.HasValidIPs() {
-		t.Errorf("expected HasValidIPs() to return true")
+	tests := []struct {
+		netInfo  IpNetworkInfo
+		expected bool
+	}{
+		{
+			netInfo: IpNetworkInfo{
+				Start:   net.IP{192, 168, 3, 4},
+				End:     net.IP{192, 168, 7, 8},
+				Gateway: net.IP{192, 168, 11, 12},
+				Netmask: net.IPMask{255, 255, 0, 0}, // equivalent to /16
+			},
+			expected: true,
+		},
+		{
+			netInfo: IpNetworkInfo{
+				Start:   net.IP{192, 168, 3, 50},
+				End:     net.IP{192, 168, 3, 150},
+				Gateway: net.IP{192, 168, 3, 254},
+				Netmask: net.IPMask{255, 255, 255, 0}, // equivalent to /24
+			},
+			expected: true,
+		},
+		{
+			netInfo: IpNetworkInfo{
+				Start:   net.IP{1, 2, 3, 4},                                        // not a private IP
+				End:     net.IP{5, 6, 7, 8},                                        // not a private IP
+				Gateway: net.IP{0xfc, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4}, // gateway is IPv6
+				Netmask: net.IPMask{255, 255, 255, 255},                            // equivalent to /32
+			},
+			expected: false,
+		},
+		{
+			netInfo: IpNetworkInfo{
+				Start:   nil,
+				End:     nil,
+				Gateway: net.IP{1, 2, 3, 4},
+				Netmask: net.IPMask{255, 255, 255, 255}, // equivalent to /32
+			},
+			expected: false,
+		},
 	}
 
-	nw = IpNetworkInfo{
-		Start:   net.IP{1, 2, 3, 4},                                        // not a private IP
-		End:     net.IP{5, 6, 7, 8},                                        // not a private IP
-		Gateway: net.IP{0xfc, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4}, // gateway is IPv6
-		Netmask: net.IPMask{255, 255, 255, 255},                            // equivalent to /32
-	}
-	if nw.HasValidIPs() {
-		t.Errorf("expected HasValidIPs() to return false")
-	}
-
-	nw = IpNetworkInfo{
-		Start:   nil,
-		End:     nil,
-		Gateway: net.IP{1, 2, 3, 4},
-		Netmask: net.IPMask{255, 255, 255, 255}, // equivalent to /32
-	}
-	if nw.HasValidIPs() {
-		t.Errorf("expected HasValidIPs() to return false")
+	for _, test := range tests {
+		actual := test.netInfo.HasValidIPs()
+		assert.Equal(t, test.expected, actual)
 	}
 }
 

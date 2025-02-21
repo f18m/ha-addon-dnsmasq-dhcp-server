@@ -608,8 +608,9 @@ func (b *UIBackend) readAddonConfig() error {
 		return err
 	}
 
+	b.logger.Infof("Acquired %d DHCP network/ranges\n", len(b.cfg.dhcpRanges))
 	b.logger.Infof("Acquired %d IP address reservations\n", len(b.cfg.ipAddressReservationsByIP))
-	b.logger.Infof("Acquired %d friendly names\n", len(b.cfg.friendlyNames))
+	b.logger.Infof("Acquired %d friendly name definitions\n", len(b.cfg.friendlyNames))
 	b.logger.Infof("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
 		b.cfg.webUIPort, b.cfg.logWebUI, b.cfg.logDHCP)
 
@@ -637,11 +638,13 @@ func (b *UIBackend) ListenAndServe() error {
 	// Read friendly names from the HomeAssistant addon config
 	if err := b.readAddonConfig(); err != nil {
 		b.logger.Fatalf("error while reading HomeAssistant addon options: %s\n", err.Error())
+		return err
 	}
 
 	// Initialize current DHCP client data table
 	if err := b.readCurrentLeaseFile(); err != nil {
 		b.logger.Fatalf("error while reading DHCP leases file: %s\n", err.Error())
+		return err
 	}
 
 	// Watch for updates on DHCP leases file and push to leasesCh

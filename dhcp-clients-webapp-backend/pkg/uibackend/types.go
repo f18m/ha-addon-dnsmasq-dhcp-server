@@ -163,12 +163,18 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			Start:     dhcpR.Start,
 			End:       dhcpR.End,
 			Gateway:   net.ParseIP(r.Gateway),
-			Netmask:   net.IPMask(net.ParseIP(r.Netmask)),
+		}
+
+		m := net.ParseIP(r.Netmask)
+		if m.To4() != nil {
+			ipNetInfo.Netmask = net.IPMask(m.To4())
+		} else {
+			ipNetInfo.Netmask = net.IPMask(m.To16())
 		}
 
 		// check network definition
 		if !ipNetInfo.HasValidIPs() {
-			return fmt.Errorf("invalid DHCP network/range [%s] found in addon config file: the IP addresses must all be coherently IPv4 or IPv6", ipNetInfo.String())
+			return fmt.Errorf("invalid DHCP network/range [%s] found in addon config file: the IP addresses should define a coherent network (private IPs only, start and end IPs within the same network)", ipNetInfo.String())
 		}
 		if !ipNetInfo.HasValidGateway() {
 			return fmt.Errorf("invalid DHCP network/range [%s] found in addon config file: the gateway must be an IP address within the network", ipNetInfo.String())

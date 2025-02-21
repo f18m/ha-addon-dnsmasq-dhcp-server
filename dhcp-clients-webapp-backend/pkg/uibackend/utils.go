@@ -2,6 +2,7 @@ package uibackend
 
 import (
 	"fmt"
+	"net"
 	"time"
 )
 
@@ -13,7 +14,7 @@ func IpPoolToHtmlTemplateRanges(networks []IpNetworkInfo) []HtmlTemplateIpRange 
 			End:       n.End.String(),
 			Interface: n.Interface,
 			Gateway:   n.Gateway.String(),
-			Netmask:   n.Netmask.String(),
+			Netmask:   net.IP(n.Netmask).String(),
 		})
 	}
 	return ranges

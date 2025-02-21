@@ -126,7 +126,7 @@ instead of its actual IP address.
 The _beta_ version of `Dnsmasq-DHCP` is where most bugfixes are first deployed and tested.
 Only if they are working fine, they will be merged in the _stable_ version.
 
-Since the beta version does not employ a real version scheme, to make sure you're running
+Since the beta version of `Dnsmasq-DHCP` does not use a real version scheme, to make sure you're running
 the latest build of the beta, please run:
 
 ```
@@ -135,7 +135,8 @@ docker pull ghcr.io/f18m/amd64-addon-dnsmasq-dhcp:beta
 
 on your HomeAssistant server. 
 
-To switch from the _stable_ version to the _beta_ version, just use:
+To switch from the _stable_ version to the _beta_ version, without loosing the list of enrolled
+DHCP clients, their lease times and the list of the old DHCP clients, just use:
 
 ```
 docker pull ghcr.io/f18m/amd64-addon-dnsmasq-dhcp:beta
@@ -143,6 +144,33 @@ cd /usr/share/hassio/addons/data/79957c2e_dnsmasq-dhcp && cp -av * ../79957c2e_d
 ```
 
 Then stop the _stable_version of the addon from HomeAssistant UI and start the _beta_ variant.
+
+
+## Development
+
+To test changes to `Dnsmasq-DHCP` locally, before deployment of the new addon, you can use:
+
+```
+make test-docker-image
+```
+
+To verify that the whole "setup chain" works correctly; you can check
+* webui-backend ability to read the configuration file `test-options.json`
+* dnsmasq-init script
+* dnsmasq resulting configuration file
+
+If you're working on the web UI backend you can use
+
+```
+make test-docker-image-live
+```
+
+and then launch a browser on http://localhost:8976 to verify the look&feel of the UI.
+In such mode, there are no real DHCP clients but you can simulate a past DHCP client with
+
+```
+make test-database-add-entry
+```
 
 
 ## Links
