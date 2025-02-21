@@ -404,7 +404,7 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		// Based on the scheme used by the browser, the websocket will use the associated scheme
 		// ('wss' for 'https' and 'ws' for 'http)
 		WebSocketURI:            XIngressPath[0] + websocketRelativeUrl,
-		DhcpRanges:              IpPoolToHtmlTemplateRanges(b.cfg.dhcpPool),
+		DhcpRanges:              IpPoolToHtmlTemplateRanges(b.cfg.dhcpRanges),
 		DhcpPoolSize:            b.cfg.dhcpPool.Size(),
 		DefaultLease:            b.cfg.defaultLease,
 		AddressReservationLease: b.cfg.addressReservationLease,

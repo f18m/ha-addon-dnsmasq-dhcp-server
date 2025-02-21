@@ -1,17 +1,19 @@
 package uibackend
 
 import (
-	"dhcp-clients-webapp-backend/pkg/ippool"
 	"fmt"
 	"time"
 )
 
-func IpPoolToHtmlTemplateRanges(pool ippool.Pool) []HtmlTemplateIpRange {
+func IpPoolToHtmlTemplateRanges(networks []IpNetworkInfo) []HtmlTemplateIpRange {
 	var ranges []HtmlTemplateIpRange
-	for _, r := range pool.Ranges {
+	for _, n := range networks {
 		ranges = append(ranges, HtmlTemplateIpRange{
-			Start: r.Start.String(),
-			End:   r.End.String(),
+			Start:     n.Start.String(),
+			End:       n.End.String(),
+			Interface: n.Interface,
+			Gateway:   n.Gateway.String(),
+			Netmask:   n.Netmask.String(),
 		})
 	}
 	return ranges

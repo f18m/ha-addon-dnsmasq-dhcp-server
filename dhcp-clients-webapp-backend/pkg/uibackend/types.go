@@ -28,6 +28,44 @@ type IpAddressReservation struct {
 	Link *texttemplate.Template // maybe nil
 }
 
+// IpNetworkInfo contains all details about a network attached to the addon, as specified in the config file
+type IpNetworkInfo struct {
+	Interface string
+	Start     net.IP
+	End       net.IP
+	Gateway   net.IP
+	Netmask   net.IPMask
+}
+
+func (nw IpNetworkInfo) HasValidIPs() bool {
+	if nw.Start.IsPrivate() &&
+		nw.End.IsPrivate() &&
+		nw.Gateway.IsPrivate() {
+
+		// net.IPMask.Size() returns 0,0 in case of invalid netmasks
+		if ones, zeros := nw.Netmask.Size(); ones != 0 && zeros != 0 {
+			// all private IPs and mask is valid: ok
+
+			// check start/end IPs are in the same network
+
+			theNetwork := net.IPNet{IP: nw.Start, Mask: nw.Netmask}
+			return theNetwork.Contains(nw.End)
+		}
+	}
+	return false
+}
+
+func (nw IpNetworkInfo) HasValidGateway() bool {
+	// Ensure IPs are of the same family (IPv4 or IPv6)
+	theNetwork := net.IPNet{IP: nw.Start, Mask: nw.Netmask}
+	return theNetwork.Contains(nw.Gateway)
+}
+
+func (nw IpNetworkInfo) String() string {
+	return fmt.Sprintf("Interface: %s, Start: %s, End: %s, Gateway: %s, Netmask: %s",
+		nw.Interface, nw.Start, nw.End, nw.Gateway, nw.Netmask)
+}
+
 // AddonConfig contains the configuration provided by the user to the Home Assistant addon
 // in the HomeAssistant YAML editor
 type AddonConfig struct {
@@ -40,7 +78,8 @@ type AddonConfig struct {
 	friendlyNames map[string]DhcpClientFriendlyName
 
 	// Multiple IP ranges all together form the DHCP pool
-	dhcpPool ippool.Pool
+	dhcpPool   ippool.Pool     // this type provide the Size() and Contains() methods
+	dhcpRanges []IpNetworkInfo // this type stores additional metadata for each network
 
 	// Log this backend activities?
 	logDHCP  bool
@@ -88,8 +127,11 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 		} `json:"dhcp_server"`
 
 		DhcpPool []struct {
-			Start string `json:"start"`
-			End   string `json:"end"`
+			Interface string `json:"interface"`
+			Start     string `json:"start"`
+			End       string `json:"end"`
+			Gateway   string `json:"gateway"`
+			Netmask   string `json:"netmask"`
 		} `json:"dhcp_pool"`
 
 		DnsServer struct {
@@ -115,7 +157,26 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("invalid DHCP range %s-%s found in addon config file", r.Start, r.End)
 		}
 
+		// create also the IpNetworkInfo obj associated:
+		ipNetInfo := IpNetworkInfo{
+			Interface: r.Interface,
+			Start:     dhcpR.Start,
+			End:       dhcpR.End,
+			Gateway:   net.ParseIP(r.Gateway),
+			Netmask:   net.IPMask(net.ParseIP(r.Netmask)),
+		}
+
+		// check network definition
+		if !ipNetInfo.HasValidIPs() {
+			return fmt.Errorf("invalid DHCP network/range [%s] found in addon config file: the IP addresses must all be coherently IPv4 or IPv6", ipNetInfo.String())
+		}
+		if !ipNetInfo.HasValidGateway() {
+			return fmt.Errorf("invalid DHCP network/range [%s] found in addon config file: the gateway must be an IP address within the network", ipNetInfo.String())
+		}
+
+		// all good: store the info
 		b.dhcpPool.Ranges = append(b.dhcpPool.Ranges, dhcpR)
+		b.dhcpRanges = append(b.dhcpRanges, ipNetInfo)
 	}
 
 	// ensure we have a valid port for web UI
@@ -306,6 +367,10 @@ type WebSocketMessage struct {
 type HtmlTemplateIpRange struct {
 	Start string
 	End   string
+
+	Interface string
+	Gateway   string
+	Netmask   string
 }
 
 // HtmlTemplate is the struct used to render the "index.templ.html" file
