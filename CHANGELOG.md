@@ -3,12 +3,15 @@
 For the changelog please check https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/releases
 
 
-## Migrating from version 2.0 to 2.1
+## Migrating from version 2.0.x to 3.0
 
 If you have a valid configuration for version 2.0.x, you need to adjust the YAML configuration when migrating
-to version 2.1.
+to version 3.0.
 
-1. The top-level "interface" key has been renamed to "interfaces" (plural) and now expects a YAML list of network interface names
+1. The top-level "interface" key has been renamed to "interfaces" (plural) and now expects a YAML list of network interface names.
+1. The top-level "dhcp_network" key does not exist anymore. Some of its contents ("gateway" and "netmask" keys) 
+have been moved in the new top-level "dhcp_pools" key. Some of its contents ("dns_domain", "dns_servers" and "ntp_servers") have been moved in the pre-existing top-level "dhcp_server" key.
+Finally the "broadcast" key has been removed.
 
 
 ## Migrating from version 1.x to 2.x
