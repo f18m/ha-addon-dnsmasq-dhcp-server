@@ -80,6 +80,29 @@ HomeAssistant runs an [mDNS](https://en.wikipedia.org/wiki/Multicast_DNS) server
 This is not impacted in any way by the DNS server functionality offered by this addon.
 
 
+## Using the Beta version
+
+The _beta_ version of `Dnsmasq-DHCP` is where most bugfixes are first deployed and tested.
+Only if they are working fine, they will be merged in the _stable_ version.
+
+Since the beta version does not employ a real version scheme, to make sure you're running
+the latest build of the beta, please run:
+
+```
+docker pull ghcr.io/f18m/amd64-addon-dnsmasq-dhcp:beta
+```
+
+on your HomeAssistant server. 
+
+To switch from the _stable_ version to the _beta_ version, just use:
+
+```
+docker pull ghcr.io/f18m/amd64-addon-dnsmasq-dhcp:beta
+cd /usr/share/hassio/addons/data/79957c2e_dnsmasq-dhcp && cp -av * ../79957c2e_dnsmasq-dhcp-beta/
+```
+
+Then stop the _stable_version of the addon from HomeAssistant UI and start the _beta_ variant.
+
 
 ## Configuration
 
