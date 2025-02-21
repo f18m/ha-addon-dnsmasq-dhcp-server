@@ -36,6 +36,7 @@ This addon setups and manages a Dnsmasq instance configured to run both as a DNS
 * **NTP and DNS server options**: you can advertise in DHCP OFFER packets whatever NTP and DNS server you want.
 * **Past DHCP clients**: the addon keeps track of _any_ DHCP client ever connected to your network, and allows you to check if some important device in your network was connected in the past but somehow has failed to renew its DHCP lease (e.g. it is shut down).
 * **DNS local cache**: speed up DNS in your network by using this addon as your home DNS server: dnsmasq will cache DNS resolutions from upstream servers to dramatically lower DNS resolution latency; in addition dnsmasq will be able to resolve any of your home device to your LAN IP address.
+* **Rock-solid DHCP and DNS server**: this addon is using the [dnsmasq](https://thekelleys.org.uk/dnsmasq/doc.html) utility which is deployed in millions of devices since roughly 2001.
 
 ## Web UI
 

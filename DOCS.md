@@ -12,33 +12,28 @@ By doing so you should get to your HomeAssistant configuration page for addon di
 
 3. Click on the "INSTALL" button.
 
-## How to use
+
+## Requirements
 
 You need to make sure you don't have other DHCP servers running already in your network.
-You will also need all details about the network where the DHCP server should be running:
+You will also need all details about the network(s) where the DHCP server will be running (in other words,
+the details of the networks attached to your HomeAssistant server):
 
-* the netmask
-* the gateway IP address (your Internet router typically)
-* the upstream DNS server IP addresses (e.g. you may use Google DNS servers or Cloudflare quad9 servers)
-* the upstream NTP servers
+* the network interface(s);
+* the netmask;
+* the gateway IP address (your Internet router typically; in most countries this is provided by the ISP);
 * an IP address range free to be used to provision addresses to DHCP dynamic clients
+* optionally: the upstream DNS server IP addresses (e.g. you may use Google DNS servers or Cloudflare quad9 servers), if you want to enable the DNS functionality;
+* optionally: the upstream NTP servers;
 
-Once you have collected all these info, you can start editing the `Dnsmasq-DHCP` addon configuration. 
+Another important requirement is that the server which is running HomeAssistant must
+be configured to use a **STATIC IP address** in your network.
+In other words, you cannot use DHCP to configure the device where the DHCP server will be running (!!).
 
-## Configuration
+Once you have collected all these info and verified that you're using a static IP address, you can start editing the `Dnsmasq-DHCP` addon configuration. 
+Before getting there, the [Concepts section](#concepts) below provides the meaning for some terms that 
+will appear in the [Configuration section](#configuration).
 
-The `Dnsmasq-DHCP` addon configuration is documented in the 'Configuration' tab of the
-addon. 
-Alternatively check out the comments inside the [addon configuration file](config.yaml).
-
-In case you want to enable the DNS server, you probably want to configure in the `dhcp_network`
-section of the [config.yaml](config.yaml) file a single DNS server with IP `0.0.0.0`.
-Such special IP address configures the DHCP server to advertise as DNS server itself.
-This has the advantage that you will be able to resolve any DHCP host via an FQDN composed by the
-DHCP client hostname plus the DNS domain set using `dns_server.dns_domain` in [config.yaml](config.yaml).
-For example if you have a device that is advertising itself as `shelly1-abcd` on DHCP, and you have
-configured `home` as your DNS domain, then you can use `shelly1-abcd.home` to refer to that device,
-instead of its actual IP address.
 
 ## Concepts
 
@@ -64,7 +59,6 @@ Sometimes the hostname provided by the DHCP client to the DHCP server is really 
 non-informative, so `Dnsmasq-DHCP` allow users to override that by specifying a human-friendly
 name for a particular DHCP client (using its MAC address as identifier).
 
-
 ### Upstream DNS servers
 
 If the DNS server of `Dnsmasq-DHCP` is enabled (by setting `dns_server.enable` to `true`),
@@ -80,11 +74,28 @@ but you can actually point `Dnsmasq-DHCP` DNS server to another locally-hosted D
 like e.g. the [AdGuard Home](https://github.com/hassio-addons/addon-adguard-home) DNS server
 to block ADs in your LAN.
 
-
 ### HomeAssistant mDNS
 
 HomeAssistant runs an [mDNS](https://en.wikipedia.org/wiki/Multicast_DNS) server on port 5353.
 This is not impacted in any way by the DNS server functionality offered by this addon.
+
+
+
+## Configuration
+
+The `Dnsmasq-DHCP` addon configuration is documented in the 'Configuration' tab of the
+addon. 
+Alternatively check out the comments inside the [addon configuration file](config.yaml).
+
+In case you want to enable the DNS server, you probably want to configure in the `dhcp_network`
+section of the [config.yaml](config.yaml) file a single DNS server with IP `0.0.0.0`.
+Such special IP address configures the DHCP server to advertise as DNS server itself.
+This has the advantage that you will be able to resolve any DHCP host via an FQDN composed by the
+DHCP client hostname plus the DNS domain set using `dns_server.dns_domain` in [config.yaml](config.yaml).
+For example if you have a device that is advertising itself as `shelly1-abcd` on DHCP, and you have
+configured `home` as your DNS domain, then you can use `shelly1-abcd.home` to refer to that device,
+instead of its actual IP address.
+
 
 
 ## Using the Beta version

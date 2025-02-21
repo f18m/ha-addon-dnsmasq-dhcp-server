@@ -45,23 +45,33 @@ options:
     # shall log every DHCP request?
     log_requests: true
 
+  # dhcp_pool is the core config for the DHCP server.
+  # Each entry in the list represents a network segment. 
+  # You can have multiple entries
+  # for the same "interface" (with same "gateway" and "netmask") to provide disjoint
+  # IP address ranges within the same network.
+  # You can provide IP ranges of different networks in case e.g. the DHCP server
+  # is attached to multiple network interfaces (attached to different networks).
+  #
+  # Remember that the "gateway" IP address must always be an IP address within the
+  # network specified by the "start", "end" and "netmask" properties.
   dhcp_pool:
-    - start: 192.168.1.50
+    - interface: enp1s0
+      start: 192.168.1.50
       end: 192.168.1.150
-    - start: 192.168.1.220
+      # the gateway IP address to advertise in DHCP answers
+      gateway: 192.168.1.254
+      # the netmask to advertise in DHCP answers
+      netmask: 255.255.255.0
+
+    - interface: enp1s0
+      start: 192.168.1.220
       end: 192.168.1.230
-    # you can also provide IP ranges of different networks in case e.g. the DHCP server
-    # is attached to multiple network interfaces (attached to different networks) or
-    # the same network interface has multiple IP addresses
+      gateway: 192.168.1.254
+      netmask: 255.255.255.0
 
   # network section defines a number of properties that are used to populate DHCP answers.
   dhcp_network:
-    # the broadcast IP address to advertise in DHCP answers
-    broadcast: 192.168.1.255
-    # the gateway IP address to advertise in DHCP answers
-    gateway: 192.168.1.254
-    # the netmask to advertise in DHCP answers
-    netmask: 255.255.255.0
     # DNS domain to advertise in DHCP answers
     dns_domain: lan
     # DNS servers to advertise in DHCP answers.
@@ -133,12 +143,12 @@ schema:
     reset_dhcp_lease_database_on_reboot: bool
     log_requests: bool
   dhcp_pool:
-    - start: str
+    - interface: str
+      start: str
       end: str
+      gateway: str
+      netmask: str
   dhcp_network:
-    broadcast: str
-    gateway: str
-    netmask: str
     dns_servers:
       - str
     dns_domain: str

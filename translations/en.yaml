@@ -35,9 +35,6 @@ configuration:
     name: Local Area Network Settings
     description: Contains the properties of the network where the DHCP server will be serving
   # FIXME: somehow the below syntax does not work
-  #   broadcast:
-  #     name: Network Broadcast Address
-  #     description: Check Wikipedia 'Broadcast Address' page for more info. Typical examples of broadcast addresses are 192.168.0.255 or 192.168.1.255.
   #   gateway:
   #     name: Gateway Address
   #     description: The address of the router that can forward packets outside the local network.
