@@ -1,12 +1,13 @@
 ---
 configuration:
-  interface:
-    name: Network interface
-    description: The interface on which the DHCP/DNS server will listen; DHCP requests are listened on port 67; DNS requests are listened on port 53
+  interfaces:
+    name: List of Network Interfaces
+    description: The interfaces on which the DHCP/DNS server will listen; DHCP requests are listened on port 67; DNS requests are listened on port 53
 
   dhcp_server:
     name: DHCP Server settings
     description: Contains some critical configs for the DHCP server
+  # FIXME: somehow the below syntax does not work
   # default_lease:
   #   name: Default DHCP lease time 
   #   description: This represents the default DHCP lease time for all DHCP clients except those having an IP address reservation. This can be given in seconds, minutes (m) or hours (h) or you can use 'infinite'.
@@ -31,13 +32,9 @@ configuration:
   #     HomeAssistant server means also a loss of power of several/all DHCP clients. In such a case
   #     the old DHCP lease database is not useful and actually misleading.
 
-  dhcp_network:
-    name: Local Area Network Settings
-    description: Contains the properties of the network where the DHCP server will be serving
-  # FIXME: somehow the below syntax does not work
-  #   broadcast:
-  #     name: Network Broadcast Address
-  #     description: Check Wikipedia 'Broadcast Address' page for more info. Typical examples of broadcast addresses are 192.168.0.255 or 192.168.1.255.
+  dhcp_pools:
+    name: DHCP IP Address Pools
+    description: Contains the configuration of the IP address pool in each pool. Typically you have 1 pool for each network interface where DHCP server must serve requests.
   #   gateway:
   #     name: Gateway Address
   #     description: The address of the router that can forward packets outside the local network.

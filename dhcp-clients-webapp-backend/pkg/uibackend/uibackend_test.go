@@ -1,6 +1,7 @@
 package uibackend
 
 import (
+	"dhcp-clients-webapp-backend/pkg/ippool"
 	"dhcp-clients-webapp-backend/pkg/logger"
 	"dhcp-clients-webapp-backend/pkg/trackerdb"
 	"net"
@@ -81,8 +82,7 @@ func getMockUIBackend() *UIBackend {
 				Link: MustParseTemplate("https://{{ .ip }}"),
 			},
 		},
-		dhcpStartIP: net.IPv4(192, 168, 0, 1),
-		dhcpEndIP:   net.IPv4(192, 168, 0, 100),
+		dhcpPool: ippool.NewPoolFromString("192.168.0.1", "192.168.0.100"),
 	}
 	return &UIBackend{
 		logger:    logger.NewCustomLogger("unit tests"),

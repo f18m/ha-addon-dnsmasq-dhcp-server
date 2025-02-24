@@ -3,9 +3,9 @@
 # as reported by the Github Action workflow 'publish.yaml', so that you can force HomeAssistant
 # to use the docker image of that feature branch instead of the docker image of 'main', by pointing
 # HomeAssistant to that feature branch
-version: 2.0.2
-slug: dnsmasq-dhcp
-name: Dnsmasq-DHCP
+version: beta
+slug: dnsmasq-dhcp-beta
+name: Dnsmasq-DHCP BETA
 description: A DHCP server based on dnsmasq
 url: https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/tree/main
 advanced: true
@@ -23,10 +23,11 @@ ingress_port: 8100
 panel_icon: mdi:ip-network-outline
 panel_title: DHCP
 options:
-  # the interface on which the DHCP/DNS server will listen
+  # the interfaces on which the DHCP/DNS server will listen
   # DHCP requests are listened on port 67
-  # DNS requests are listened on port 53
-  interface: enp1s0
+  # DNS requests are listened on port 53 (DNS port is configurable via dns_server.port key)
+  interfaces:
+    - enp1s0
   dhcp_server:
     # default lease time for all DHCP clients except those having an IP address reservation.
     default_lease: 1h
@@ -35,9 +36,6 @@ options:
     # and this makes the whole DHCP server less useful... it's better to force the clients
     # to some frequent check-in, since that becomes a basic heartbeat / client health check.
     address_reservation_lease: 1h
-    # DHCP start-end IP pool
-    start_ip: 192.168.1.50
-    end_ip: 192.168.1.250
     # the addon can detect whether the server which is running the addon has just rebooted;
     # if that's the case and the following flag is set to "true", then the DHCP lease database
     # is reset before starting the DHCP server; this is useful in case a loss of power of the
@@ -46,21 +44,18 @@ options:
     reset_dhcp_lease_database_on_reboot: false
     # shall log every DHCP request?
     log_requests: true
-  # network section defines a number of properties that are used to populate DHCP answers.
-  dhcp_network:
-    # the broadcast IP address to advertise in DHCP answers
-    broadcast: 192.168.1.255
-    # the gateway IP address to advertise in DHCP answers
-    gateway: 192.168.1.254
-    # the netmask to advertise in DHCP answers
-    netmask: 255.255.255.0
     # DNS domain to advertise in DHCP answers
     dns_domain: lan
-    # DNS servers to advertise in DHCP answers (primary, secondary, tertiary, etc)
+    # DNS servers to advertise in DHCP answers.
+    # Note that even if online someone is naming these as "primary" and "secondary" DNS servers,
+    # the DHCP clients are free to use them in any order they like, or even to use only one of them.
+    # There is no "primary" or "secondary".
+    # In particular if you use dns_server.enable=true, then you want to provide ONLY 0.0.0.0
+    # (the IP address of the machine running dnsmasq) as DNS server. 
+    # If you use dns_server.enable=false, you want to provide some public DNS server (and you can provide
+    # more than one if you like), e.g. 8.8.8.8, 1.1.1.1, etc.
     dns_servers:
       - 0.0.0.0  # the special value 0.0.0.0 indicates the IP address of this host -- useful only if dns_server.enable=true
-      - 8.8.8.8
-      - 8.8.4.4
     ntp_servers:
       # define NTP servers to provide to DHCP clients (not all clients will honor this setting though)
       # example1: online NTP servers: check https://www.ntppool.org/zone/@ for details about continental zones:
@@ -73,6 +68,32 @@ options:
       #- time3.google.com
       # example3: the entry 0.0.0.0 means "the address of the machine running dnsmasq"
       #- 0.0.0.0
+
+  # dhcp_pools is the core config for the DHCP server.
+  # Each entry in the list represents a network segment. 
+  # You can have multiple entries
+  # for the same "interface" (with same "gateway" and "netmask") to provide disjoint
+  # IP address ranges within the same network.
+  # You can provide IP ranges of different networks in case e.g. the DHCP server
+  # is attached to multiple network interfaces (attached to different networks).
+  #
+  # Remember that the "gateway" IP address must always be an IP address within the
+  # network specified by the "start", "end" and "netmask" properties.
+  dhcp_pools:
+    - interface: enp1s0
+      start: 192.168.1.50
+      end: 192.168.1.150
+      # the gateway IP address to advertise in DHCP answers
+      gateway: 192.168.1.254
+      # the netmask to advertise in DHCP answers
+      netmask: 255.255.255.0
+
+    - interface: enp1s0
+      start: 192.168.1.220
+      end: 192.168.1.230
+      gateway: 192.168.1.254
+      netmask: 255.255.255.0
+
   dhcp_ip_address_reservations:
     - mac: aa:bb:cc:dd:ee:ff
       name: "An-important-host-with-reserved-IP"
@@ -109,23 +130,27 @@ options:
     # that port configurable to avoid conflicts with other services
     port: 8976
 schema:
-  interface: str
+  interfaces:
+    # we expect a list of valid network interfaces; the character "@" which typically appears in
+    # veth pairs (used by docker) is not allowed on-purpose to avoid mistakes where the user
+    # provides a docker veth pair as interface for dnsmasq (this is typically not a good idea)
+    - match(^([a-z][a-z0-9\.:]*)$)
   dhcp_server:
     default_lease: str
     address_reservation_lease: str
-    start_ip: str
-    end_ip: str
     reset_dhcp_lease_database_on_reboot: bool
     log_requests: bool
-  dhcp_network:
-    broadcast: str
-    gateway: str
-    netmask: str
     dns_servers:
       - str
     dns_domain: str
     ntp_servers:
       - str
+  dhcp_pools:
+    - interface: str
+      start: str
+      end: str
+      gateway: str
+      netmask: str
   dhcp_ip_address_reservations:
     - ip: str
       mac: match(^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$)

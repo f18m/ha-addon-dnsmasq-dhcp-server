@@ -275,7 +275,7 @@ function updateDHCPStatus(data, dhcp_static_ip, dhcp_addresses_used, messageElem
     // update the message
     messageElem.innerHTML = "<span class='boldText'>" + data.current_clients.length + " DHCP current clients</span> hold a DHCP lease.<br/>" + 
                         dhcp_static_ip + " have a static IP address configuration.<br/>" +
-                        dhcp_addresses_used + " are within the DHCP pool. DHCP pool usage is at " + usagePerc + "%.<br/>" +
+                        dhcp_addresses_used + " are within the DHCP pool. DHCP pool contains " + templated_dhcpPoolSize + " IP addresses and its usage is at " + usagePerc + "%.<br/>" +
                         "<span class='boldText'>" + data.past_clients.length + " DHCP past clients</span> contacted the server some time ago but failed to do so since last DHCP server restart, " + 
                         uptime_str + " hh:mm:ss ago.<br/>";
 }

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	htmltemplate "html/template"
 	"io"
 	"net"
 	"net/http"
@@ -24,7 +25,6 @@ import (
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/gorilla/websocket"
-	"github.com/netdata/go.d.plugin/pkg/iprange"
 )
 
 type UIBackend struct {
@@ -43,9 +43,9 @@ type UIBackend struct {
 
 	// more HTTP server resources
 	isTestingMode bool
-	htmlTemplate  *template.Template // read from disk at startup
-	jsContents    string             // read from disk at startup
-	cssContents   string             // read from disk at startup
+	htmlTemplate  *htmltemplate.Template // read from disk at startup
+	jsContents    string                 // read from disk at startup
+	cssContents   string                 // read from disk at startup
 
 	// map of connected websockets
 	clients     map[*websocket.Conn]bool
@@ -391,47 +391,21 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// compute pool size:
-	dhcpPoolSize := 0
-	if b.cfg.dhcpStartIP != nil && b.cfg.dhcpEndIP != nil {
-		dhcpPoolSize = int(iprange.New(b.cfg.dhcpStartIP, b.cfg.dhcpEndIP).Size().Int64())
-	}
-
 	// DNS
 	dnsEnableString := "disabled"
 	if b.cfg.dnsEnable {
 		dnsEnableString = "enabled"
 	}
 
-	templateData := struct {
-		// websockets
-		WebSocketURI string
-
-		// DHCP config info that are handy to have in the UI page
-		DhcpStartIP             string
-		DhcpEndIP               string
-		DhcpPoolSize            int
-		DefaultLease            string
-		AddressReservationLease string
-		DHCPServerStartTime     int64
-
-		// DNS config info
-		DnsEnabled string
-		DnsDomain  string
-
-		// embedded contents
-		CssFileContent        template.CSS
-		JavascriptFileContent template.JS
-	}{
+	templateData := HtmlTemplate{
 		// We use relative URL for the websocket in the form "/79957c2e_dnsmasq-dhcp/ingress/ws"
 		// In this way we don't need to know whether the browser is passing through some TLS
 		// reverse proxy or uses HomeAssistant built-in TLS or is connecting in plaintext (HTTP).
 		// Based on the scheme used by the browser, the websocket will use the associated scheme
 		// ('wss' for 'https' and 'ws' for 'http)
 		WebSocketURI:            XIngressPath[0] + websocketRelativeUrl,
-		DhcpStartIP:             b.cfg.dhcpStartIP.String(),
-		DhcpEndIP:               b.cfg.dhcpEndIP.String(),
-		DhcpPoolSize:            dhcpPoolSize,
+		DhcpRanges:              IpPoolToHtmlTemplateRanges(b.cfg.dhcpRanges),
+		DhcpPoolSize:            b.cfg.dhcpPool.Size(),
 		DefaultLease:            b.cfg.defaultLease,
 		AddressReservationLease: b.cfg.addressReservationLease,
 		// we approximate the DHCP server start time with this app's start time;
@@ -575,7 +549,7 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 		// fill metadata
 		d.FriendlyName = b.getFriendlyNameFor(lease.MacAddr, lease.Hostname)
 		d.HasStaticIP = b.hasIpAddressReservationByIP(lease.IPAddr, lease.MacAddr)
-		d.IsInsideDHCPPool = IpInRange(lease.IPAddr, b.cfg.dhcpStartIP, b.cfg.dhcpEndIP)
+		d.IsInsideDHCPPool = b.cfg.dhcpPool.Contains(lease.IPAddr)
 		d.EvaluatedLink = b.evaluateLink(lease.Hostname, lease.IPAddr, lease.MacAddr)
 
 		// processing complete:
@@ -634,8 +608,9 @@ func (b *UIBackend) readAddonConfig() error {
 		return err
 	}
 
+	b.logger.Infof("Acquired %d DHCP network/ranges\n", len(b.cfg.dhcpRanges))
 	b.logger.Infof("Acquired %d IP address reservations\n", len(b.cfg.ipAddressReservationsByIP))
-	b.logger.Infof("Acquired %d friendly names\n", len(b.cfg.friendlyNames))
+	b.logger.Infof("Acquired %d friendly name definitions\n", len(b.cfg.friendlyNames))
 	b.logger.Infof("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
 		b.cfg.webUIPort, b.cfg.logWebUI, b.cfg.logDHCP)
 
@@ -663,11 +638,13 @@ func (b *UIBackend) ListenAndServe() error {
 	// Read friendly names from the HomeAssistant addon config
 	if err := b.readAddonConfig(); err != nil {
 		b.logger.Fatalf("error while reading HomeAssistant addon options: %s\n", err.Error())
+		return err
 	}
 
 	// Initialize current DHCP client data table
 	if err := b.readCurrentLeaseFile(); err != nil {
 		b.logger.Fatalf("error while reading DHCP leases file: %s\n", err.Error())
+		return err
 	}
 
 	// Watch for updates on DHCP leases file and push to leasesCh

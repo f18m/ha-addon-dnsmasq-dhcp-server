@@ -1,5 +1,5 @@
 {
-  "interface": "enp3s0",
+  "interfaces": [ "enp3s0" ],
   "dhcp_ip_address_reservations": [
     {
       "mac": "aa:bb:cc:dd:ee:00",
@@ -24,16 +24,8 @@
   "dhcp_server": {
     "default_lease": "12h",
     "address_reservation_lease": "24h",
-    "start_ip": "192.168.1.50",
-    "end_ip": "192.168.1.100",
     "log_requests": true,
-    "reset_dhcp_lease_database_on_reboot": false
-  },
-  "dhcp_network": {
-    "broadcast": "192.168.1.255",
-    "gateway": "192.168.1.254",
-    "netmask": "255.255.255.0",
-    "subnet": "192.168.1.0",
+    "reset_dhcp_lease_database_on_reboot": false,
     "dns_servers": [
       "0.0.0.0", 
       "8.8.8.8",
@@ -48,6 +40,22 @@
       "1.2.3.4"
     ]
   },
+  "dhcp_pools": [
+    {
+      "interface": "enp3s0",
+      "start": "192.168.1.50",
+      "end": "192.168.1.100",
+      "gateway": "192.168.1.254",
+      "netmask": "255.255.255.0"
+      },
+    {
+      "interface": "enp3s1",
+      "start": "192.168.2.50",
+      "end": "192.168.2.100",
+      "gateway": "192.168.2.254",
+      "netmask": "255.255.255.0"
+    }
+  ],
   "dns_server": {
     "enable": true,
     "port": 53,
