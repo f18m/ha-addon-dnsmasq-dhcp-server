@@ -32,7 +32,9 @@ configuration:
   #     HomeAssistant server means also a loss of power of several/all DHCP clients. In such a case
   #     the old DHCP lease database is not useful and actually misleading.
 
-  # dhcp_pools:
+  dhcp_pools:
+    name: DHCP IP Address Pools
+    description: Contains the configuration of the IP address pool in each pool. Typically you have 1 pool for each network interface where DHCP server must serve requests.
   #   gateway:
   #     name: Gateway Address
   #     description: The address of the router that can forward packets outside the local network.
