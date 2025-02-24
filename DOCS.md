@@ -4,11 +4,11 @@
 
 Follow these steps to get the add-on installed on your system:
 
-1. Add my HA addons store by clicking here: [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Ff18m%2Fha-addons-repo)
+1. Add the HA addon store for this addon by clicking here: [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Ff18m%2Fha-addons-repo)
 
-By doing so you should get to your HomeAssistant configuration page for addon digital archives and you should be asked to add `https://github.com/f18m/ha-addons-repo` to the list. Hit "Add".
+By doing so you should get to your HomeAssistant configuration page for addon digital archives and you should be asked to add `https://github.com/f18m/ha-addons-repo` to the list. Click "Add".
 
-2. In the list of add-ons, search for "Francesco Montorsi addons" and then the `Dnsmasq-DHCP` add-on and click on that.
+2. In the list of add-ons, search for "Francesco Montorsi addons" and then the `Dnsmasq-DHCP` add-on and click on that. There is also a "BETA" version available, skip it unless you want to try the latest bugfixes and developments.
 
 3. Click on the "INSTALL" button.
 
@@ -26,9 +26,21 @@ the details of the networks attached to your HomeAssistant server):
 * optionally: the upstream DNS server IP addresses (e.g. you may use Google DNS servers or Cloudflare quad9 servers), if you want to enable the DNS functionality;
 * optionally: the upstream NTP servers;
 
+An example for all elements above could be:
+
+* the network interface(s): `eth0`
+* the netmask: `255.255.255.0`
+* the gateway IP address: `192.168.1.1`
+* an IP address range free to be used: `192.168.1.200` - `192.168.1.250`
+* upstream DNS server IP addresses: `8.8.8.8`
+* upstream NTP servers: `0.north-america.pool.ntp.org` or `0.europe.pool.ntp.org`
+
 Another important requirement is that the server which is running HomeAssistant must
 be configured to use a **STATIC IP address** in your network.
 In other words, you cannot use DHCP to configure the device where the DHCP server will be running (!!).
+You can setup a static IP address from your HomeAssistant through the `Settings->Network` menu:
+
+<img src="docs/ha-network-settings.png" alt="HA screenshot"/>
 
 Once you have collected all these info and verified that you're using a static IP address, you can start editing the `Dnsmasq-DHCP` addon configuration. 
 Before getting there, the [Concepts section](#concepts) below provides the meaning for some terms that 
@@ -78,30 +90,6 @@ to block ADs in your LAN.
 
 HomeAssistant runs an [mDNS](https://en.wikipedia.org/wiki/Multicast_DNS) server on port 5353.
 This is not impacted in any way by the DNS server functionality offered by this addon.
-
-
-## Using the Beta version
-
-The _beta_ version of `Dnsmasq-DHCP` is where most bugfixes are first deployed and tested.
-Only if they are working fine, they will be merged in the _stable_ version.
-
-Since the beta version does not employ a real version scheme, to make sure you're running
-the latest build of the beta, please run:
-
-```
-docker pull ghcr.io/f18m/amd64-addon-dnsmasq-dhcp:beta
-```
-
-on your HomeAssistant server. 
-
-To switch from the _stable_ version to the _beta_ version, just use:
-
-```
-docker pull ghcr.io/f18m/amd64-addon-dnsmasq-dhcp:beta
-cd /usr/share/hassio/addons/data/79957c2e_dnsmasq-dhcp && cp -av * ../79957c2e_dnsmasq-dhcp-beta/
-```
-
-Then stop the _stable_version of the addon from HomeAssistant UI and start the _beta_ variant.
 
 
 ## Configuration
