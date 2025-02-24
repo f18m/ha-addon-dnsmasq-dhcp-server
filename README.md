@@ -3,20 +3,22 @@
 This addon provides 
 * a DHCP server
 * a DNS server (optional)
-that are meant to be used in your HomeAssistant Local Area Network (LAN), to make HomeAssistant the central point of 
-the network configuration: IP address allocations, FQDN resolutions, etc.
 
-The DNS/DHCP server is based on the [dnsmasq](https://thekelleys.org.uk/dnsmasq/doc.html) utility. 
+that are meant to be used in your HomeAssistant Local Area Network (LAN), to make HomeAssistant the central point of 
+your home network configuration: IP address allocations (via DHCP), hostname resolutions (via DNS), etc.
+
+Under the hood, the DNS/DHCP server is the well-known [dnsmasq](https://thekelleys.org.uk/dnsmasq/doc.html) server. 
 This is in contrast to several similar solutions that employ instead the [ISC dhcpd](https://www.isc.org/dhcp/) utility.
 Dnsmasq is on many aspects more feature-complete than the ISC DHCP server. Moreover ISC DHCP is discontinued since 2022.
 
-This addon also implements a UI webpage to view the list of DHCP clients with all relevant information that can be obtained through DHCP.
+This addon also implements a basic UI to view the list of both current and past DHCP clients, showing for each client all relevant information that can be obtained through DHCP.
+Some basic DNS statistic is available from the UI as well.
 
 ![Supports aarch64 Architecture][aarch64-shield] ![Supports amd64 Architecture][amd64-shield] ![Supports armv7 Architecture][armv7-shield] ![Supports i386 Architecture][i386-shield]
 
 ## About
 
-This addon setups and manages a Dnsmasq instance configured to run both as a DNS and DHCP server (despite the name 'dnsmasq' also provides DHCP server functionalities, not only DNS).
+This addon setups and manages a `dnsmasq` instance configured to run both as a DNS and DHCP server (despite the name '`dnsmasq`' also provides DHCP server functionalities, not only DNS).
 
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
@@ -25,7 +27,7 @@ This addon setups and manages a Dnsmasq instance configured to run both as a DNS
 
 ## Features
 
-* **Web-based UI** integrated in Home Assistant to view the list of all DHCP clients; the web UI is responsive and has nice rendering also from mobile phones.
+* **Web-based UI** integrated in Home Assistant to view the list of all DHCP clients; the web UI is responsive and has nice rendering also from mobile phones (this is handy when you're e.g. installing a new Wifi or wired device in your network and you only have your mobile phone).
 * **UI Instant update**: no need to refresh the UI, whenever a new DHCP client connects to or leaves the network
   the UI gets instantly updated.
 * **IP address reservation** using the MAC address: you can associate a specific IP address (even outside
@@ -35,7 +37,7 @@ This addon setups and manages a Dnsmasq instance configured to run both as a DNS
   in their DHCP requests.
 * **NTP and DNS server options**: you can advertise in DHCP OFFER packets whatever NTP and DNS server you want.
 * **Past DHCP clients**: the addon keeps track of _any_ DHCP client ever connected to your network, and allows you to check if some important device in your network was connected in the past but somehow has failed to renew its DHCP lease (e.g. it is shut down).
-* **DNS local cache**: speed up DNS in your network by using this addon as your home DNS server: dnsmasq will cache DNS resolutions from upstream servers to dramatically lower DNS resolution latency; in addition dnsmasq will be able to resolve any of your home device to your LAN IP address.
+* **DNS local cache**: speed up DNS in your network by using this addon as your home DNS server: `dnsmasq` will cache DNS resolutions from upstream servers to dramatically lower DNS resolution latency; in addition `dnsmasq` will be able to resolve any of your home device to your LAN IP address.
 * **Rock-solid DHCP and DNS server**: this addon is using the [dnsmasq](https://thekelleys.org.uk/dnsmasq/doc.html) utility which is deployed in millions of devices since roughly 2001.
 
 ## Web UI
@@ -73,7 +75,7 @@ Please note that you can use this addon in tandem with similar addons and e.g. c
 
 ## Other Noteworthy Projects
 
-* [pihole](https://pi-hole.net/): pi-hole embeds a modified dnsmasq variant (they named it FTL, Faster Than Light) which provides a bunch of DNS metrics that are missing from the regular dnsmasq binary.
+* [pihole](https://pi-hole.net/): pi-hole embeds a modified `dnsmasq` variant (they named it "FTL", Faster Than Light) which provides a bunch of DNS metrics that are missing from the regular `dnsmasq` binary.
 
 ## Future Developments
 
