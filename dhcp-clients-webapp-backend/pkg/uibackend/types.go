@@ -132,7 +132,7 @@ func (b *AddonConfig) UnmarshalJSON(data []byte) error {
 			End       string `json:"end"`
 			Gateway   string `json:"gateway"`
 			Netmask   string `json:"netmask"`
-		} `json:"dhcp_pool"`
+		} `json:"dhcp_pools"`
 
 		DnsServer struct {
 			Enable    bool   `json:"enable"`

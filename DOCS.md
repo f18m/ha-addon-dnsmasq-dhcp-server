@@ -110,7 +110,7 @@ The `Dnsmasq-DHCP` addon configuration is documented in the 'Configuration' tab 
 addon. 
 Alternatively check out the comments inside the [addon configuration file](config.yaml).
 
-In case you want to enable the DNS server, you probably want to configure in the `dhcp_network`
+In case you want to enable the DNS server, you probably want to configure in the `dhcp_server`
 section of the [config.yaml](config.yaml) file a single DNS server with IP `0.0.0.0`.
 Such special IP address configures the DHCP server to advertise as DNS server itself.
 This has the advantage that you will be able to resolve any DHCP host via an FQDN composed by the

@@ -25,9 +25,22 @@
     "default_lease": "12h",
     "address_reservation_lease": "24h",
     "log_requests": true,
-    "reset_dhcp_lease_database_on_reboot": false
+    "reset_dhcp_lease_database_on_reboot": false,
+    "dns_servers": [
+      "0.0.0.0", 
+      "8.8.8.8",
+      "8.8.4.4"
+    ],
+    "ntp_servers": [
+      "0.2.3.4",
+      "ntp.pool.org",
+      "0.europe.ntp.pool.org",
+      "1.europe.ntp.pool.org",
+      "2.europe.ntp.pool.org",
+      "1.2.3.4"
+    ]
   },
-  "dhcp_pool": [
+  "dhcp_pools": [
     {
       "interface": "enp3s0",
       "start": "192.168.1.50",
@@ -43,22 +56,6 @@
       "netmask": "255.255.255.0"
     }
   ],
-  "dhcp_network": {
-    "subnet": "192.168.1.0",
-    "dns_servers": [
-      "0.0.0.0", 
-      "8.8.8.8",
-      "8.8.4.4"
-    ],
-    "ntp_servers": [
-      "0.2.3.4",
-      "ntp.pool.org",
-      "0.europe.ntp.pool.org",
-      "1.europe.ntp.pool.org",
-      "2.europe.ntp.pool.org",
-      "1.2.3.4"
-    ]
-  },
   "dns_server": {
     "enable": true,
     "port": 53,

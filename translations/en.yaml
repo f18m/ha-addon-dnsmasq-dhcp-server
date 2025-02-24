@@ -7,6 +7,7 @@ configuration:
   dhcp_server:
     name: DHCP Server settings
     description: Contains some critical configs for the DHCP server
+  # FIXME: somehow the below syntax does not work
   # default_lease:
   #   name: Default DHCP lease time 
   #   description: This represents the default DHCP lease time for all DHCP clients except those having an IP address reservation. This can be given in seconds, minutes (m) or hours (h) or you can use 'infinite'.
@@ -31,10 +32,7 @@ configuration:
   #     HomeAssistant server means also a loss of power of several/all DHCP clients. In such a case
   #     the old DHCP lease database is not useful and actually misleading.
 
-  dhcp_network:
-    name: Local Area Network Settings
-    description: Contains the properties of the network where the DHCP server will be serving
-  # FIXME: somehow the below syntax does not work
+  # dhcp_pools:
   #   gateway:
   #     name: Gateway Address
   #     description: The address of the router that can forward packets outside the local network.

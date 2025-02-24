@@ -36,7 +36,7 @@ function ipvalid() {
 }
 
 function resolve_ntp_servers() {
-    NTP_SERVERS="$(jq --raw-output '.dhcp_network.ntp_servers[]' ${ADDON_CONFIG_RESOLVED} 2>/dev/null)"
+    NTP_SERVERS="$(jq --raw-output '.dhcp_server.ntp_servers[]' ${ADDON_CONFIG_RESOLVED} 2>/dev/null)"
     if [[ ! -z "${NTP_SERVERS}" ]]; then
         log_info "NTP servers are ${NTP_SERVERS//$'\n'/,}"
 
@@ -61,7 +61,7 @@ function resolve_ntp_servers() {
             NTP_SERVERS_RESOLVED=${NTP_SERVERS_RESOLVED::-1}
 
             # add DNS-resolved IP addresses
-            jq --compact-output ".dhcp_network.ntp_resolved=[$NTP_SERVERS_RESOLVED]" \
+            jq --compact-output ".dhcp_server.ntp_resolved=[$NTP_SERVERS_RESOLVED]" \
                 ${ADDON_CONFIG_RESOLVED} >${ADDON_CONFIG_RESOLVED}.tmp
             mv ${ADDON_CONFIG_RESOLVED}.tmp ${ADDON_CONFIG_RESOLVED}
         fi
@@ -69,7 +69,7 @@ function resolve_ntp_servers() {
 }
 
 function process_dns_servers() {
-    DNS_SERVERS="$(jq --raw-output '.dhcp_network.dns_servers[]' ${ADDON_CONFIG} 2>/dev/null)"
+    DNS_SERVERS="$(jq --raw-output '.dhcp_server.dns_servers[]' ${ADDON_CONFIG} 2>/dev/null)"
     if [[ ! -z "${DNS_SERVERS}" ]]; then
         log_info "DNS servers are ${DNS_SERVERS//$'\n'/,}"
 
@@ -93,7 +93,7 @@ function process_dns_servers() {
             log_info "List of processed DNS servers is: ${DNS_SERVERS_RESOLVED}"
 
             # add post-processed DNS servers
-            jq --compact-output ".dhcp_network.dns_servers_processed=[$DNS_SERVERS_RESOLVED]" \
+            jq --compact-output ".dhcp_server.dns_servers_processed=[$DNS_SERVERS_RESOLVED]" \
                 ${ADDON_CONFIG_RESOLVED} >${ADDON_CONFIG_RESOLVED}.tmp
             mv ${ADDON_CONFIG_RESOLVED}.tmp ${ADDON_CONFIG_RESOLVED}
         fi

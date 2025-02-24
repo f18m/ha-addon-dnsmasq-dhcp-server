@@ -44,34 +44,6 @@ options:
     reset_dhcp_lease_database_on_reboot: false
     # shall log every DHCP request?
     log_requests: true
-
-  # dhcp_pool is the core config for the DHCP server.
-  # Each entry in the list represents a network segment. 
-  # You can have multiple entries
-  # for the same "interface" (with same "gateway" and "netmask") to provide disjoint
-  # IP address ranges within the same network.
-  # You can provide IP ranges of different networks in case e.g. the DHCP server
-  # is attached to multiple network interfaces (attached to different networks).
-  #
-  # Remember that the "gateway" IP address must always be an IP address within the
-  # network specified by the "start", "end" and "netmask" properties.
-  dhcp_pool:
-    - interface: enp1s0
-      start: 192.168.1.50
-      end: 192.168.1.150
-      # the gateway IP address to advertise in DHCP answers
-      gateway: 192.168.1.254
-      # the netmask to advertise in DHCP answers
-      netmask: 255.255.255.0
-
-    - interface: enp1s0
-      start: 192.168.1.220
-      end: 192.168.1.230
-      gateway: 192.168.1.254
-      netmask: 255.255.255.0
-
-  # network section defines a number of properties that are used to populate DHCP answers.
-  dhcp_network:
     # DNS domain to advertise in DHCP answers
     dns_domain: lan
     # DNS servers to advertise in DHCP answers.
@@ -96,6 +68,32 @@ options:
       #- time3.google.com
       # example3: the entry 0.0.0.0 means "the address of the machine running dnsmasq"
       #- 0.0.0.0
+
+  # dhcp_pools is the core config for the DHCP server.
+  # Each entry in the list represents a network segment. 
+  # You can have multiple entries
+  # for the same "interface" (with same "gateway" and "netmask") to provide disjoint
+  # IP address ranges within the same network.
+  # You can provide IP ranges of different networks in case e.g. the DHCP server
+  # is attached to multiple network interfaces (attached to different networks).
+  #
+  # Remember that the "gateway" IP address must always be an IP address within the
+  # network specified by the "start", "end" and "netmask" properties.
+  dhcp_pools:
+    - interface: enp1s0
+      start: 192.168.1.50
+      end: 192.168.1.150
+      # the gateway IP address to advertise in DHCP answers
+      gateway: 192.168.1.254
+      # the netmask to advertise in DHCP answers
+      netmask: 255.255.255.0
+
+    - interface: enp1s0
+      start: 192.168.1.220
+      end: 192.168.1.230
+      gateway: 192.168.1.254
+      netmask: 255.255.255.0
+
   dhcp_ip_address_reservations:
     - mac: aa:bb:cc:dd:ee:ff
       name: "An-important-host-with-reserved-IP"
@@ -142,18 +140,17 @@ schema:
     address_reservation_lease: str
     reset_dhcp_lease_database_on_reboot: bool
     log_requests: bool
-  dhcp_pool:
-    - interface: str
-      start: str
-      end: str
-      gateway: str
-      netmask: str
-  dhcp_network:
     dns_servers:
       - str
     dns_domain: str
     ntp_servers:
       - str
+  dhcp_pools:
+    - interface: str
+      start: str
+      end: str
+      gateway: str
+      netmask: str
   dhcp_ip_address_reservations:
     - ip: str
       mac: match(^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$)
