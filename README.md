@@ -42,7 +42,7 @@ This addon setups and manages a `dnsmasq` instance configured to run both as a D
 
 ## Web UI
 
-These are screenshots from the addon UI v2.0.0.
+These are screenshots from the addon UI v3.0.0.
 
 DHCP basic summary:
 
