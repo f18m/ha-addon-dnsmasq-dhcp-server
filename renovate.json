@@ -4,6 +4,9 @@
   ],
   "packageRules": [
     {
+      "dependencyDashboardApproval": false
+    },
+    {
       "matchCategories": [
         "golang"
       ],
