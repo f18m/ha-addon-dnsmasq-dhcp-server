@@ -20,13 +20,11 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
-        with:
-          path: ./myaddon
 
       - name: Build golang code
         run: |
           cd dhcp-clients-webapp-backend
-          go build -o dhcp-clients-webapp-backend main.go
+          go build -o uibackend main.go
 
       - name: Run unit tests
         run: |
