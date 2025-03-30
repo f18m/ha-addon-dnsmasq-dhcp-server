@@ -15,6 +15,7 @@ func TestContains(t *testing.T) {
 		endIP    string
 		expected bool
 	}{
+		// IPv4 tests
 		{
 			name:     "IP within range",
 			ip:       "192.168.1.10",
@@ -50,6 +51,9 @@ func TestContains(t *testing.T) {
 			endIP:    "192.168.1.100",
 			expected: false,
 		},
+
+		// IPv6 tests
+
 		{
 			name:     "IPv6 IP within range",
 			ip:       "2001:db8::2",
