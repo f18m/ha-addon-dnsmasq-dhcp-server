@@ -9,6 +9,32 @@ on:
 
 
 jobs:
+  unit_tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Build golang code
+        run: |
+          cd dhcp-clients-webapp-backend
+          go build -o uibackend main.go
+
+      - name: Install test dependencies
+        run: |
+          apt install -y dnsmasq
+
+      - name: Run unit tests
+        run: |
+          cd dhcp-clients-webapp-backend
+          go test -v -cover ./...
+
   check_tag:
     name: Check if Tag Build
     runs-on: ubuntu-latest
@@ -39,7 +65,9 @@ jobs:
   publish-docker-image:
     name: Publish
     runs-on: ubuntu-latest
-    needs: check_tag
+    needs:
+      - unit_tests
+      - check_tag
     permissions:
       contents: read
       packages: write
