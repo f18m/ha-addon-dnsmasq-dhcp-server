@@ -28,13 +28,27 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          apt install -y dnsmasq
+          sudo apt install -y dnsmasq
 
       - name: Run unit tests
         run: |
           cd dhcp-clients-webapp-backend
           go test -v -cover ./...
 
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.5
+          working-directory: dhcp-clients-webapp-backend
+        
   check_tag:
     name: Check if Tag Build
     runs-on: ubuntu-latest
@@ -68,6 +82,7 @@ jobs:
     needs:
       - unit_tests
       - check_tag
+      - golangci
     permissions:
       contents: read
       packages: write
