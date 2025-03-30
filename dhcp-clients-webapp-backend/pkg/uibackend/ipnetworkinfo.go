@@ -15,6 +15,8 @@ type IpNetworkInfo struct {
 }
 
 func (nw IpNetworkInfo) HasValidIPs() bool {
+	// NOTE: IsPrivate reports whether ip is a private address, according to RFC 1918 (IPv4 addresses) and RFC 4193 (IPv6 addresses).
+
 	if nw.Start.IsPrivate() &&
 		nw.End.IsPrivate() &&
 		nw.Gateway.IsPrivate() {
