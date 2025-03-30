@@ -1,7 +1,6 @@
 ARG BUILD_FROM
 
 # --- BACKEND BUILD
-# About golang version: downgrade Go to 1.22.x to avoid https://github.com/golang/go/issues/68976
 # About base image: we need to use a musl-based docker image since the actual HomeAssistant addon
 # base image will be musl-based as well. This is required since we depend from "github.com/mattn/go-sqlite3"
 # which is a CGO library; so that's why we select the -alpine variant
