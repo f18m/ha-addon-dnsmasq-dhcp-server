@@ -56,6 +56,9 @@ pool of IP addresses automatically managed by the DHCP server and provided dynam
 that request them.
 See also [Wikipedia DHCP page](https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol)
 for more information.
+Please note that the configured network should use private IP addresses both for its start/end IPs.
+A private IP is defined in RFC 1918 (IPv4 addresses) and RFC 4193 (IPv6 addresses).
+Check [wikipedia page for private networks](https://en.wikipedia.org/wiki/Private_network) for more information.
 
 ### DHCP Static IP addresses
 
