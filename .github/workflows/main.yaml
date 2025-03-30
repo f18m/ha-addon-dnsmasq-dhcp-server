@@ -1,4 +1,8 @@
-name: "Publish"
+#
+# This pipeline is testing and building the addon for the Home Assistant
+# and publishing its docker image to the GHCR registry
+#
+name: "Main CI"
 
 on: 
   push:
@@ -135,6 +139,12 @@ jobs:
             --target myaddon \
             --docker-hub ghcr.io/f18m
         if: ${{ needs.check_tag.outputs.is_tag == 'true' }}
+        
+      - name: Emit Architecture list
+        run: |
+          echo "Docker image supports arch: armv7, amd64, aarch64, i386" >> $GITHUB_STEP_SUMMARY
+        if: ${{ needs.check_tag.outputs.is_tag == 'true' }}
+
 
 
       # -------------------------------------------------------------------------- #
@@ -163,3 +173,21 @@ jobs:
             --version ${{ steps.meta.outputs.version }} \
             --no-latest
         if: ${{ needs.check_tag.outputs.is_tag == 'false' }}
+
+      - name: Emit Architecture list
+        run: |
+          echo "Docker image supports arch: amd64  [ SHORT LIST ]" >> $GITHUB_STEP_SUMMARY
+        if: ${{ needs.check_tag.outputs.is_tag == 'false' }}
+
+
+        
+      # -------------------------------------------------------------------------- #
+      #                                 Job summary                                #
+      # -------------------------------------------------------------------------- #
+
+      - name: Emit Job Summary
+        run: |
+          echo "### Published Docker Image :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "ghcr.io/f18m/${{ github.repository }}:${{ steps.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
