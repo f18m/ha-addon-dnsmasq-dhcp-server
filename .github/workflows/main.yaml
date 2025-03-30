@@ -143,7 +143,7 @@ jobs:
       - name: Emit Architecture list
         run: |
           echo "### Supported Docker Image Architectures" >> $GITHUB_STEP_SUMMARY
-          echo "`armv7`, `amd64`, `aarch64`, `i386`" >> $GITHUB_STEP_SUMMARY
+          echo '`armv7`, `amd64`, `aarch64`, `i386`' >> $GITHUB_STEP_SUMMARY
         if: ${{ needs.check_tag.outputs.is_tag == 'true' }}
 
 
@@ -178,7 +178,7 @@ jobs:
       - name: Emit Architecture list
         run: |
           echo "### Supported Docker Image Architectures" >> $GITHUB_STEP_SUMMARY
-          echo "`amd64` [non-tag build]" >> $GITHUB_STEP_SUMMARY
+          echo '`amd64` [non-tag build]' >> $GITHUB_STEP_SUMMARY
         if: ${{ needs.check_tag.outputs.is_tag == 'false' }}
 
 
