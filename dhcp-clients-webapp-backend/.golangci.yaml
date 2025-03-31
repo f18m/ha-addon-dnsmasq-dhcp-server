@@ -1,5 +1,6 @@
 version: "2"
 linters:
+  default: standard
   enable:
     # Check for pass []any as any in variadic func(...any).
     # Rare case but saved me from debugging a few times.
@@ -38,12 +39,6 @@ linters:
     # Forces to put `.` at the end of the comment. Code is poetry.
     - godot
 
-    # Might not be that important but I prefer to keep all of them.
-    # `gofumpt` is amazing, kudos to Daniel Marti https://github.com/mvdan/gofumpt
-    - gofmt
-    - gofumpt
-    - goimports
-
     # Allow or ban replace directives in go.mod
     # or force explanation for retract directives.
     - gomoddirectives
@@ -51,9 +46,6 @@ linters:
     # Powerful security-oriented linter. But requires some time to
     # configure it properly, see https://github.com/securego/gosec#available-rules
     - gosec
-
-    # Linter that specializes in simplifying code.
-    - gosimple
 
     # Official Go tool. Must have. 
     - govet
@@ -104,9 +96,6 @@ linters:
 
     # I have found that it's not the same as staticcheck binary :\
     - staticcheck
-
-    # Is a replacement for `golint`, similar to `revive`.
-    - stylecheck
 
     # Check struct tags.
     - tagliatelle

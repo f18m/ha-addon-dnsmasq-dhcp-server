@@ -1,3 +1,4 @@
+// Package main is the entry point for the DHCP clients web application backend.
 package main
 
 import (
