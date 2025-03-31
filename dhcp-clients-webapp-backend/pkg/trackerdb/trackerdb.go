@@ -2,6 +2,7 @@ package trackerdb
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -99,7 +100,7 @@ func (d *DhcpClientTrackerDB) GetDhcpClient(macAddr net.HardwareAddr) (*DhcpClie
 
 	err := row.Scan(&mac, &client.Hostname, &lastSeen)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("client with mac_addr %s not found", macAddr)
 		}
 		return nil, err
@@ -124,9 +125,11 @@ func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr
 	// Step 1: Get all DHCP clients from the database
 	rows, err := d.DB.Query("SELECT mac_addr, hostname, last_seen, dhcp_server_start_counter FROM dhcp_clients")
 	if err != nil {
-		return nil, fmt.Errorf("failed to query dhcp_clients: %v", err)
+		return nil, fmt.Errorf("failed to query dhcp_clients: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	// Create a map to store the MAC addresses from aliveClients slice for quick lookup
 	macAddrMap := make(map[string]struct{})
@@ -144,7 +147,7 @@ func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr
 		// Scan the row data into the DhcpClient struct
 		err := rows.Scan(&mac, &client.Hostname, &lastSeenStr, &client.DhcpServerStartEpoch)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan row: %v", err)
+			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 
 		// Convert string -> net.HardwareAddr
@@ -156,7 +159,7 @@ func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr
 		// Convert string -> time.Time
 		client.LastSeen, err = parseTime(lastSeenStr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse LastSeen: %v", err)
+			return nil, fmt.Errorf("failed to parse LastSeen: %w", err)
 		}
 
 		// Step 3: Check if the client MAC address exists in the aliveClients list
@@ -164,6 +167,10 @@ func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr
 			// If the MAC address is not in the slice, then the client is a "dead" one...
 			deadClients = append(deadClients, client)
 		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return deadClients, nil

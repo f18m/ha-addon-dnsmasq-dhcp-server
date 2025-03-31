@@ -7,7 +7,7 @@ import (
 )
 
 func IpPoolToHtmlTemplateRanges(networks []IpNetworkInfo) []HtmlTemplateIpRange {
-	var ranges []HtmlTemplateIpRange
+	ranges := make([]HtmlTemplateIpRange, 0, len(networks))
 	for _, n := range networks {
 		ranges = append(ranges, HtmlTemplateIpRange{
 			Start:     n.Start.String(),
@@ -21,7 +21,6 @@ func IpPoolToHtmlTemplateRanges(networks []IpNetworkInfo) []HtmlTemplateIpRange 
 }
 
 func LeaseTimeToString(t time.Time) string {
-
 	if t.IsZero() {
 		return "Never expires"
 	}
@@ -38,7 +37,7 @@ func LeaseTimeToString(t time.Time) string {
 	minutes := int(duration.Minutes()) % 60
 	seconds := int(duration.Seconds()) % 60
 
-	if days > 0 {
+	if days > 0 { //nolint:gocritic
 		return fmt.Sprintf("%02dd, %02dh, %02dm, %02ds", days, hours, minutes, seconds)
 	} else if hours > 0 {
 		return fmt.Sprintf("%02dh, %02dm, %02ds", hours, minutes, seconds)

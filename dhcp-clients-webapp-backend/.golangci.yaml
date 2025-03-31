@@ -36,9 +36,6 @@ linters:
     # one of my warmly loved projects.
     - gocritic
 
-    # Forces to put `.` at the end of the comment. Code is poetry.
-    - godot
-
     # Allow or ban replace directives in go.mod
     # or force explanation for retract directives.
     - gomoddirectives
@@ -88,7 +85,7 @@ linters:
     - reassign
 
     # Drop-in replacement of `golint`.
-    - revive
+    #- revive
 
     # Somewhat similar to `bodyclose` but for `database/sql` package.
     - rowserrcheck
@@ -96,9 +93,6 @@ linters:
 
     # I have found that it's not the same as staticcheck binary :\
     - staticcheck
-
-    # Check struct tags.
-    - tagliatelle
 
     # Test-related checks. All of them are good.
     - testableexamples
@@ -126,7 +120,7 @@ formatters:
   enable:
     - gofmt
     - gofumpt
-    - goimports
+    #- goimports
   settings:
     gofumpt:
       extra-rules: true

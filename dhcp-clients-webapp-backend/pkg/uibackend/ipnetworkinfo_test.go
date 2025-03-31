@@ -13,7 +13,6 @@ func TestIpNetworkInfo_HasValidIPs(t *testing.T) {
 		netInfo  IpNetworkInfo
 		expected bool
 	}{
-
 		// IPv4
 		{
 			netInfo: IpNetworkInfo{

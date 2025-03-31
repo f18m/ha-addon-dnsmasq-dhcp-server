@@ -53,8 +53,8 @@ func TestAddDhcpClient(t *testing.T) {
 	client := DhcpClient{
 		MacAddr:  MustParseMAC("AA:BB:CC:DD:EE:FF"),
 		Hostname: "test-host",
-		//HasStaticIP:  true,
-		//FriendlyName: "Test Client",
+		// HasStaticIP:  true,
+		// FriendlyName: "Test Client",
 		LastSeen: time.Now(),
 	}
 
@@ -67,8 +67,6 @@ func TestAddDhcpClient(t *testing.T) {
 	// Compare the inserted and retrieved client using assertions
 	assert.Equal(t, client.MacAddr, retrievedClient.MacAddr, "MacAddr mismatch")
 	assert.Equal(t, client.Hostname, retrievedClient.Hostname, "Hostname mismatch")
-	//assert.Equal(t, client.HasStaticIP, retrievedClient.HasStaticIP, "HasStaticIP mismatch")
-	//assert.Equal(t, client.FriendlyName, retrievedClient.FriendlyName, "FriendlyName mismatch")
 
 	// Allow for slight differences in time, but the retrieved and original times should be very close
 	assert.WithinDuration(t, client.LastSeen, retrievedClient.LastSeen, time.Second, "LastSeen timestamp mismatch")
@@ -79,8 +77,8 @@ func TestGetDhcpClient(t *testing.T) {
 	client := DhcpClient{
 		MacAddr:  MustParseMAC("AA:BB:CC:DD:EE:FF"),
 		Hostname: "test-host",
-		//HasStaticIP:  true,
-		//FriendlyName: "Test Client",
+		// HasStaticIP:  true,
+		// FriendlyName: "Test Client",
 		LastSeen: time.Now(),
 	}
 
@@ -93,8 +91,6 @@ func TestGetDhcpClient(t *testing.T) {
 	// Check the values of the retrieved client using assertions
 	assert.Equal(t, client.MacAddr, retrievedClient.MacAddr, "MacAddr mismatch")
 	assert.Equal(t, client.Hostname, retrievedClient.Hostname, "Hostname mismatch")
-	//assert.Equal(t, client.HasStaticIP, retrievedClient.HasStaticIP, "HasStaticIP mismatch")
-	//assert.Equal(t, client.FriendlyName, retrievedClient.FriendlyName, "FriendlyName mismatch")
 	assert.WithinDuration(t, client.LastSeen, retrievedClient.LastSeen, time.Second, "LastSeen timestamp mismatch")
 
 	// Test retrieving a non-existent client
@@ -104,29 +100,29 @@ func TestGetDhcpClient(t *testing.T) {
 
 // TestGetDeadDhcpClients tests the GetDeadDhcpClients method.
 func TestGetDeadDhcpClients(t *testing.T) {
-	var timeNow = time.Now()
+	timeNow := time.Now()
 
 	// Create some test DHCP clients in the database
 	clientsInDB := []DhcpClient{
 		{
 			MacAddr:  MustParseMAC("AA:BB:CC:DD:EE:FF"),
 			Hostname: "test-host-1",
-			//HasStaticIP:  true,
-			//FriendlyName: "Test Client 1",
+			// HasStaticIP:  true,
+			// FriendlyName: "Test Client 1",
 			LastSeen: timeNow,
 		},
 		{
 			MacAddr:  MustParseMAC("11:22:33:44:55:66"),
 			Hostname: "test-host-2",
-			//HasStaticIP:  false,
-			//FriendlyName: "Test Client 2",
+			// HasStaticIP:  false,
+			// FriendlyName: "Test Client 2",
 			LastSeen: timeNow,
 		},
 		{
 			MacAddr:  MustParseMAC("77:88:99:AA:BB:CC"),
 			Hostname: "test-host-3",
-			//HasStaticIP:  true,
-			//FriendlyName: "Test Client 3",
+			// HasStaticIP:  true,
+			// FriendlyName: "Test Client 3",
 			LastSeen: timeNow,
 		},
 	}
