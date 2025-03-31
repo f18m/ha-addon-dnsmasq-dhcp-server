@@ -48,9 +48,9 @@ jobs:
         with:
           go-version: stable
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: v1.64.5
+          version: v2.0.2
           working-directory: dhcp-clients-webapp-backend
         
   check_tag:
