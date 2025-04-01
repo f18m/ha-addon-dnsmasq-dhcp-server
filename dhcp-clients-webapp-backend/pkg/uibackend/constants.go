@@ -15,9 +15,13 @@ var defaultDhcpClientTrackerDB = "/data/trackerdb.sqlite3"
 var defaultStartEpoch = "/data/startepoch"
 
 // These absolute paths must be in sync with the Dockerfile
-var staticWebFilesDir = "/opt/web/static"
-var templatesDir = "/opt/web/templates"
+var (
+	staticWebFilesDir = "/opt/web/static"
+	templatesDir      = "/opt/web/templates"
+)
 
 // other constants
-var dnsmasqMarkerForMissingHostname = "*"
-var websocketRelativeUrl = "/ws"
+var (
+	dnsmasqMarkerForMissingHostname = "*"
+	websocketRelativeUrl            = "/ws"
+)

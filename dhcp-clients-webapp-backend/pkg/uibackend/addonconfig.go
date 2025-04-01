@@ -43,7 +43,6 @@ type AddonConfig struct {
 // UnmarshalJSON reads the configuration of this Home Assistant addon and converts it
 // into maps and slices that get stored into the UIBackend instance
 func (b *AddonConfig) UnmarshalJSON(data []byte) error {
-
 	// JSON structure.
 	// This must be updated every time the config.yaml of the addon is changed;
 	// however this structure contains only fields that are relevant to the

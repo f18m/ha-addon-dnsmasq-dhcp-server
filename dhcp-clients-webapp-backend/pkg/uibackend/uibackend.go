@@ -8,7 +8,6 @@ import (
 	"dhcp-clients-webapp-backend/pkg/trackerdb"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	htmltemplate "html/template"
 	"io"
 	"net"
@@ -68,7 +67,7 @@ type UIBackend struct {
 // ReadFileAndParseInteger reads a file, parses the number, and returns it as an integer
 func ReadFileAndParseInteger(filename string) (int, error) {
 	// Read the file content
-	content, err := os.ReadFile(filename)
+	content, err := os.ReadFile(filename) //nolint:gosec
 	if err != nil {
 		return 0, err
 	}
@@ -125,8 +124,9 @@ func NewUIBackend(logger *logger.CustomLogger) UIBackend {
 			},
 		},
 		server: http.Server{
-			Addr:    "",
-			Handler: nil,
+			Addr:              "",
+			Handler:           nil,
+			ReadHeaderTimeout: 3 * time.Second,
 		},
 		isTestingMode: isTestingMode,
 	}
@@ -134,7 +134,6 @@ func NewUIBackend(logger *logger.CustomLogger) UIBackend {
 
 func (b *UIBackend) logRequestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		// this logging is quite verbose, enable only if explicitly asked so
 		if b.cfg.logWebUI {
 			// print headers
@@ -157,7 +156,6 @@ func (b *UIBackend) logRequestMiddleware(next http.Handler) http.Handler {
 }
 
 func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
-
 	// get a copy of latest status -- lock it during the copy, to avoid race conditions
 	// with the dnsmasq.leases watcher goroutine:
 	b.dhcpClientDataLock.Lock()
@@ -171,7 +169,7 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 	})
 
 	// convert currentClients to a simple slice of MAC addresses
-	var currentClientsMacs []net.HardwareAddr
+	currentClientsMacs := make([]net.HardwareAddr, 0, len(currentClients))
 	for _, c := range currentClients {
 		currentClientsMacs = append(currentClientsMacs, c.Lease.MacAddr)
 	}
@@ -182,10 +180,8 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 		b.logger.Warnf("failed to get list of dead/past DHCP clients: %s", err.Error())
 		// keep going with an empty list
 		deadClients = []trackerdb.DhcpClient{}
-	} else {
-		if b.cfg.logWebUI {
-			b.logger.Infof("Running query to the tracker DB: found %d past/dead DHCP clients", len(deadClients))
-		}
+	} else if b.cfg.logWebUI {
+		b.logger.Infof("Running query to the tracker DB: found %d past/dead DHCP clients", len(deadClients))
 	}
 
 	// enrich FriendlyName, HasStaticIP fields of dead clients, creating the list of "past clients"
@@ -204,7 +200,7 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 		}
 
 		// create note field
-		if deadC.DhcpServerStartEpoch < b.startEpoch {
+		if deadC.DhcpServerStartEpoch < b.startEpoch { //nolint:gocritic
 			// a past instance of dnsmasq provided a DHCP lease... but we have no news
 			// of this DHCP client since last restart
 			pastClients[i].Notes = "Last seen in a previous run of this addon"
@@ -246,9 +242,11 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		b.logger.Fatalf("Failed to upgrade websocket connection: %s", err)
 	}
-	defer ws.Close()
+	defer func() {
+		_ = ws.Close()
+	}()
 
-	msg := b.generateWebSocketMessage()
+	msg := b.generateWebSocketMessage() //nolint:contextcheck
 	b.logger.Infof("Received new websocket client: pushing %d/%d current/past DHCP clients to it",
 		len(msg.CurrentClients), len(msg.PastClients))
 
@@ -279,10 +277,8 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 
 // Broadcast updater: any update posted on the broadcastCh is broadcasted to all clients
 func (b *UIBackend) broadcastUpdatesToClients() {
-
 	ticker := time.NewTicker(10 * time.Second)
 
-	msg := b.generateWebSocketMessage()
 	for {
 		select {
 		case <-b.broadcastCh:
@@ -300,7 +296,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 
 		if len(b.clients) > 0 {
 			// regen message
-			msg = b.generateWebSocketMessage()
+			msg := b.generateWebSocketMessage()
 
 			// loop over all clients
 			numSuccess := 0
@@ -309,7 +305,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 				err := client.WriteJSON(msg)
 				if err != nil {
 					b.logger.Warnf("failed writing JSON to WebSocket: %v", err)
-					client.Close()
+					_ = client.Close()
 					delete(b.clients, client)
 				} else {
 					numSuccess++
@@ -357,7 +353,7 @@ func (b *UIBackend) reloadTemplates() {
 	b.logger.Infof("Read Javascript file %s: %d bytes", jsF, len(jsContents))
 	b.jsContents = string(jsContents)
 
-	b.htmlTemplate = template.Must(template.ParseFiles(htmlF))
+	b.htmlTemplate = htmltemplate.Must(htmltemplate.ParseFiles(htmlF))
 	b.logger.Infof("Parsed template file %s", htmlF)
 }
 
@@ -418,18 +414,16 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		DnsDomain:  b.cfg.dnsDomain,
 
 		// embedded contents
-		CssFileContent:        template.CSS(b.cssContents),
-		JavascriptFileContent: template.JS(b.jsContents),
+		CssFileContent:        htmltemplate.CSS(b.cssContents), //nolint:gosec
+		JavascriptFileContent: htmltemplate.JS(b.jsContents),   //nolint:gosec
 	}
 
 	err := b.htmlTemplate.Execute(w, templateData)
 	if err != nil {
 		b.logger.Warnf("error while rendering template: %s\n", err.Error())
 		// keep going
-	} else {
-		if b.cfg.logWebUI {
-			b.logger.Infof("Successfully rendered web page template, responding with 200 OK\n")
-		}
+	} else if b.cfg.logWebUI {
+		b.logger.Infof("Successfully rendered web page template, responding with 200 OK\n")
 	}
 }
 
@@ -454,13 +448,11 @@ func (b *UIBackend) getFriendlyNameFor(mac net.HardwareAddr, hostname string) st
 	if ok {
 		// yes: enrich with some metadata this DHCP client entry
 		return metadata.FriendlyName
-	} else {
-		if hostname != dnsmasqMarkerForMissingHostname {
-			// no: user didn't provide any friendly name but the dnsmasq DHCP server
-			// has received (over DHCP protocol) an hostname... better than nothing:
-			// use that to create a "friendly name"
-			return hostname
-		}
+	} else if hostname != dnsmasqMarkerForMissingHostname {
+		// no: user didn't provide any friendly name but the dnsmasq DHCP server
+		// has received (over DHCP protocol) an hostname... better than nothing:
+		// use that to create a "friendly name"
+		return hostname
 	}
 	return ""
 }
@@ -492,7 +484,6 @@ func isValidURI(uri string) bool {
 }
 
 func (b *UIBackend) evaluateLink(hostname string, ip netip.Addr, mac net.HardwareAddr) string {
-
 	var theTemplate *texttemplate.Template
 	var friendlyName string
 
@@ -539,7 +530,6 @@ func (b *UIBackend) evaluateLink(hostname string, ip netip.Addr, mac net.Hardwar
 
 // Process a slice of dnsmasq.Lease and store that into the UIBackend object
 func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease) {
-
 	b.dhcpClientDataLock.Lock()
 	b.dhcpClientData = make([]DhcpClientData, 0, len(updatedLeases) /* capacity */)
 	for _, lease := range updatedLeases {
@@ -571,11 +561,13 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 	b.logger.Infof("Reading DHCP client lease file '%s'\n", defaultDnsmasqLeasesFile)
 
 	// Read current DHCP leases
-	leaseFile, errOpen := os.OpenFile(defaultDnsmasqLeasesFile, os.O_RDONLY|os.O_CREATE, 0644)
+	leaseFile, errOpen := os.OpenFile(defaultDnsmasqLeasesFile, os.O_RDONLY|os.O_CREATE, 0o600)
 	if errOpen != nil {
 		return errOpen
 	}
-	defer leaseFile.Close()
+	defer func() {
+		_ = leaseFile.Close()
+	}()
 	leases, errRead := dnsmasq.ReadLeases(leaseFile)
 	if errRead != nil {
 		return errRead
@@ -590,11 +582,13 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 func (b *UIBackend) readAddonConfig() error {
 	b.logger.Infof("Reading addon config file '%s'\n", defaultHomeAssistantConfigFile)
 
-	optionFile, errOpen := os.OpenFile(defaultHomeAssistantConfigFile, os.O_RDONLY|os.O_CREATE, 0644)
+	optionFile, errOpen := os.Open(defaultHomeAssistantConfigFile)
 	if errOpen != nil {
 		return errOpen
 	}
-	defer optionFile.Close()
+	defer func() {
+		_ = optionFile.Close()
+	}()
 
 	// read whole file
 	data, err := io.ReadAll(optionFile)
@@ -620,7 +614,6 @@ func (b *UIBackend) readAddonConfig() error {
 // ListenAndServe is starting the whole UI backend:
 // a web server, a WebSocket server, INotify-based watch on dnsmasq lease files, etc
 func (b *UIBackend) ListenAndServe() error {
-
 	b.reloadTemplates()
 
 	mux := http.NewServeMux()

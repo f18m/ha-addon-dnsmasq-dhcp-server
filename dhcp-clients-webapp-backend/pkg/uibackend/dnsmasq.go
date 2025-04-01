@@ -19,13 +19,13 @@ func chaosTXTQuery(server, query string, timeout time.Duration) ([]string, error
 	// Create a new DNS message.
 	m := new(dns.Msg)
 	m.Id = dns.Id()
-	//m.RecursionDesired = true
 
 	// Add the CHAOS TXT query to the message.
 	m.Question = append(m.Question, dns.Question{
 		Name:   query + ".",
 		Qtype:  dns.TypeTXT,
-		Qclass: dns.ClassCHAOS})
+		Qclass: dns.ClassCHAOS,
+	})
 
 	// Send the DNS query.
 	r, _, err := c.ExchangeContext(context.Background(), m, server)
@@ -50,7 +50,7 @@ func chaosTXTQuery(server, query string, timeout time.Duration) ([]string, error
 	return txt, nil
 }
 
-func chaosTXTQueryInteger(server, query string, timeout time.Duration) (int, error) {
+func chaosTXTQueryInteger(server, query string, timeout time.Duration) (int, error) { //nolint:unparam
 	// Invoke chaosTXTQuery to get the string value.
 	strVal, err := chaosTXTQuery(server, query, timeout)
 	if err != nil {
@@ -74,7 +74,7 @@ func getDnsStats(serverHost string, serverPort int) (DnsServerStats, error) {
 	dnsServer := fmt.Sprintf("%s:%d", serverHost, serverPort)
 
 	// since the server is local, the max query duration is expected to be small
-	dnsTimeout := time.Duration(500 * time.Millisecond)
+	dnsTimeout := 500 * time.Millisecond
 
 	ret := DnsServerStats{}
 
