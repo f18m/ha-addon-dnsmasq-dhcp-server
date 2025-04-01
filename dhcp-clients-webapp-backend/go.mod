@@ -1,6 +1,8 @@
 module dhcp-clients-webapp-backend
 
-go 1.23
+go 1.23.0
+
+toolchain go1.24.1
 
 require github.com/gorilla/websocket v1.5.3
 
@@ -15,7 +17,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/mod v0.23.0 // indirect
+	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
