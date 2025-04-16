@@ -9,7 +9,7 @@ require github.com/gorilla/websocket v1.5.3
 require (
 	github.com/b0ch3nski/go-dnsmasq-utils v0.1.2
 	github.com/google/go-cmp v0.7.0
-	github.com/mattn/go-sqlite3 v1.14.27
+	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/miekg/dns v1.1.65
 	github.com/stretchr/testify v1.10.0
 )
