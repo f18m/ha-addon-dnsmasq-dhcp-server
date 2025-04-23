@@ -585,7 +585,7 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 // readAddonOptions reads the configuration of this Home Assistant addon and converts it
 // into maps and slices that get stored into the UIBackend instance
 func (b *UIBackend) readAddonOptions() error {
-	b.logger.Infof("Reading addon config file '%s'\n", defaultHomeAssistantOptionsFile)
+	b.logger.Infof("Reading addon options file '%s'\n", defaultHomeAssistantOptionsFile)
 
 	optionFile, errOpen := os.Open(defaultHomeAssistantOptionsFile)
 	if errOpen != nil {
@@ -607,9 +607,17 @@ func (b *UIBackend) readAddonOptions() error {
 		return err
 	}
 
-	// TODO
-	// read the addon version from
-	// /opt/bin/addon-config.yaml
+	b.logger.Infof("Acquired %d DHCP network/ranges\n", len(b.options.dhcpRanges))
+	b.logger.Infof("Acquired %d IP address reservations\n", len(b.options.ipAddressReservationsByIP))
+	b.logger.Infof("Acquired %d friendly name definitions\n", len(b.options.friendlyNames))
+	b.logger.Infof("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
+		b.options.webUIPort, b.options.logWebUI, b.options.logDHCP)
+
+	return nil
+}
+
+func (b *UIBackend) readAddonConfig() error {
+	b.logger.Infof("Reading addon config file '%s'\n", defaultHomeAssistantConfigFile)
 
 	cfgFile, errOpen := os.Open(defaultHomeAssistantConfigFile)
 	if errOpen != nil {
@@ -620,23 +628,18 @@ func (b *UIBackend) readAddonOptions() error {
 	}()
 
 	// read whole file
-	data2, err := io.ReadAll(cfgFile)
+	data, err := io.ReadAll(cfgFile)
 	if err != nil {
 		return err
 	}
 
 	// YAML parse
-	err = yaml.Unmarshal(data2, &b.config)
+	err = yaml.Unmarshal(data, &b.config)
 	if err != nil {
 		return err
 	}
 
-	b.logger.Infof("Acquired %d DHCP network/ranges\n", len(b.options.dhcpRanges))
-	b.logger.Infof("Acquired %d IP address reservations\n", len(b.options.ipAddressReservationsByIP))
-	b.logger.Infof("Acquired %d friendly name definitions\n", len(b.options.friendlyNames))
-	b.logger.Infof("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
-		b.options.webUIPort, b.options.logWebUI, b.options.logDHCP)
-
+	b.logger.Infof("Acquired addon version: %s\n", b.config.version)
 	return nil
 }
 
@@ -660,6 +663,10 @@ func (b *UIBackend) ListenAndServe() error {
 	// Read friendly names from the HomeAssistant addon config
 	if err := b.readAddonOptions(); err != nil {
 		b.logger.Fatalf("error while reading HomeAssistant addon options: %s\n", err.Error())
+		return err
+	}
+	if err := b.readAddonConfig(); err != nil {
+		b.logger.Fatalf("error while reading HomeAssistant addon config: %s\n", err.Error())
 		return err
 	}
 
