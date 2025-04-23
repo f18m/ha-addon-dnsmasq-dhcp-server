@@ -17,6 +17,8 @@
 body {
   background-color: white;
   color: black;
+  font-family: 'Roboto', 'Mono', sans-serif;
+  font-weight: 500;
 }
 
 /* be dark-mode friendly */

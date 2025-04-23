@@ -24,13 +24,15 @@ import (
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/gorilla/websocket"
+	"gopkg.in/yaml.v3"
 )
 
 type UIBackend struct {
 	logger *logger.CustomLogger
 
 	// The configuration for this backend
-	cfg AddonConfig
+	options AddonOptions
+	config  AddonConfig
 
 	// time this application was started
 	startTimestamp time.Time
@@ -106,7 +108,7 @@ func NewUIBackend(logger *logger.CustomLogger) UIBackend {
 
 	return UIBackend{
 		logger: logger,
-		cfg: AddonConfig{
+		options: AddonOptions{
 			ipAddressReservationsByIP:  make(map[netip.Addr]IpAddressReservation),
 			ipAddressReservationsByMAC: make(map[string]IpAddressReservation),
 			friendlyNames:              make(map[string]DhcpClientFriendlyName),
@@ -135,7 +137,7 @@ func NewUIBackend(logger *logger.CustomLogger) UIBackend {
 func (b *UIBackend) logRequestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// this logging is quite verbose, enable only if explicitly asked so
-		if b.cfg.logWebUI {
+		if b.options.logWebUI {
 			// print headers
 			var headerStr string
 			for name, values := range r.Header {
@@ -180,7 +182,7 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 		b.logger.Warnf("failed to get list of dead/past DHCP clients: %s", err.Error())
 		// keep going with an empty list
 		deadClients = []trackerdb.DhcpClient{}
-	} else if b.cfg.logWebUI {
+	} else if b.options.logWebUI {
 		b.logger.Infof("Running query to the tracker DB: found %d past/dead DHCP clients", len(deadClients))
 	}
 
@@ -195,7 +197,7 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 		if pastClients[i].FriendlyName == deadC.Hostname {
 			// look also in the IP address reservations "friendly names"
 			if pastClients[i].HasStaticIP {
-				pastClients[i].FriendlyName = b.cfg.ipAddressReservationsByMAC[deadC.MacAddr.String()].Name
+				pastClients[i].FriendlyName = b.options.ipAddressReservationsByMAC[deadC.MacAddr.String()].Name
 			}
 		}
 
@@ -222,7 +224,7 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 
 	// this code is meant to be executed on the same machine/container where dnsmasq is running, so
 	// that's why we pass "localhost" as DNS server host:
-	dnsStats, err := getDnsStats("localhost", b.cfg.dnsPort)
+	dnsStats, err := getDnsStats("localhost", b.options.dnsPort)
 	if err != nil {
 		b.logger.Warnf("failed to get updated DNS stats: %s", err.Error())
 		// keep going
@@ -309,7 +311,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 					delete(b.clients, client)
 				} else {
 					numSuccess++
-					if b.cfg.logWebUI {
+					if b.options.logWebUI {
 						_, err := json.Marshal(msg)
 						if err != nil {
 							b.logger.Infof("Failed to marshal to JSON: %s.\nMessage:%v\n", err.Error(), msg)
@@ -321,7 +323,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 			}
 			b.clientsLock.Unlock()
 
-			if b.cfg.logWebUI {
+			if b.options.logWebUI {
 				b.logger.Infof("Successfully pushed %d/%d current/past DHCP clients to %d websockets",
 					len(msg.CurrentClients), len(msg.PastClients), numSuccess)
 			}
@@ -389,7 +391,7 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 
 	// DNS
 	dnsEnableString := "disabled"
-	if b.cfg.dnsEnable {
+	if b.options.dnsEnable {
 		dnsEnableString = "enabled"
 	}
 
@@ -400,10 +402,10 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		// Based on the scheme used by the browser, the websocket will use the associated scheme
 		// ('wss' for 'https' and 'ws' for 'http)
 		WebSocketURI:            XIngressPath[0] + websocketRelativeUrl,
-		DhcpRanges:              IpPoolToHtmlTemplateRanges(b.cfg.dhcpRanges),
-		DhcpPoolSize:            b.cfg.dhcpPool.Size(),
-		DefaultLease:            b.cfg.defaultLease,
-		AddressReservationLease: b.cfg.addressReservationLease,
+		DhcpRanges:              IpPoolToHtmlTemplateRanges(b.options.dhcpRanges),
+		DhcpPoolSize:            b.options.dhcpPool.Size(),
+		DefaultLease:            b.options.defaultLease,
+		AddressReservationLease: b.options.addressReservationLease,
 		// we approximate the DHCP server start time with this app's start time;
 		// the reason is that inside the HA addon, dnsmasq is started at about the same
 		// time of this app
@@ -411,18 +413,21 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 
 		// DNS config info
 		DnsEnabled: dnsEnableString,
-		DnsDomain:  b.cfg.dnsDomain,
+		DnsDomain:  b.options.dnsDomain,
 
 		// embedded contents
 		CssFileContent:        htmltemplate.CSS(b.cssContents), //nolint:gosec
 		JavascriptFileContent: htmltemplate.JS(b.jsContents),   //nolint:gosec
+
+		// misc
+		AddonVersion: b.config.version,
 	}
 
 	err := b.htmlTemplate.Execute(w, templateData)
 	if err != nil {
 		b.logger.Warnf("error while rendering template: %s\n", err.Error())
 		// keep going
-	} else if b.cfg.logWebUI {
+	} else if b.options.logWebUI {
 		b.logger.Infof("Successfully rendered web page template, responding with 200 OK\n")
 	}
 }
@@ -444,7 +449,7 @@ func (b *UIBackend) processLeaseUpdates() {
 
 func (b *UIBackend) getFriendlyNameFor(mac net.HardwareAddr, hostname string) string {
 	// do we have a friendly-name registered for this MAC address?
-	metadata, ok := b.cfg.friendlyNames[mac.String()]
+	metadata, ok := b.options.friendlyNames[mac.String()]
 	if ok {
 		// yes: enrich with some metadata this DHCP client entry
 		return metadata.FriendlyName
@@ -458,22 +463,22 @@ func (b *UIBackend) getFriendlyNameFor(mac net.HardwareAddr, hostname string) st
 }
 
 func (b *UIBackend) hasIpAddressReservationByIP(ip netip.Addr, macExpected net.HardwareAddr) bool {
-	_, hasReservation := b.cfg.ipAddressReservationsByIP[ip]
+	_, hasReservation := b.options.ipAddressReservationsByIP[ip]
 	if hasReservation {
 		// the IP address provided is a reserved one...
 		// check if the MAC address is the one for which that IP was intended...
-		if strings.EqualFold(macExpected.String(), b.cfg.ipAddressReservationsByIP[ip].Mac.String()) {
+		if strings.EqualFold(macExpected.String(), b.options.ipAddressReservationsByIP[ip].Mac.String()) {
 			return true
 		} else {
 			b.logger.Warnf("the IP %s was leased to MAC address %s, but in configuration it was reserved for MAC %s\n",
-				ip.String(), macExpected.String(), b.cfg.ipAddressReservationsByIP[ip].Mac.String())
+				ip.String(), macExpected.String(), b.options.ipAddressReservationsByIP[ip].Mac.String())
 		}
 	}
 	return false
 }
 
 func (b *UIBackend) hasIpAddressReservationByMAC(mac net.HardwareAddr) bool {
-	_, hasReservation := b.cfg.ipAddressReservationsByMAC[mac.String()]
+	_, hasReservation := b.options.ipAddressReservationsByMAC[mac.String()]
 	return hasReservation
 }
 
@@ -487,12 +492,12 @@ func (b *UIBackend) evaluateLink(hostname string, ip netip.Addr, mac net.Hardwar
 	var theTemplate *texttemplate.Template
 	var friendlyName string
 
-	r, hasFriendlyName := b.cfg.friendlyNames[mac.String()]
+	r, hasFriendlyName := b.options.friendlyNames[mac.String()]
 	if hasFriendlyName {
 		theTemplate = r.Link
 		friendlyName = r.FriendlyName
 	} else {
-		r, hasReservation := b.cfg.ipAddressReservationsByIP[ip]
+		r, hasReservation := b.options.ipAddressReservationsByIP[ip]
 		if hasReservation {
 			theTemplate = r.Link
 		}
@@ -511,9 +516,9 @@ func (b *UIBackend) evaluateLink(hostname string, ip netip.Addr, mac net.Hardwar
 		"ip":            ip.String(),
 		"hostname":      hostname,
 		"friendly_name": friendlyName,
-		"dns_domain":    b.cfg.dnsDomain,
+		"dns_domain":    b.options.dnsDomain,
 		// 'fqdn' is something that should be resolvable by the dnsmasq DNS server:
-		"fqdn": fmt.Sprintf("%s.%s", hostname, b.cfg.dnsDomain),
+		"fqdn": fmt.Sprintf("%s.%s", hostname, b.options.dnsDomain),
 	})
 	if err != nil {
 		b.logger.Warnf("failed to render the link template [%v]", theTemplate)
@@ -539,7 +544,7 @@ func (b *UIBackend) processLeaseUpdatesFromArray(updatedLeases []*dnsmasq.Lease)
 		// fill metadata
 		d.FriendlyName = b.getFriendlyNameFor(lease.MacAddr, lease.Hostname)
 		d.HasStaticIP = b.hasIpAddressReservationByIP(lease.IPAddr, lease.MacAddr)
-		d.IsInsideDHCPPool = b.cfg.dhcpPool.Contains(lease.IPAddr)
+		d.IsInsideDHCPPool = b.options.dhcpPool.Contains(lease.IPAddr)
 		d.EvaluatedLink = b.evaluateLink(lease.Hostname, lease.IPAddr, lease.MacAddr)
 
 		// processing complete:
@@ -577,12 +582,12 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 	return nil
 }
 
-// readAddonConfig reads the configuration of this Home Assistant addon and converts it
+// readAddonOptions reads the configuration of this Home Assistant addon and converts it
 // into maps and slices that get stored into the UIBackend instance
-func (b *UIBackend) readAddonConfig() error {
-	b.logger.Infof("Reading addon config file '%s'\n", defaultHomeAssistantConfigFile)
+func (b *UIBackend) readAddonOptions() error {
+	b.logger.Infof("Reading addon config file '%s'\n", defaultHomeAssistantOptionsFile)
 
-	optionFile, errOpen := os.Open(defaultHomeAssistantConfigFile)
+	optionFile, errOpen := os.Open(defaultHomeAssistantOptionsFile)
 	if errOpen != nil {
 		return errOpen
 	}
@@ -597,16 +602,40 @@ func (b *UIBackend) readAddonConfig() error {
 	}
 
 	// JSON parse
-	err = json.Unmarshal(data, &b.cfg)
+	err = json.Unmarshal(data, &b.options)
 	if err != nil {
 		return err
 	}
 
-	b.logger.Infof("Acquired %d DHCP network/ranges\n", len(b.cfg.dhcpRanges))
-	b.logger.Infof("Acquired %d IP address reservations\n", len(b.cfg.ipAddressReservationsByIP))
-	b.logger.Infof("Acquired %d friendly name definitions\n", len(b.cfg.friendlyNames))
+	// TODO
+	// read the addon version from
+	// /opt/bin/addon-config.yaml
+
+	cfgFile, errOpen := os.Open(defaultHomeAssistantConfigFile)
+	if errOpen != nil {
+		return errOpen
+	}
+	defer func() {
+		_ = cfgFile.Close()
+	}()
+
+	// read whole file
+	data2, err := io.ReadAll(cfgFile)
+	if err != nil {
+		return err
+	}
+
+	// YAML parse
+	err = yaml.Unmarshal(data2, &b.config)
+	if err != nil {
+		return err
+	}
+
+	b.logger.Infof("Acquired %d DHCP network/ranges\n", len(b.options.dhcpRanges))
+	b.logger.Infof("Acquired %d IP address reservations\n", len(b.options.ipAddressReservationsByIP))
+	b.logger.Infof("Acquired %d friendly name definitions\n", len(b.options.friendlyNames))
 	b.logger.Infof("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
-		b.cfg.webUIPort, b.cfg.logWebUI, b.cfg.logDHCP)
+		b.options.webUIPort, b.options.logWebUI, b.options.logDHCP)
 
 	return nil
 }
@@ -629,7 +658,7 @@ func (b *UIBackend) ListenAndServe() error {
 	mux.HandleFunc(websocketRelativeUrl, b.handleWebSocketConn)
 
 	// Read friendly names from the HomeAssistant addon config
-	if err := b.readAddonConfig(); err != nil {
+	if err := b.readAddonOptions(); err != nil {
 		b.logger.Fatalf("error while reading HomeAssistant addon options: %s\n", err.Error())
 		return err
 	}
@@ -656,8 +685,8 @@ func (b *UIBackend) ListenAndServe() error {
 	go b.broadcastUpdatesToClients()
 
 	// Start server
-	b.logger.Infof("Starting server to listen on port %d\n", b.cfg.webUIPort)
-	b.server.Addr = fmt.Sprintf(":%d", b.cfg.webUIPort)
+	b.logger.Infof("Starting server to listen on port %d\n", b.options.webUIPort)
+	b.server.Addr = fmt.Sprintf(":%d", b.options.webUIPort)
 	b.server.Handler = mux
 	return b.server.ListenAndServe()
 }

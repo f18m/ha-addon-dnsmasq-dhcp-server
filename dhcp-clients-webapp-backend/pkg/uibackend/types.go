@@ -165,4 +165,7 @@ type HtmlTemplate struct {
 	// embedded contents
 	CssFileContent        htmltemplate.CSS
 	JavascriptFileContent htmltemplate.JS
+
+	// misc
+	AddonVersion string
 }
