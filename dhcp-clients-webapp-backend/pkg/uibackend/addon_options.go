@@ -9,9 +9,9 @@ import (
 	texttemplate "text/template"
 )
 
-// AddonConfig contains the configuration provided by the user to the Home Assistant addon
+// AddonOptions contains the configuration provided by the user to the Home Assistant addon
 // in the HomeAssistant YAML editor
-type AddonConfig struct {
+type AddonOptions struct {
 	// Static IP addresses, as read from the configuration
 	ipAddressReservationsByIP  map[netip.Addr]IpAddressReservation
 	ipAddressReservationsByMAC map[string]IpAddressReservation
@@ -42,7 +42,7 @@ type AddonConfig struct {
 
 // UnmarshalJSON reads the configuration of this Home Assistant addon and converts it
 // into maps and slices that get stored into the UIBackend instance
-func (b *AddonConfig) UnmarshalJSON(data []byte) error {
+func (b *AddonOptions) UnmarshalJSON(data []byte) error {
 	// JSON structure.
 	// This must be updated every time the config.yaml of the addon is changed;
 	// however this structure contains only fields that are relevant to the

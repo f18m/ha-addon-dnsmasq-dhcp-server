@@ -44,6 +44,7 @@ fmt-backend:
 TEST_CONTAINER_NAME:=dnsmasq-dhcp-test
 DOCKER_RUN_OPTIONS:= \
 	-v $(shell pwd)/test-options.json:/data/options.json \
+	-v $(shell pwd)/config.yaml:/opt/bin/addon-config.yaml \
 	-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
 	-v $(shell pwd)/test-db.sqlite3:/data/trackerdb.sqlite3 \
 	-v $(shell pwd)/test-startepoch:/data/startepoch \
