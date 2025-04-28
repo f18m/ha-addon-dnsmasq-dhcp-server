@@ -7,6 +7,7 @@ import (
 	"dhcp-clients-webapp-backend/pkg/logger"
 	"dhcp-clients-webapp-backend/pkg/trackerdb"
 	"encoding/json"
+	"errors"
 	"fmt"
 	htmltemplate "html/template"
 	"io"
@@ -420,7 +421,7 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		JavascriptFileContent: htmltemplate.JS(b.jsContents),   //nolint:gosec
 
 		// misc
-		AddonVersion: b.config.version,
+		AddonVersion: b.config.Version,
 	}
 
 	err := b.htmlTemplate.Execute(w, templateData)
@@ -627,19 +628,30 @@ func (b *UIBackend) readAddonConfig() error {
 		_ = cfgFile.Close()
 	}()
 
-	// read whole file
-	data, err := io.ReadAll(cfgFile)
-	if err != nil {
-		return err
+	d := yaml.NewDecoder(cfgFile)
+	for {
+		addonCfg := new(AddonConfig)
+		err := d.Decode(&addonCfg)
+		// break the loop in case of EOF
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		// check it was parsed
+		if addonCfg == nil {
+			continue
+		}
+
+		// check if the version is set
+		if addonCfg.Version != "" {
+			b.config = *addonCfg
+			break
+		}
 	}
 
-	// YAML parse
-	err = yaml.Unmarshal(data, &b.config)
-	if err != nil {
-		return err
-	}
-
-	b.logger.Infof("Acquired addon version: %s\n", b.config.version)
+	b.logger.Infof("Acquired addon version: %s\n", b.config.Version)
 	return nil
 }
 
