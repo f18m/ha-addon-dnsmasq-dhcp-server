@@ -46,8 +46,6 @@ type UIBackend struct {
 	// more HTTP server resources
 	isTestingMode bool
 	htmlTemplate  *htmltemplate.Template // read from disk at startup
-	//jsContents    string                 // read from disk at startup
-	//cssContents   string                 // read from disk at startup
 
 	// map of connected websockets
 	clients     map[*websocket.Conn]bool
@@ -336,26 +334,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 // Reload the templates. Typically this happens only once at startup, but when testing
 // env var is set, it happens on every page load.
 func (b *UIBackend) reloadTemplates() {
-	//cssF := templatesDir + "/style.css"
-	//jsF := templatesDir + "/dnsmasq-dhcp.js"
 	htmlF := templatesDir + "/index.templ.html"
-
-	/*cssContents, err := os.ReadFile(cssF)
-	if err != nil {
-		b.logger.Fatalf("Failed to open CSS file: %s", err.Error())
-		return
-	}
-	b.logger.Infof("Read CSS file %s: %d bytes", cssF, len(cssContents))
-	b.cssContents = string(cssContents)*/
-	/*
-		jsContents, err := os.ReadFile(jsF)
-		if err != nil {
-			b.logger.Fatalf("Failed to open Javascript file: %s", err.Error())
-			return
-		}
-		b.logger.Infof("Read Javascript file %s: %d bytes", jsF, len(jsContents))
-		b.jsContents = string(jsContents)*/
-
 	b.htmlTemplate = htmltemplate.Must(htmltemplate.ParseFiles(htmlF))
 	b.logger.Infof("Parsed template file %s", htmlF)
 }
@@ -415,10 +394,6 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		// DNS config info
 		DnsEnabled: dnsEnableString,
 		DnsDomain:  b.options.dnsDomain,
-
-		// embedded contents
-		//CssFileContent:        htmltemplate.CSS(b.cssContents), //nolint:gosec
-		//JavascriptFileContent: htmltemplate.JS(b.jsContents), //nolint:gosec
 
 		// misc
 		AddonVersion: b.config.Version,
