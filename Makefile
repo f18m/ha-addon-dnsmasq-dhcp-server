@@ -1,5 +1,58 @@
 all: build-docker-image
 
+#
+# BUILD targets
+#
+
+# non-containerized build of the backend -- requires you to have go installed:
+build-backend:
+	cd dhcp-clients-webapp-backend && \
+		go build -o bin/backend . 
+	cd dhcp-clients-webapp-backend && \
+		golangci-lint run
+	cd dhcp-clients-webapp-backend && \
+		go test -v -cover ./...
+
+fmt-backend:
+	cd dhcp-clients-webapp-backend && \
+		go fmt ./...
+	# required by the gofumpt linter:
+	cd dhcp-clients-webapp-backend && \
+		gofumpt -l -w -extra .
+
+INPUT_SCSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/scss/
+OUTPUT_CSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/
+
+build-css-live:
+	docker run -v $(INPUT_SCSS):/sass/ -v $(OUTPUT_CSS):/css/ -it michalklempa/dart-sass:latest
+
+# sometimes go check and bump these versions; then test the new ones with
+#    make test-docker-image
+JQUERY_VERSION:=3.7.1
+DATATABLES_VERSION:=2.3.0
+DATATABLES_RESPONSIVE_VERSION:=3.0.4
+DATATABLES_IPADDR_SORTING_PLUGIN_VERSION:=2.3.0
+
+download-webui-support-files:
+	# find the latest version of jQuery at https://releases.jquery.com/
+	curl --output dhcp-clients-webapp-backend/templates/jquery-$(JQUERY_VERSION).slim.min.js \
+		https://code.jquery.com/jquery-$(JQUERY_VERSION).slim.min.js
+
+    # find latest datatables.net library + responsive extension at https://datatables.net/download/ 
+	curl --output dhcp-clients-webapp-backend/templates/datatables.min.css \
+		https://cdn.datatables.net/v/dt/dt-$(DATATABLES_VERSION)/r-$(DATATABLES_RESPONSIVE_VERSION)/datatables.min.css
+	curl --output dhcp-clients-webapp-backend/templates/datatables.min.js \
+		https://cdn.datatables.net/v/dt/dt-$(DATATABLES_VERSION)/r-$(DATATABLES_RESPONSIVE_VERSION)/datatables.min.js
+
+	# find latest plugin for sorting IP addresses at https://datatables.net/plug-ins/sorting/ip-address
+	curl --output dhcp-clients-webapp-backend/templates/datatables.ip-address.js \
+		https://cdn.datatables.net/plug-ins/$(DATATABLES_IPADDR_SORTING_PLUGIN_VERSION)/sorting/ip-address.js
+
+
+#
+# DOCKER targets
+#
+
 # NOTE: the architecture "armhf" (ARM v6) is excluded from the list because Go toolchain is not available there
 ARCH:=--armv7 --amd64 --aarch64 --i386
 ifeq ($(FAST),1)
@@ -24,22 +77,6 @@ build-docker-image: $(BACKEND_SOURCE_CODE_FILES) $(ROOTFS_FILES)
 		--version localtest \
 		--self-cache \
 		--test
-
-# non-containerized build of the backend -- requires you to have go installed:
-build-backend:
-	cd dhcp-clients-webapp-backend && \
-		go build -o bin/backend . 
-	cd dhcp-clients-webapp-backend && \
-		golangci-lint run
-	cd dhcp-clients-webapp-backend && \
-		go test -v -cover ./...
-
-fmt-backend:
-	cd dhcp-clients-webapp-backend && \
-		go fmt ./...
-	# required by the gofumpt linter:
-	cd dhcp-clients-webapp-backend && \
-		gofumpt -l -w -extra .
 
 TEST_CONTAINER_NAME:=dnsmasq-dhcp-test
 DOCKER_RUN_OPTIONS:= \
@@ -82,11 +119,9 @@ test-docker-image-live:
 		debug-image-live
 
 
-INPUT_SCSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/scss/
-OUTPUT_CSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/
-
-build-css-live:
-	docker run -v $(INPUT_SCSS):/sass/ -v $(OUTPUT_CSS):/css/ -it michalklempa/dart-sass:latest
+#
+# More testing targts
+#
 
 test-database-show:
 	sqlite3 test-db.sqlite3 'select * from dhcp_clients;'		
