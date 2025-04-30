@@ -17,6 +17,7 @@ func NewPool(ranges []Range) Pool {
 		Ranges: ranges,
 	}
 }
+
 func NewPoolFromString(start, end string) Pool {
 	return Pool{
 		Ranges: []Range{NewRangeFromString(start, end)},
