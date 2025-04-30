@@ -26,27 +26,10 @@ OUTPUT_CSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/
 build-css-live:
 	docker run -v $(INPUT_SCSS):/sass/ -v $(OUTPUT_CSS):/css/ -it michalklempa/dart-sass:latest
 
-# sometimes go check and bump these versions; then test the new ones with
-#    make test-docker-image
-JQUERY_VERSION:=3.7.1
-DATATABLES_VERSION:=2.3.0
-DATATABLES_RESPONSIVE_VERSION:=3.0.4
-DATATABLES_IPADDR_SORTING_PLUGIN_VERSION:=2.3.0
-
 download-webui-support-files:
-	# find the latest version of jQuery at https://releases.jquery.com/
-	curl --output dhcp-clients-webapp-backend/templates/jquery-$(JQUERY_VERSION).slim.min.js \
-		https://code.jquery.com/jquery-$(JQUERY_VERSION).slim.min.js
-
-    # find latest datatables.net library + responsive extension at https://datatables.net/download/ 
-	curl --output dhcp-clients-webapp-backend/templates/datatables.min.css \
-		https://cdn.datatables.net/v/dt/dt-$(DATATABLES_VERSION)/r-$(DATATABLES_RESPONSIVE_VERSION)/datatables.min.css
-	curl --output dhcp-clients-webapp-backend/templates/datatables.min.js \
-		https://cdn.datatables.net/v/dt/dt-$(DATATABLES_VERSION)/r-$(DATATABLES_RESPONSIVE_VERSION)/datatables.min.js
-
-	# find latest plugin for sorting IP addresses at https://datatables.net/plug-ins/sorting/ip-address
-	curl --output dhcp-clients-webapp-backend/templates/datatables.ip-address.js \
-		https://cdn.datatables.net/plug-ins/$(DATATABLES_IPADDR_SORTING_PLUGIN_VERSION)/sorting/ip-address.js
+	@echo "Assuming YARN is already installed -- see https://yarnpkg.com/getting-started/install if that's not the case"
+	cd dhcp-clients-webapp-backend/templates/ && \
+		yarn
 
 
 #
