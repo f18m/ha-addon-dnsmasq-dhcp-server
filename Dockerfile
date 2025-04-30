@@ -26,8 +26,14 @@ RUN apk add --no-cache dnsmasq nginx-debug sqlite socat && mv /etc/nginx /etc/ng
 
 # Copy data
 COPY rootfs /
-COPY dhcp-clients-webapp-backend/templates/ /opt/web/templates/
 COPY config.yaml /opt/bin/addon-config.yaml
+
+# Copy web frontend
+COPY dhcp-clients-webapp-backend/templates/*.html /opt/web/templates/
+COPY dhcp-clients-webapp-backend/templates/*.js /opt/web/static/
+COPY dhcp-clients-webapp-backend/templates/*.css /opt/web/static/
+COPY dhcp-clients-webapp-backend/templates/libs/*.js /opt/web/static/
+COPY dhcp-clients-webapp-backend/templates/libs/*.css /opt/web/static/
 
 # Copy backend and frontend
 COPY --from=builder-go /dhcp-clients-webapp-backend /opt/bin/

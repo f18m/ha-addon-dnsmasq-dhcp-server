@@ -1,0 +1,18 @@
+{
+  "name": "ha-addon-dnsmasq-dhcp-server",
+  "version": "3.0.2",
+  "description": "WebUI management tool",
+  "main": "index.js",
+  "repository": "https://github.com/f18m/ha-addon-dnsmasq-dhcp-server.git",
+  "author": "f18m <francesco.montorsi@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "postinstall": "./yarn_postinstall.sh"
+  },
+  "dependencies": {
+    "datatables.net-dt": "^2.3.0",
+    "datatables.net-plugins": "^2.3.0",
+    "datatables.net-responsive-dt": "^3.0.4",
+    "jquery": "^3.7.1"
+  }
+}
