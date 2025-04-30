@@ -6,6 +6,9 @@
   "repository": "https://github.com/f18m/ha-addon-dnsmasq-dhcp-server.git",
   "author": "f18m <francesco.montorsi@gmail.com>",
   "license": "MIT",
+  "scripts": {
+    "postinstall": "./yarn_postinstall.sh"
+  },
   "dependencies": {
     "datatables.net-dt": "^2.3.0",
     "datatables.net-plugins": "^2.3.0",

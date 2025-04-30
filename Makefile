@@ -81,6 +81,10 @@ DOCKER_RUN_OPTIONS:= \
 # will try to reach to HomeAssistant Supervisor which is not running...
 test-docker-image: 
 	$(MAKE) FAST=1 build-docker-image
+	@echo
+	@echo "Starting container of image $(IMAGETAG):localtest" 
+	@echo "Point your browser at http://localhost:8976"
+	@echo
 	@echo "Starting container of image ${IMAGETAG}:localtest" 
 	docker run \
 		--rm \
