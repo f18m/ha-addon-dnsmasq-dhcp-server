@@ -24,7 +24,7 @@ func TestGetDnsStats_NoUpstreamServers(t *testing.T) {
 	// Wait for dnsmasq to start listening
 	for i := 0; i < 10; i++ {
 		if conn, err := net.DialTimeout("tcp", "localhost:12345", 1*time.Second); err == nil {
-			conn.Close()
+			_ = conn.Close()
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -44,7 +44,6 @@ func TestGetDnsStats_NoUpstreamServers(t *testing.T) {
 	if len(stats.UpstreamServers) != 0 {
 		t.Errorf("Unexpected Upstream Servers found: %v", stats.UpstreamServers)
 	}
-
 }
 
 func TestGetDnsStats_WithUpstreamServers(t *testing.T) {
@@ -57,7 +56,7 @@ func TestGetDnsStats_WithUpstreamServers(t *testing.T) {
 	}
 
 	// Restart dnsmasq with the resolv file
-	dnsmasqCmd := exec.Command("dnsmasq", "--port=12346", "--cache-size=100", "--no-daemon", fmt.Sprintf("--resolv-file=%s", resolvFilePath))
+	dnsmasqCmd := exec.Command("dnsmasq", "--port=12346", "--cache-size=100", "--no-daemon", fmt.Sprintf("--resolv-file=%s", resolvFilePath)) //nolint:gosec
 	if err := dnsmasqCmd.Start(); err != nil {
 		t.Fatalf("Failed to restart dnsmasq with resolv-file: %v", err)
 	}
@@ -68,7 +67,7 @@ func TestGetDnsStats_WithUpstreamServers(t *testing.T) {
 	}()
 	for i := 0; i < 10; i++ {
 		if conn, err := net.DialTimeout("tcp", "localhost:12346", 1*time.Second); err == nil {
-			conn.Close()
+			_ = conn.Close()
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -87,12 +86,14 @@ func TestGetDnsStats_WithUpstreamServers(t *testing.T) {
 }
 
 // Helper function to write to a temporary file
-func writeTempFile(filePath, content string) error { // ... (implementation remains the same)
-	file, err := os.Create(filePath)
+func writeTempFile(filePath, content string) error {
+	file, err := os.Create(filePath) //nolint:gosec
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	_, err = file.WriteString(content)
 	return err

@@ -1,7 +1,7 @@
 # Docker image mimicking the actual addon docker image
 # for live debugging/development
 
-FROM golang:1.22-alpine
+FROM golang:1.23-alpine
 
 # Add env
 ENV LANG=C.UTF-8
@@ -20,6 +20,7 @@ ENV PATH=/go/bin:$PATH
 # Copy data
 COPY rootfs /
 COPY dhcp-clients-webapp-backend/templates/ /opt/web/templates/
+COPY config.yaml /opt/bin/addon-config.yaml
 
 # Copy backend source code and run 1st go download
 WORKDIR /app

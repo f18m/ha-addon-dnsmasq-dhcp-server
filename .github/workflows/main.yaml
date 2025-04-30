@@ -1,4 +1,8 @@
-name: "Publish"
+#
+# This pipeline is testing and building the addon for the Home Assistant
+# and publishing its docker image to the GHCR registry
+#
+name: "Main CI"
 
 on: 
   push:
@@ -9,6 +13,46 @@ on:
 
 
 jobs:
+  unit_tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Build golang code
+        run: |
+          cd dhcp-clients-webapp-backend
+          go build -o uibackend main.go
+
+      - name: Install test dependencies
+        run: |
+          sudo apt install -y dnsmasq
+
+      - name: Run unit tests
+        run: |
+          cd dhcp-clients-webapp-backend
+          go test -v -cover ./...
+
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.0.2
+          working-directory: dhcp-clients-webapp-backend
+        
   check_tag:
     name: Check if Tag Build
     runs-on: ubuntu-latest
@@ -39,7 +83,10 @@ jobs:
   publish-docker-image:
     name: Publish
     runs-on: ubuntu-latest
-    needs: check_tag
+    needs:
+      - unit_tests
+      - check_tag
+      - golangci
     permissions:
       contents: read
       packages: write
@@ -52,7 +99,7 @@ jobs:
           path: ./myaddon
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3.3.0
+        uses: docker/login-action@v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -92,6 +139,13 @@ jobs:
             --target myaddon \
             --docker-hub ghcr.io/f18m
         if: ${{ needs.check_tag.outputs.is_tag == 'true' }}
+        
+      - name: Emit Architecture list
+        run: |
+          echo "### Supported Docker Image Architectures" >> $GITHUB_STEP_SUMMARY
+          echo '`armv7`, `amd64`, `aarch64`, `i386`' >> $GITHUB_STEP_SUMMARY
+        if: ${{ needs.check_tag.outputs.is_tag == 'true' }}
+
 
 
       # -------------------------------------------------------------------------- #
@@ -120,3 +174,22 @@ jobs:
             --version ${{ steps.meta.outputs.version }} \
             --no-latest
         if: ${{ needs.check_tag.outputs.is_tag == 'false' }}
+
+      - name: Emit Architecture list
+        run: |
+          echo "### Supported Docker Image Architectures" >> $GITHUB_STEP_SUMMARY
+          echo '`amd64` [non-tag build]' >> $GITHUB_STEP_SUMMARY
+        if: ${{ needs.check_tag.outputs.is_tag == 'false' }}
+
+
+
+      # -------------------------------------------------------------------------- #
+      #                                 Job summary                                #
+      # -------------------------------------------------------------------------- #
+
+      - name: Emit Job Summary
+        run: |
+          echo "### Published Docker Image :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "ghcr.io/f18m/${{ github.repository }}:${{ steps.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

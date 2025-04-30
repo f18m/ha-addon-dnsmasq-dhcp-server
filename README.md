@@ -40,9 +40,13 @@ This addon setups and manages a `dnsmasq` instance configured to run both as a D
 * **DNS local cache**: speed up DNS in your network by using this addon as your home DNS server: `dnsmasq` will cache DNS resolutions from upstream servers to dramatically lower DNS resolution latency; in addition `dnsmasq` will be able to resolve any of your home device to your LAN IP address.
 * **Rock-solid DHCP and DNS server**: this addon is using the [dnsmasq](https://thekelleys.org.uk/dnsmasq/doc.html) utility which is deployed in millions of devices since roughly 2001.
 
+For technical savvy users, note that this addon _should_ support IPv6 but so far has been tested by
+its author only on IPv4 networks.
+
+
 ## Web UI
 
-These are screenshots from the addon UI v2.0.0.
+These are screenshots from the addon UI v3.0.0.
 
 DHCP basic summary:
 

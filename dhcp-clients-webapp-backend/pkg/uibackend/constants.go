@@ -4,8 +4,11 @@ package uibackend
 // here has to match the server config file!
 var defaultDnsmasqLeasesFile = "/data/dnsmasq.leases"
 
-// the home assistant addon config file is fixed and cannot be changed actually:
-var defaultHomeAssistantConfigFile = "/data/options.json"
+// the home assistant addon options is fixed and cannot be changed actually:
+var defaultHomeAssistantOptionsFile = "/data/options.json"
+
+// the home assistant addon config is fixed and cannot be changed actually:
+var defaultHomeAssistantConfigFile = "/opt/bin/addon-config.yaml"
 
 // location for our small DB tracking DHCP clients:
 var defaultDhcpClientTrackerDB = "/data/trackerdb.sqlite3"
@@ -15,9 +18,13 @@ var defaultDhcpClientTrackerDB = "/data/trackerdb.sqlite3"
 var defaultStartEpoch = "/data/startepoch"
 
 // These absolute paths must be in sync with the Dockerfile
-var staticWebFilesDir = "/opt/web/static"
-var templatesDir = "/opt/web/templates"
+var (
+	staticWebFilesDir = "/opt/web/static"
+	templatesDir      = "/opt/web/templates"
+)
 
 // other constants
-var dnsmasqMarkerForMissingHostname = "*"
-var websocketRelativeUrl = "/ws"
+var (
+	dnsmasqMarkerForMissingHostname = "*"
+	websocketRelativeUrl            = "/ws"
+)

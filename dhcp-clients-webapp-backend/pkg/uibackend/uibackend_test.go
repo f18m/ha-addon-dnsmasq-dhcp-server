@@ -61,7 +61,7 @@ func getMockUIBackend() *UIBackend {
 	//  * IP address reservations
 	//  * friendly names for dynamic clients
 	//  * DHCP range
-	backendcfg := AddonConfig{
+	backendopts := AddonOptions{
 		friendlyNames: map[string]DhcpClientFriendlyName{
 			"00:11:22:33:44:55": { // this is the MAC of 'client1'
 				MacAddress:   MustParseMAC("00:11:22:33:44:55"),
@@ -86,7 +86,7 @@ func getMockUIBackend() *UIBackend {
 	}
 	return &UIBackend{
 		logger:    logger.NewCustomLogger("unit tests"),
-		cfg:       backendcfg,
+		options:   backendopts,
 		trackerDB: trackerdb.NewTestDB(),
 	}
 }

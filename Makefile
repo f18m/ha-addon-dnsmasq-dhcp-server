@@ -34,9 +34,17 @@ build-backend:
 	cd dhcp-clients-webapp-backend && \
 		go test -v -cover ./...
 
+fmt-backend:
+	cd dhcp-clients-webapp-backend && \
+		go fmt ./...
+	# required by the gofumpt linter:
+	cd dhcp-clients-webapp-backend && \
+		gofumpt -l -w -extra .
+
 TEST_CONTAINER_NAME:=dnsmasq-dhcp-test
 DOCKER_RUN_OPTIONS:= \
 	-v $(shell pwd)/test-options.json:/data/options.json \
+	-v $(shell pwd)/config.yaml:/opt/bin/addon-config.yaml \
 	-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
 	-v $(shell pwd)/test-db.sqlite3:/data/trackerdb.sqlite3 \
 	-v $(shell pwd)/test-startepoch:/data/startepoch \
