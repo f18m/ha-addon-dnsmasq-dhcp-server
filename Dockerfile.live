@@ -1,6 +1,7 @@
 # Docker image mimicking the actual addon docker image
 # for live debugging/development
 
+# IMPORTANT: as of May 2025, we must stick to golang 1.23 because air does not suppor golang 1.24 yet
 FROM golang:1.23-alpine
 
 # Add env
@@ -21,12 +22,13 @@ ENV PATH=/go/bin:$PATH
 COPY rootfs /
 COPY config.yaml /opt/bin/addon-config.yaml
 
-# Copy web frontend
-COPY backend/templates/*.html /opt/web/templates/
-COPY backend/templates/*.js /opt/web/static/
-COPY backend/templates/*.css /opt/web/static/
-COPY backend/templates/libs/*.js /opt/web/static/
-COPY backend/templates/libs/*.css /opt/web/static/
+# Copy web frontend HTML, CSS and JS files
+# NOTE: run the targets "make build-frontend" first
+COPY frontend/*.html /opt/web/templates/
+COPY frontend/external-libs/*.js /opt/web/static/
+COPY frontend/external-libs/*.css /opt/web/static/
+COPY frontend/libs/*.css /opt/web/static/
+COPY frontend/libs/*.js /opt/web/static/
 
 # Copy backend source code and run 1st go download
 WORKDIR /app

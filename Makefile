@@ -6,8 +6,10 @@ all: build-docker-image
 
 # non-containerized build of the backend -- requires you to have go installed:
 build-backend:
+	@echo "Assuming GO is already installed -- see https://golang.org/doc/install if that's not the case"
 	cd backend && \
 		go build -o bin/backend . 
+	@echo "Assuming golangci-lint is already installed -- see https://golangci-lint.run/usage/install/#installing-golangci-lint if that's not the case"
 	cd backend && \
 		golangci-lint run
 	cd backend && \
@@ -20,16 +22,19 @@ fmt-backend:
 	cd backend && \
 		gofumpt -l -w -extra .
 
+build-frontend:
+	@echo "Assuming YARN is already installed -- see https://yarnpkg.com/getting-started/install if that's not the case"
+	cd frontend/ && \
+		yarn
+	@echo "Assuming SASS is already installed -- see https://sass-lang.com/install if that's not the case"
+	cd frontend && \
+		sass scss/dnsmasq-dhcp.scss libs/dnsmasq-dhcp.css
+
 INPUT_SCSS:=$(shell pwd)/frontend/scss/
 OUTPUT_CSS:=$(shell pwd)/frontend
 
 build-css-live:
 	docker run -v $(INPUT_SCSS):/sass/ -v $(OUTPUT_CSS):/css/ -it michalklempa/dart-sass:latest
-
-download-webui-support-files:
-	@echo "Assuming YARN is already installed -- see https://yarnpkg.com/getting-started/install if that's not the case"
-	cd frontend/ && \
-		yarn
 
 
 #
