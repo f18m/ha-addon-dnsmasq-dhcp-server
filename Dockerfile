@@ -17,9 +17,17 @@ RUN --mount=type=cache,target=/root/.cache/go \
 # download frontend dependencies
 WORKDIR /app/frontend
 COPY frontend .
-RUN apk add yarn bash
-RUN yarn
+RUN apk add yarn bash && \
+    yarn
 
+# transpile the SCSS -> CSS
+RUN wget https://github.com/sass/dart-sass/releases/download/1.87.0/dart-sass-1.87.0-linux-x64-musl.tar.gz && \
+    tar -xzf dart-sass-1.87.0-linux-x64-musl.tar.gz && \
+    rm dart-sass-1.87.0-linux-x64-musl.tar.gz && \
+    mv dart-sass /usr/local/bin/sass && \
+    chmod +x /usr/local/bin/sass
+RUN sass --version
+RUN sass scss/dnsmasq-dhcp.scss libs/dnsmasq-dhcp.css
 
 # --- Actual ADDON layer
 
@@ -37,10 +45,10 @@ COPY config.yaml /opt/bin/addon-config.yaml
 
 # Copy web frontend HTML, CSS and JS files
 COPY frontend/*.html /opt/web/templates/
-COPY frontend/external-libs/*.js /opt/web/static/
-COPY frontend/external-libs/*.css /opt/web/static/
+COPY --from=builder /app/frontend/external-libs/*.js /opt/web/static/
+COPY --from=builder /app/frontend/external-libs/*.css /opt/web/static/
+COPY --from=builder /app/frontend/libs/*.css /opt/web/static/
 COPY frontend/libs/*.js /opt/web/static/
-COPY frontend/libs/*.css /opt/web/static/
 
 # Copy backend binary
 COPY --from=builder-go /backend /opt/bin/

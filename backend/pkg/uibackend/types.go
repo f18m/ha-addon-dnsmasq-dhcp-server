@@ -1,13 +1,12 @@
 package uibackend
 
 import (
+	"dnsmasq-dhcp-backend/pkg/trackerdb"
 	"encoding/json"
 	htmltemplate "html/template"
 	"net"
 	"net/netip"
 	texttemplate "text/template"
-
-	"dnsmasq-dhcp-backend/pkg/trackerdb"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 )
