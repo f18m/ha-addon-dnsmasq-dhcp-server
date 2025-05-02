@@ -1,6 +1,5 @@
 backend/bin/
 backend/tmp/
+frontend/node_modules/
 .docker-image
 test-db.sqlite3
-
-backend/templates/node_modules/

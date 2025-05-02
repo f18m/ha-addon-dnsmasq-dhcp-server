@@ -6,12 +6,19 @@ ARG BUILD_FROM
 # which is a CGO library; so that's why we select the -alpine variant
 FROM golang:1.24-alpine AS builder-go
 
+# build go backend
 WORKDIR /app/backend
 COPY backend .
 RUN --mount=type=cache,target=/root/.cache/apk \
     apk add build-base
 RUN --mount=type=cache,target=/root/.cache/go \
     CGO_ENABLED=1 go build -o /backend .
+
+# download frontend dependencies
+WORKDIR /app/frontend
+COPY frontend .
+RUN apk add yarn bash
+RUN yarn
 
 
 # --- Actual ADDON layer
@@ -28,14 +35,14 @@ RUN apk add --no-cache dnsmasq nginx-debug sqlite socat && mv /etc/nginx /etc/ng
 COPY rootfs /
 COPY config.yaml /opt/bin/addon-config.yaml
 
-# Copy web frontend
-COPY backend/templates/*.html /opt/web/templates/
-COPY backend/templates/*.js /opt/web/static/
-COPY backend/templates/*.css /opt/web/static/
-COPY backend/templates/libs/*.js /opt/web/static/
-COPY backend/templates/libs/*.css /opt/web/static/
+# Copy web frontend HTML, CSS and JS files
+COPY frontend/*.html /opt/web/templates/
+COPY frontend/external-libs/*.js /opt/web/static/
+COPY frontend/external-libs/*.css /opt/web/static/
+COPY frontend/libs/*.js /opt/web/static/
+COPY frontend/libs/*.css /opt/web/static/
 
-# Copy backend and frontend
+# Copy backend binary
 COPY --from=builder-go /backend /opt/bin/
 
 LABEL org.opencontainers.image.source=https://github.com/f18m/ha-addon-dnsmasq-dhcp-server
