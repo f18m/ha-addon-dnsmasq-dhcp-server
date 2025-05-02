@@ -4,7 +4,7 @@ ARG BUILD_FROM
 # About base image: we need to use a musl-based docker image since the actual HomeAssistant addon
 # base image will be musl-based as well. This is required since we depend from "github.com/mattn/go-sqlite3"
 # which is a CGO library; so that's why we select the -alpine variant
-FROM golang:1.24-alpine AS builder-go
+FROM golang:1.24-alpine AS builder
 
 # build go backend
 WORKDIR /app/backend
@@ -23,11 +23,9 @@ RUN apk add yarn bash && \
 # transpile the SCSS -> CSS
 RUN wget https://github.com/sass/dart-sass/releases/download/1.87.0/dart-sass-1.87.0-linux-x64-musl.tar.gz && \
     tar -xzf dart-sass-1.87.0-linux-x64-musl.tar.gz && \
-    rm dart-sass-1.87.0-linux-x64-musl.tar.gz && \
-    mv dart-sass /usr/local/bin/sass && \
-    chmod +x /usr/local/bin/sass
-RUN sass --version
-RUN sass scss/dnsmasq-dhcp.scss libs/dnsmasq-dhcp.css
+    rm dart-sass-1.87.0-linux-x64-musl.tar.gz 
+RUN dart-sass/sass --version
+RUN dart-sass/sass scss/dnsmasq-dhcp.scss libs/dnsmasq-dhcp.css
 
 # --- Actual ADDON layer
 
@@ -51,6 +49,6 @@ COPY --from=builder /app/frontend/libs/*.css /opt/web/static/
 COPY frontend/libs/*.js /opt/web/static/
 
 # Copy backend binary
-COPY --from=builder-go /backend /opt/bin/
+COPY --from=builder /backend /opt/bin/
 
 LABEL org.opencontainers.image.source=https://github.com/f18m/ha-addon-dnsmasq-dhcp-server
