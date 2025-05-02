@@ -2,3 +2,5 @@ dhcp-clients-webapp-backend/bin/
 dhcp-clients-webapp-backend/tmp/
 .docker-image
 test-db.sqlite3
+
+dhcp-clients-webapp-backend/templates/node_modules/

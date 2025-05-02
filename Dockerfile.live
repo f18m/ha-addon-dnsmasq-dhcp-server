@@ -19,8 +19,14 @@ ENV PATH=/go/bin:$PATH
 
 # Copy data
 COPY rootfs /
-COPY dhcp-clients-webapp-backend/templates/ /opt/web/templates/
 COPY config.yaml /opt/bin/addon-config.yaml
+
+# Copy web frontend
+COPY dhcp-clients-webapp-backend/templates/*.html /opt/web/templates/
+COPY dhcp-clients-webapp-backend/templates/*.js /opt/web/static/
+COPY dhcp-clients-webapp-backend/templates/*.css /opt/web/static/
+COPY dhcp-clients-webapp-backend/templates/libs/*.js /opt/web/static/
+COPY dhcp-clients-webapp-backend/templates/libs/*.css /opt/web/static/
 
 # Copy backend source code and run 1st go download
 WORKDIR /app

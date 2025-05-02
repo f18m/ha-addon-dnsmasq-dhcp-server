@@ -1,5 +1,41 @@
 all: build-docker-image
 
+#
+# BUILD targets
+#
+
+# non-containerized build of the backend -- requires you to have go installed:
+build-backend:
+	cd dhcp-clients-webapp-backend && \
+		go build -o bin/backend . 
+	cd dhcp-clients-webapp-backend && \
+		golangci-lint run
+	cd dhcp-clients-webapp-backend && \
+		go test -v -cover ./...
+
+fmt-backend:
+	cd dhcp-clients-webapp-backend && \
+		go fmt ./...
+	# required by the gofumpt linter:
+	cd dhcp-clients-webapp-backend && \
+		gofumpt -l -w -extra .
+
+INPUT_SCSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/scss/
+OUTPUT_CSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/
+
+build-css-live:
+	docker run -v $(INPUT_SCSS):/sass/ -v $(OUTPUT_CSS):/css/ -it michalklempa/dart-sass:latest
+
+download-webui-support-files:
+	@echo "Assuming YARN is already installed -- see https://yarnpkg.com/getting-started/install if that's not the case"
+	cd dhcp-clients-webapp-backend/templates/ && \
+		yarn
+
+
+#
+# DOCKER targets
+#
+
 # NOTE: the architecture "armhf" (ARM v6) is excluded from the list because Go toolchain is not available there
 ARCH:=--armv7 --amd64 --aarch64 --i386
 ifeq ($(FAST),1)
@@ -25,22 +61,6 @@ build-docker-image: $(BACKEND_SOURCE_CODE_FILES) $(ROOTFS_FILES)
 		--self-cache \
 		--test
 
-# non-containerized build of the backend -- requires you to have go installed:
-build-backend:
-	cd dhcp-clients-webapp-backend && \
-		go build -o bin/backend . 
-	cd dhcp-clients-webapp-backend && \
-		golangci-lint run
-	cd dhcp-clients-webapp-backend && \
-		go test -v -cover ./...
-
-fmt-backend:
-	cd dhcp-clients-webapp-backend && \
-		go fmt ./...
-	# required by the gofumpt linter:
-	cd dhcp-clients-webapp-backend && \
-		gofumpt -l -w -extra .
-
 TEST_CONTAINER_NAME:=dnsmasq-dhcp-test
 DOCKER_RUN_OPTIONS:= \
 	-v $(shell pwd)/test-options.json:/data/options.json \
@@ -61,6 +81,10 @@ DOCKER_RUN_OPTIONS:= \
 # will try to reach to HomeAssistant Supervisor which is not running...
 test-docker-image: 
 	$(MAKE) FAST=1 build-docker-image
+	@echo
+	@echo "Starting container of image $(IMAGETAG):localtest" 
+	@echo "Point your browser at http://localhost:8976"
+	@echo
 	@echo "Starting container of image ${IMAGETAG}:localtest" 
 	docker run \
 		--rm \
@@ -82,11 +106,9 @@ test-docker-image-live:
 		debug-image-live
 
 
-INPUT_SCSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/scss/
-OUTPUT_CSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/
-
-build-css-live:
-	docker run -v $(INPUT_SCSS):/sass/ -v $(OUTPUT_CSS):/css/ -it michalklempa/dart-sass:latest
+#
+# More testing targts
+#
 
 test-database-show:
 	sqlite3 test-db.sqlite3 'select * from dhcp_clients;'		

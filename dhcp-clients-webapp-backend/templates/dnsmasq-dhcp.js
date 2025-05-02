@@ -4,14 +4,19 @@
 */
 
 /* GLOBALS */
-/* Note that all variables prefixed with "templated_" are globals as well, defined in the HTML template file */
+var config = { // this global variable is initialized via setConfig()
+    "webSocketURI": null,
+    "dhcpServerStartTime": null,
+    "dhcpPoolSize": null,
+}
+// TODO create a "status" dictionary holding all these globals below
 var table_current = null;
 var table_past = null;
 var table_dns_upstreams = null;
-var backend_ws = new WebSocket(templated_webSocketURI);
+var backend_ws = null;
 
 
-/* FUNCTIONS */
+/* FORMATTING FUNCTIONS */
 function formatTimeLeft(unixFutureTimestamp) {
     if (unixFutureTimestamp == 0) {
         return "Never expires";
@@ -67,6 +72,9 @@ function formatTimeSince(unixPastTimestamp) {
     
     return dayPart + timePart;
 }
+
+
+/* INIT FUNCTIONS */
 
 function initTabs() {
     const tabButtons = document.querySelectorAll('.tabs__pills .btn');
@@ -199,6 +207,38 @@ function initAll() {
     initTableDarkOrLightTheme()
 }
 
+function setConfig(webSocketURI, dhcpServerStartTime, dhcpPoolSize) {
+    // update the global config variable
+    config = {
+        "webSocketURI": webSocketURI,
+        "dhcpServerStartTime": dhcpServerStartTime,
+        "dhcpPoolSize": dhcpPoolSize,
+    }
+
+    // now that we have the URI of the websocket server, we can open the connection
+    backend_ws = new WebSocket(webSocketURI)
+
+    backend_ws.onopen = function (event) {
+        console.log("Websocket connection to " + config["webSocketURI"] + " was successfully opened");
+    };
+
+    backend_ws.onclose = function (event) {
+        console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
+    }
+
+    backend_ws.onerror = function (event) {
+        console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
+    }
+
+    backend_ws.onmessage = function (event) {
+        console.log("Websocket received event", event.code, event.reason, event.wasClean)
+        processWebSocketEvent(event)
+    }
+}
+
+
+/* DYNAMIC UPDATES PROCESSING FUNCTIONS */
+
 function processWebSocketDHCPCurrentClients(data) {
     console.log("Websocket connection: received " + data.current_clients.length + " current DHCP clients from websocket");
 
@@ -262,20 +302,20 @@ function processWebSocketDHCPPastClients(data) {
 function updateDHCPStatus(data, dhcp_static_ip, dhcp_addresses_used, messageElem) {
     // compute DHCP pool usage
     var usagePerc = 0
-    if (templated_dhcpPoolSize > 0) {
-        usagePerc = 100 * dhcp_addresses_used / templated_dhcpPoolSize
+    if (config["dhcpPoolSize"] > 0) {
+        usagePerc = 100 * dhcp_addresses_used / config["dhcpPoolSize"]
 
         // truncate to only 1 digit accuracy
         usagePerc = Math.round(usagePerc * 10) / 10
     }
 
     // format server uptime
-    uptime_str = formatTimeSince(templated_dhcpServerStartTime)
+    uptime_str = formatTimeSince(config["dhcpServerStartTime"])
 
     // update the message
     messageElem.innerHTML = "<span class='boldText'>" + data.current_clients.length + " DHCP current clients</span> hold a DHCP lease.<br/>" + 
                         dhcp_static_ip + " have a static IP address configuration.<br/>" +
-                        dhcp_addresses_used + " are within the DHCP pool. DHCP pool contains " + templated_dhcpPoolSize + " IP addresses and its usage is at " + usagePerc + "%.<br/>" +
+                        dhcp_addresses_used + " are within the DHCP pool. DHCP pool contains " + config["dhcpPoolSize"] + " IP addresses and its usage is at " + usagePerc + "%.<br/>" +
                         "<span class='boldText'>" + data.past_clients.length + " DHCP past clients</span> contacted the server some time ago but failed to do so since last DHCP server restart, " + 
                         uptime_str + " hh:mm:ss ago.<br/>";
 }
@@ -352,24 +392,6 @@ function processWebSocketEvent(event) {
         // process DNS
         updateDNSStatus(data, dnsMsgElem)
     }
-}
-
-// websocket
-backend_ws.onopen = function (event) {
-    console.log("Websocket connection to " + templated_webSocketURI + " was successfully opened");
-};
-
-backend_ws.onclose = function (event) {
-    console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
-}
-
-backend_ws.onerror = function (event) {
-    console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
-}
-
-backend_ws.onmessage = function (event) {
-    console.log("Websocket received event", event.code, event.reason, event.wasClean)
-    processWebSocketEvent(event)
 }
 
 

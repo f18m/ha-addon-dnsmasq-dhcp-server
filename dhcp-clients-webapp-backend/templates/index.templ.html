@@ -3,33 +3,32 @@
 <head>
     <title>DHCP Clients</title>
 
-    <!-- add jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
+    <!-- Note all javascript and CSS is local to the webserver to avoid Internet dependencies,
+         see https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/issues/68 -->
 
-    <!-- add datatables.net library + responsive extension, see
-         https://datatables.net/download/ -->
-    <link href="https://cdn.datatables.net/v/dt/dt-2.1.8/r-3.0.3/datatables.min.css" rel="stylesheet">
-    <script src="https://cdn.datatables.net/v/dt/dt-2.1.8/r-3.0.3/datatables.min.js"></script>
+    <!-- load CSS -->
+    <link href="static/dataTables.dataTables.min.css" rel="stylesheet">
+    <link href="static/responsive.dataTables.min.css" rel="stylesheet">
+    <link href="static/dnsmasq-dhcp.css" rel="stylesheet">     <!-- dnsmasq-DHCP specific CSS -->
 
-    <!-- add the IP-address-sorting plugin -->
-    <script src="https://cdn.datatables.net/plug-ins/2.1.8/sorting/ip-address.js"></script>
 
- 
-    <!-- for some reason referencing an external CSS does not work, so CSS definitions are embedded: -->
-    <style>
-        {{ .CssFileContent }}
-    </style>
+    <!-- load Javascript -->
+    <script src="static/jquery.slim.min.js"></script>
+    <script src="static/dataTables.min.js"></script>
+    <script src="static/dataTables.dataTables.min.js"></script>
+    <script src="static/dataTables.responsive.min.js"></script>
+    <script src="static/responsive.dataTables.min.js"></script>
+    <script src="static/ip-address.min.js"></script>     <!-- add the IP-address-sorting plugin -->
+    <script src="static/dnsmasq-dhcp.js"></script>    <!-- dnsmasq-DHCP specific JS -->
 
     <script type="text/javascript">
-        // these variables are rendered by the UI backend when serving this file to the client
+        // these variables are rendered by the Golang UI backend when serving this file to the client
         // and that's why they might be highlighted as invalid Javascript syntax
         var templated_dhcpPoolSize = {{ .DhcpPoolSize }}
         var templated_webSocketURI = {{ .WebSocketURI }}
         var templated_dhcpServerStartTime = {{ .DHCPServerStartTime }}
 
-        // the .JavascriptFileContent is a template variable that contains the Javascript code
-        // that uses the templated_* variables
-        {{ .JavascriptFileContent }}
+        setConfig(templated_webSocketURI, templated_dhcpServerStartTime, templated_dhcpPoolSize);
     </script>
 </head>
 <body>
