@@ -7,11 +7,11 @@ ARG BUILD_FROM
 FROM golang:1.24-alpine AS builder-go
 
 WORKDIR /app/backend
-COPY dhcp-clients-webapp-backend .
+COPY backend .
 RUN --mount=type=cache,target=/root/.cache/apk \
     apk add build-base
 RUN --mount=type=cache,target=/root/.cache/go \
-    CGO_ENABLED=1 go build -o /dhcp-clients-webapp-backend .
+    CGO_ENABLED=1 go build -o /backend .
 
 
 # --- Actual ADDON layer
@@ -29,13 +29,13 @@ COPY rootfs /
 COPY config.yaml /opt/bin/addon-config.yaml
 
 # Copy web frontend
-COPY dhcp-clients-webapp-backend/templates/*.html /opt/web/templates/
-COPY dhcp-clients-webapp-backend/templates/*.js /opt/web/static/
-COPY dhcp-clients-webapp-backend/templates/*.css /opt/web/static/
-COPY dhcp-clients-webapp-backend/templates/libs/*.js /opt/web/static/
-COPY dhcp-clients-webapp-backend/templates/libs/*.css /opt/web/static/
+COPY backend/templates/*.html /opt/web/templates/
+COPY backend/templates/*.js /opt/web/static/
+COPY backend/templates/*.css /opt/web/static/
+COPY backend/templates/libs/*.js /opt/web/static/
+COPY backend/templates/libs/*.css /opt/web/static/
 
 # Copy backend and frontend
-COPY --from=builder-go /dhcp-clients-webapp-backend /opt/bin/
+COPY --from=builder-go /backend /opt/bin/
 
 LABEL org.opencontainers.image.source=https://github.com/f18m/ha-addon-dnsmasq-dhcp-server

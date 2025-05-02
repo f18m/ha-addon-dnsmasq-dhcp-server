@@ -1,6 +1,6 @@
-dhcp-clients-webapp-backend/bin/
-dhcp-clients-webapp-backend/tmp/
+backend/bin/
+backend/tmp/
 .docker-image
 test-db.sqlite3
 
-dhcp-clients-webapp-backend/templates/node_modules/
+backend/templates/node_modules/

@@ -4,5 +4,5 @@ root = "/app"
 tmp_dir = "/tmp"
 
 [build]
-cmd = "CGO_ENABLED=1 go build -o /dhcp-clients-webapp-backend ."
-bin = "/dhcp-clients-webapp-backend"
+cmd = "CGO_ENABLED=1 go build -o /backend ."
+bin = "/backend"

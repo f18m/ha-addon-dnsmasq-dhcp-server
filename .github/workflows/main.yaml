@@ -27,7 +27,7 @@ jobs:
 
       - name: Build golang code
         run: |
-          cd dhcp-clients-webapp-backend
+          cd backend
           go build -o uibackend main.go
 
       - name: Install test dependencies
@@ -36,7 +36,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          cd dhcp-clients-webapp-backend
+          cd backend
           go test -v -cover ./...
 
   golangci:
@@ -51,7 +51,7 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.0.2
-          working-directory: dhcp-clients-webapp-backend
+          working-directory: backend
         
   check_tag:
     name: Check if Tag Build

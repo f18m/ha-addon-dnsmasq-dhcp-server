@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"cmp"
 	"context"
-	"dhcp-clients-webapp-backend/pkg/logger"
-	"dhcp-clients-webapp-backend/pkg/trackerdb"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +20,9 @@ import (
 	"sync"
 	texttemplate "text/template"
 	"time"
+
+	"dnsmasq-dhcp-backend/pkg/logger"
+	"dnsmasq-dhcp-backend/pkg/trackerdb"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/gorilla/websocket"

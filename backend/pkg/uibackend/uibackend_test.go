@@ -1,13 +1,14 @@
 package uibackend
 
 import (
-	"dhcp-clients-webapp-backend/pkg/ippool"
-	"dhcp-clients-webapp-backend/pkg/logger"
-	"dhcp-clients-webapp-backend/pkg/trackerdb"
 	"net"
 	"net/netip"
 	"testing"
 	"text/template"
+
+	"dnsmasq-dhcp-backend/pkg/ippool"
+	"dnsmasq-dhcp-backend/pkg/logger"
+	"dnsmasq-dhcp-backend/pkg/trackerdb"
 
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/google/go-cmp/cmp"

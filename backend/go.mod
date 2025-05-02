@@ -1,4 +1,4 @@
-module dhcp-clients-webapp-backend
+module dnsmasq-dhcp-backend
 
 go 1.23.0
 

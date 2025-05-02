@@ -2,8 +2,8 @@
 package main
 
 import (
-	"dhcp-clients-webapp-backend/pkg/logger"
-	"dhcp-clients-webapp-backend/pkg/uibackend"
+	"dnsmasq-dhcp-backend/pkg/logger"
+	"dnsmasq-dhcp-backend/pkg/uibackend"
 )
 
 func main() {

@@ -22,15 +22,15 @@ COPY rootfs /
 COPY config.yaml /opt/bin/addon-config.yaml
 
 # Copy web frontend
-COPY dhcp-clients-webapp-backend/templates/*.html /opt/web/templates/
-COPY dhcp-clients-webapp-backend/templates/*.js /opt/web/static/
-COPY dhcp-clients-webapp-backend/templates/*.css /opt/web/static/
-COPY dhcp-clients-webapp-backend/templates/libs/*.js /opt/web/static/
-COPY dhcp-clients-webapp-backend/templates/libs/*.css /opt/web/static/
+COPY backend/templates/*.html /opt/web/templates/
+COPY backend/templates/*.js /opt/web/static/
+COPY backend/templates/*.css /opt/web/static/
+COPY backend/templates/libs/*.js /opt/web/static/
+COPY backend/templates/libs/*.css /opt/web/static/
 
 # Copy backend source code and run 1st go download
 WORKDIR /app
-COPY dhcp-clients-webapp-backend/ /app
+COPY backend/ /app
 RUN go mod download
 
 # Install AIR
