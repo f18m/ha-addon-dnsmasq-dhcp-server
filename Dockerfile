@@ -6,6 +6,8 @@ ARG BUILD_FROM
 # which is a CGO library; so that's why we select the -alpine variant
 FROM golang:1.24-alpine AS builder
 
+ARG TARGETPLATFORM
+
 # build go backend
 WORKDIR /app/backend
 COPY backend .
@@ -20,12 +22,12 @@ COPY frontend .
 RUN apk add yarn bash && \
     yarn
 
-# transpile the SCSS -> CSS
-RUN wget https://github.com/sass/dart-sass/releases/download/1.87.0/dart-sass-1.87.0-linux-x64-musl.tar.gz && \
-    tar -xzf dart-sass-1.87.0-linux-x64-musl.tar.gz && \
-    rm dart-sass-1.87.0-linux-x64-musl.tar.gz 
-RUN dart-sass/sass --version
-RUN dart-sass/sass scss/dnsmasq-dhcp.scss libs/dnsmasq-dhcp.css
+# NOTE: 
+# we don't transpile the SCSS->CSS in this docker build because this "builder" layer
+# needs to be compatible with all the architectures we support (armv7, aarch64, amd64, i386)
+# and I couldn't find the "dart-sass" binary for all these architectures...
+# we rather assume the transpiled version has been checked into git
+
 
 # --- Actual ADDON layer
 

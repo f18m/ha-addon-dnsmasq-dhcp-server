@@ -27,8 +27,18 @@ build-frontend:
 	cd frontend/ && \
 		yarn
 	@echo "Assuming SASS is already installed -- see https://sass-lang.com/install if that's not the case"
+	# transpile the SCSS -> CSS
 	cd frontend && \
 		sass scss/dnsmasq-dhcp.scss libs/dnsmasq-dhcp.css
+
+DART_SASS_VERSION=1.87.0
+
+install-dart-sass:
+	wget https://github.com/sass/dart-sass/releases/download/$(DART_SASS_VERSION)/dart-sass-$(DART_SASS_VERSION)-linux-x64-musl.tar.gz && \
+		tar -xzf dart-sass-$(DART_SASS_VERSION)-linux-x64-musl.tar.gz && \
+		rm dart-sass-$(DART_SASS_VERSION)-linux-x64-musl.tar.gz 
+	dart-sass/sass --version
+	dart-sass/sass scss/dnsmasq-dhcp.scss libs/dnsmasq-dhcp.css
 
 INPUT_SCSS:=$(shell pwd)/frontend/scss/
 OUTPUT_CSS:=$(shell pwd)/frontend
