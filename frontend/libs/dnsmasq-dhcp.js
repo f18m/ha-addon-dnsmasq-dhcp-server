@@ -1,4 +1,6 @@
 /*
+    Dnsmasq-DHCP Javascript code
+
     Contains all client-side logic to format the tables,
     handle websocket events, handle tabs, etc.
 */

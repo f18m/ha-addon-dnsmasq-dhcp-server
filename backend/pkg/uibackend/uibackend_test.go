@@ -1,9 +1,9 @@
 package uibackend
 
 import (
-	"dhcp-clients-webapp-backend/pkg/ippool"
-	"dhcp-clients-webapp-backend/pkg/logger"
-	"dhcp-clients-webapp-backend/pkg/trackerdb"
+	"dnsmasq-dhcp-backend/pkg/ippool"
+	"dnsmasq-dhcp-backend/pkg/logger"
+	"dnsmasq-dhcp-backend/pkg/trackerdb"
 	"net"
 	"net/netip"
 	"testing"

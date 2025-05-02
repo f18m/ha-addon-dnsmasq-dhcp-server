@@ -1,7 +1,7 @@
 package uibackend
 
 import (
-	"dhcp-clients-webapp-backend/pkg/ippool"
+	"dnsmasq-dhcp-backend/pkg/ippool"
 	"encoding/json"
 	"fmt"
 	"net"

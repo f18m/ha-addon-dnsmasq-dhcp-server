@@ -1,4 +1,4 @@
 #!/usr/bin/with-contenv bashio
 
-bashio::log.info "Starting dhcp-clients-webapp-backend..."
-exec /opt/bin/dhcp-clients-webapp-backend
+bashio::log.info "Starting dnsmasq-DHCP backend..."
+exec /opt/bin/backend

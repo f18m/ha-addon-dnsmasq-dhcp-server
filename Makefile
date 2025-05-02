@@ -6,30 +6,45 @@ all: build-docker-image
 
 # non-containerized build of the backend -- requires you to have go installed:
 build-backend:
-	cd dhcp-clients-webapp-backend && \
+	@echo "Assuming GO is already installed -- see https://golang.org/doc/install if that's not the case"
+	cd backend && \
 		go build -o bin/backend . 
-	cd dhcp-clients-webapp-backend && \
+	@echo "Assuming golangci-lint is already installed -- see https://golangci-lint.run/usage/install/#installing-golangci-lint if that's not the case"
+	cd backend && \
 		golangci-lint run
-	cd dhcp-clients-webapp-backend && \
+	cd backend && \
 		go test -v -cover ./...
 
 fmt-backend:
-	cd dhcp-clients-webapp-backend && \
+	cd backend && \
 		go fmt ./...
 	# required by the gofumpt linter:
-	cd dhcp-clients-webapp-backend && \
+	cd backend && \
 		gofumpt -l -w -extra .
 
-INPUT_SCSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/scss/
-OUTPUT_CSS:=$(shell pwd)/dhcp-clients-webapp-backend/templates/
+build-frontend:
+	@echo "Assuming YARN is already installed -- see https://yarnpkg.com/getting-started/install if that's not the case"
+	cd frontend/ && \
+		yarn
+	@echo "Assuming SASS is already installed -- see https://sass-lang.com/install if that's not the case"
+	# transpile the SCSS -> CSS
+	cd frontend && \
+		sass scss/dnsmasq-dhcp.scss libs/dnsmasq-dhcp.css
+
+DART_SASS_VERSION=1.87.0
+
+install-dart-sass:
+	wget https://github.com/sass/dart-sass/releases/download/$(DART_SASS_VERSION)/dart-sass-$(DART_SASS_VERSION)-linux-x64-musl.tar.gz && \
+		tar -xzf dart-sass-$(DART_SASS_VERSION)-linux-x64-musl.tar.gz && \
+		rm dart-sass-$(DART_SASS_VERSION)-linux-x64-musl.tar.gz 
+	dart-sass/sass --version
+	dart-sass/sass scss/dnsmasq-dhcp.scss libs/dnsmasq-dhcp.css
+
+INPUT_SCSS:=$(shell pwd)/frontend/scss/
+OUTPUT_CSS:=$(shell pwd)/frontend
 
 build-css-live:
 	docker run -v $(INPUT_SCSS):/sass/ -v $(OUTPUT_CSS):/css/ -it michalklempa/dart-sass:latest
-
-download-webui-support-files:
-	@echo "Assuming YARN is already installed -- see https://yarnpkg.com/getting-started/install if that's not the case"
-	cd dhcp-clients-webapp-backend/templates/ && \
-		yarn
 
 
 #
@@ -44,8 +59,10 @@ ARCH:=--amd64
 endif
 IMAGETAG:=$(shell yq .image config.yaml  | sed 's@{arch}@amd64@g')
 
-BACKEND_SOURCE_CODE_FILES:=$(shell find dhcp-clients-webapp-backend/ -type f -name '*.go')
+BACKEND_SOURCE_CODE_FILES:=$(shell find backend/ -type f -name '*.go')
 ROOTFS_FILES:=$(shell find rootfs/ -type f)
+
+HOME_ASSISTANT_BUILDER_VERSION:=2025.03.0
 
 build-docker-image: $(BACKEND_SOURCE_CODE_FILES) $(ROOTFS_FILES)
 	docker run \
@@ -54,12 +71,20 @@ build-docker-image: $(BACKEND_SOURCE_CODE_FILES) $(ROOTFS_FILES)
 		-v ~/.docker:/root/.docker \
 		-v /var/run/docker.sock:/var/run/docker.sock:ro \
 		-v $(shell pwd):/data \
-		ghcr.io/home-assistant/amd64-builder \
+		ghcr.io/home-assistant/amd64-builder:$(HOME_ASSISTANT_BUILDER_VERSION) \
 		$(ARCH) \
 		--target /data \
 		--version localtest \
 		--self-cache \
 		--test
+
+build-docker-image-raw:
+	# do not use the HomeAssistant builder -- this helps debugging some docker build issues
+	# see https://github.com/home-assistant/builder/blob/master/build.yaml
+	sudo docker build \
+		--build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.20 \
+		-t $(IMAGETAG):localtest \
+		.
 
 TEST_CONTAINER_NAME:=dnsmasq-dhcp-test
 DOCKER_RUN_OPTIONS:= \
@@ -68,8 +93,8 @@ DOCKER_RUN_OPTIONS:= \
 	-v $(shell pwd)/test-leases.leases:/data/dnsmasq.leases \
 	-v $(shell pwd)/test-db.sqlite3:/data/trackerdb.sqlite3 \
 	-v $(shell pwd)/test-startepoch:/data/startepoch \
-	-v $(shell pwd)/dhcp-clients-webapp-backend:/app \
-	-v $(shell pwd)/dhcp-clients-webapp-backend/templates:/opt/web/templates/ \
+	-v $(shell pwd)/backend:/app \
+	-v $(shell pwd)/frontend/index.templ.html:/opt/web/templates/index.templ.html \
 	-v $(shell pwd)/rootfs/opt/bin/dnsmasq-dhcp-script.sh:/opt/bin/dnsmasq-dhcp-script.sh \
 	-e LOCAL_TESTING=1 \
 	--cap-add NET_ADMIN \

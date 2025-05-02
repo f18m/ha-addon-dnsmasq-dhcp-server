@@ -1,6 +1,11 @@
-dhcp-clients-webapp-backend/bin/
-dhcp-clients-webapp-backend/tmp/
+backend/bin/
+backend/tmp/
+
+frontend/node_modules/
+frontend/.sass-cache/
+
+# all 3rd party CSS and JS libraries are downloaded by YARN -- no point in storing them in git
+frontend/external-libs/
+
 .docker-image
 test-db.sqlite3
-
-dhcp-clients-webapp-backend/templates/node_modules/

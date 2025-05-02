@@ -14,7 +14,7 @@ on:
 
 jobs:
   unit_tests:
-    name: Tests
+    name: Golang Tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,7 +27,7 @@ jobs:
 
       - name: Build golang code
         run: |
-          cd dhcp-clients-webapp-backend
+          cd backend
           go build -o uibackend main.go
 
       - name: Install test dependencies
@@ -36,11 +36,11 @@ jobs:
 
       - name: Run unit tests
         run: |
-          cd dhcp-clients-webapp-backend
+          cd backend
           go test -v -cover ./...
 
   golangci:
-    name: lint
+    name: Linter
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +51,7 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.0.2
-          working-directory: dhcp-clients-webapp-backend
+          working-directory: backend
         
   check_tag:
     name: Check if Tag Build

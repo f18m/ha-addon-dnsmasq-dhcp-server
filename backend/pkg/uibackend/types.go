@@ -1,7 +1,7 @@
 package uibackend
 
 import (
-	"dhcp-clients-webapp-backend/pkg/trackerdb"
+	"dnsmasq-dhcp-backend/pkg/trackerdb"
 	"encoding/json"
 	htmltemplate "html/template"
 	"net"
