@@ -130,7 +130,11 @@ function initCurrentTable() {
             responsive: true,
             className: 'data-table',
             layout: {
-                topStart: null,
+                topStart: {
+                    buttons: [
+                        'copy', 'excel'
+                    ]
+                },
                 topEnd: 'search',
                 bottomStart: 'pageLength'
             }
@@ -163,7 +167,11 @@ function initPastTable() {
             responsive: true,
             className: 'data-table',
             layout: {
-                topStart: null,
+                topStart: {
+                    buttons: [
+                        'copy', 'excel'
+                    ]
+                },
                 topEnd: 'search',
                 bottomStart: 'pageLength'
             }

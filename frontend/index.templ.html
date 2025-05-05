@@ -8,16 +8,33 @@
 
     <!-- load CSS -->
     <link href="static/dataTables.dataTables.min.css" rel="stylesheet">
-    <link href="static/responsive.dataTables.min.css" rel="stylesheet">
+    <link href="static/responsive.dataTables.min.css" rel="stylesheet"> <!-- responsive plugin -->
+    <link href="static/select.dataTables.min.css" rel="stylesheet">  <!-- select plugin -->
+
     <link href="static/dnsmasq-dhcp.css" rel="stylesheet">     <!-- dnsmasq-DHCP specific CSS -->
 
 
-    <!-- load Javascript -->
+    <!-- load Javascript 
+     TODO: I should probably learn how to use a packer like https://webpack.js.org/
+     -->
     <script src="static/jquery.slim.min.js"></script>
+    <script src="static/jszip.min.js"></script>   <!-- JSZip is a dependency of the "Excel" button feature for DataTables -->
+
     <script src="static/dataTables.min.js"></script>
     <script src="static/dataTables.dataTables.min.js"></script>
-    <script src="static/dataTables.responsive.min.js"></script>
-    <script src="static/responsive.dataTables.min.js"></script>
+
+    <script src="static/dataTables.responsive.min.js"></script> <!-- responsive plugin -->
+    <script src="static/responsive.dataTables.min.js"></script> <!-- responsive plugin -->
+
+    <script src="static/dataTables.buttons.min.js"></script> <!-- buttons plugin -->
+    <script src="static/buttons.dataTables.min.js"></script> <!-- buttons plugin -->
+    <script src="static/buttons.colVis.min.js"></script> <!-- buttons plugin -->
+    <script src="static/buttons.html5.min.js"></script> <!-- buttons plugin -->
+    <script src="static/buttons.print.min.js"></script> <!-- buttons plugin -->
+
+    <script src="static/dataTables.select.min.js"></script> <!-- select plugin -->
+    <script src="static/select.dataTables.min.js"></script> <!-- select plugin -->
+
     <script src="static/ip-address.min.js"></script>     <!-- add the IP-address-sorting plugin -->
     <script src="static/dnsmasq-dhcp.js"></script>    <!-- dnsmasq-DHCP specific JS -->
 
@@ -33,7 +50,7 @@
 </head>
 <body>
     <h1 class="topLevel">Dnsmasq-DHCP addon</h1>
-    <h2 class="topLevel">DHCP & DNS servers for HomeAssistant</h2>
+    <h2 class="topLevel">Take control of your network... with DHCP & DNS servers for HomeAssistant</h3>
 
     <div class="container">
         <div class="tabs">
