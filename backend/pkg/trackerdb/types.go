@@ -36,5 +36,5 @@ func (d DhcpClient) MarshalJSON() ([]byte, error) {
 }
 
 func (d DhcpClient) String() string {
-	return fmt.Sprintf("%s %s (LastSeen=%s) ", d.Hostname, d.MacAddr.String(), d.LastSeen.String())
+	return fmt.Sprintf("%s %s (LastSeen=%s)", d.Hostname, d.MacAddr.String(), d.LastSeen.String())
 }

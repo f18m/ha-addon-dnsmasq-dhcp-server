@@ -283,6 +283,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 		ticker := time.NewTicker(b.options.webUIRefreshInterval)
 		tickerCh = ticker.C
 	} else {
+		// refresh is disabled, create a channel that will never get a message
 		tickerCh = make(<-chan time.Time)
 	}
 
@@ -564,7 +565,7 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 	return nil
 }
 
-// readAddonOptions reads the configuration of this Home Assistant addon and converts it
+// readAddonOptions reads the OPTIONS of this Home Assistant addon and converts it
 // into maps and slices that get stored into the UIBackend instance
 func (b *UIBackend) readAddonOptions() error {
 	b.logger.Infof("Reading addon options file '%s'\n", defaultHomeAssistantOptionsFile)
@@ -600,6 +601,7 @@ func (b *UIBackend) readAddonOptions() error {
 	return nil
 }
 
+// readAddonConfig reads the CONFIG of this Home Assistant addon
 func (b *UIBackend) readAddonConfig() error {
 	b.logger.Infof("Reading addon config file '%s'\n", defaultHomeAssistantConfigFile)
 
@@ -636,6 +638,28 @@ func (b *UIBackend) readAddonConfig() error {
 
 	b.logger.Infof("Acquired addon version: %s\n", b.config.Version)
 	return nil
+}
+
+// forgetPastDhcpClients typically runs in a separate goroutine and removes past DHCP clients
+// above some configurable threshold
+func (b *UIBackend) forgetPastDhcpClients() {
+	for {
+		purgedClients, err := b.trackerDB.PurgeOldDeadClients(b.options.forgetPastClientsAfter)
+		if err != nil {
+			b.logger.Warnf("failed to purge past clients from tracker DB: %s", err.Error())
+		} else if len(purgedClients) > 0 {
+			desc := ""
+			for _, c := range purgedClients {
+				desc += fmt.Sprintf("%s, ", c.String())
+			}
+			b.logger.Infof("Purged %d past DHCP clients from tracker DB, last seen more than %s time ago: %s",
+				len(purgedClients), b.options.forgetPastClientsAfter, desc)
+		} else {
+			b.logger.Info("No past DHCP client to purge from tracker DB")
+		}
+
+		time.Sleep(pastClientsCheckInterval) // wait some time before next check
+	}
 }
 
 // ListenAndServe is starting the whole UI backend:
@@ -688,25 +712,7 @@ func (b *UIBackend) ListenAndServe() error {
 
 	// Check old tracker DB entries and delete them
 	if b.options.forgetPastClientsAfter > 0 {
-		go func() {
-			for {
-				purgedClients, err := b.trackerDB.PurgeOldDeadClients(b.options.forgetPastClientsAfter)
-				if err != nil {
-					b.logger.Warnf("failed to purge past clients from tracker DB: %s", err.Error())
-				} else if len(purgedClients) > 0 {
-					desc := ""
-					for _, c := range purgedClients {
-						desc += fmt.Sprintf("%s, ", c.String())
-					}
-					b.logger.Infof("Purged %d past DHCP clients from tracker DB, last seen more than %s time ago: %s",
-						len(purgedClients), b.options.forgetPastClientsAfter, desc)
-				} else {
-					b.logger.Info("No past DHCP client to purge from tracker DB")
-				}
-
-				time.Sleep(pastClientsCheckInterval) // wait some time before next check
-			}
-		}()
+		go b.forgetPastDhcpClients()
 	}
 
 	// Start server
