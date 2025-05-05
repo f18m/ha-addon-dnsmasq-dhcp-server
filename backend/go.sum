@@ -2,6 +2,10 @@ github.com/b0ch3nski/go-dnsmasq-utils v0.1.2 h1:Sk+yYNeVaVUmFfla9dQZv6/qXYqQ1a07
 github.com/b0ch3nski/go-dnsmasq-utils v0.1.2/go.mod h1:vdD5vOfYL0GDBSvWk/+YXJo8SAXOrcY0Ey8E7BoupgM=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/davidbanham/human_duration v1.4.0 h1:iAiu/fg6aG7s8zyCKvV7D+3ScP2zFjRiYq7zYGHGvK8=
+github.com/davidbanham/human_duration v1.4.0/go.mod h1:BkH4YDdlV0jHVPzoze0oQNHZ70zLMJ4B/RQ04lVGEXI=
+github.com/davidbanham/human_duration/v3 v3.4.0 h1:5YF3OAITqs7PjxmD7Dmkk5RIAhLyzhUeaLkVWlHvkSs=
+github.com/davidbanham/human_duration/v3 v3.4.0/go.mod h1:/z8QgcUWQNQQH1ReSjTbpFANfS6CoMncSnMgi+SW4P0=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=

@@ -23,6 +23,8 @@ import (
 	texttemplate "text/template"
 	"time"
 
+	human_duration "github.com/davidbanham/human_duration/v3"
+
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/gorilla/websocket"
 	"gopkg.in/yaml.v3"
@@ -396,7 +398,8 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		// we approximate the DHCP server start time with this app's start time;
 		// the reason is that inside the HA addon, dnsmasq is started at about the same
 		// time of this app
-		DHCPServerStartTime: b.startTimestamp.Unix(),
+		DHCPServerStartTime:        b.startTimestamp.Unix(),
+		DHCPForgetPastClientsAfter: human_duration.ShortString(b.options.forgetPastClientsAfter, human_duration.Minute),
 
 		// DNS config info
 		DnsEnabled: dnsEnableString,
@@ -594,7 +597,7 @@ func (b *UIBackend) readAddonOptions() error {
 	b.logger.Infof("Acquired %d IP address reservations\n", len(b.options.ipAddressReservationsByIP))
 	b.logger.Infof("Acquired %d friendly name definitions\n", len(b.options.friendlyNames))
 	b.logger.Infof("DHCP requests logging enabled=%t; cleanup threshold for past DHCP clients set to %s\n",
-		b.options.logDHCP, b.options.forgetPastClientsAfter)
+		b.options.logDHCP, human_duration.ShortString(b.options.forgetPastClientsAfter, human_duration.Minute))
 	b.logger.Infof("Web server on port %d; Web UI logging enabled=%t; Web UI refresh interval=%s\n",
 		b.options.webUIPort, b.options.logWebUI, b.options.webUIRefreshInterval.String())
 

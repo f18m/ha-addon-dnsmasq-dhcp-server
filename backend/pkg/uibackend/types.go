@@ -152,11 +152,12 @@ type HtmlTemplate struct {
 	WebSocketURI string
 
 	// DHCP config info that are handy to have in the UI page
-	DhcpRanges              []HtmlTemplateIpRange
-	DhcpPoolSize            int64
-	DefaultLease            string
-	AddressReservationLease string
-	DHCPServerStartTime     int64
+	DhcpRanges                 []HtmlTemplateIpRange
+	DhcpPoolSize               int64
+	DefaultLease               string
+	AddressReservationLease    string
+	DHCPServerStartTime        int64
+	DHCPForgetPastClientsAfter string
 
 	// DNS config info
 	DnsEnabled string

@@ -114,6 +114,11 @@
                 <!-- the Datatables.net table will be attached to this TABLE element -->
                 <table id="past_table" class="display" width="100%"></table>
 
+                <p><span class="boldText">Notes:</span></p>
+                <ul>
+                    <li>All clients last seen more than <span class="monoText">{{ .DHCPForgetPastClientsAfter }}</span> ago are automatically erased and do not appear in this table.</li>
+                </ul>
+                
             </div>
             <div id="dns_summary">
                 <h2>DNS Config Summary</h2>
@@ -136,7 +141,7 @@
 
     <div class="footer">
         Dnsmasq-DHCP addon version {{ .AddonVersion }}<br/>
-        <a href="https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/">Project Homepage</a>
+        <a href="https://github.com/f18m/ha-addon-dnsmasq-dhcp/">Project Homepage</a>
     </div>
 </body>
 </html>
