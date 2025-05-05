@@ -130,7 +130,11 @@ function initCurrentTable() {
             responsive: true,
             className: 'data-table',
             layout: {
-                topStart: null,
+                topStart: {
+                    buttons: [
+                        'copy', 'excel'
+                    ]
+                },
                 topEnd: 'search',
                 bottomStart: 'pageLength'
             }
@@ -163,7 +167,11 @@ function initPastTable() {
             responsive: true,
             className: 'data-table',
             layout: {
-                topStart: null,
+                topStart: {
+                    buttons: [
+                        'copy', 'excel'
+                    ]
+                },
                 topEnd: 'search',
                 bottomStart: 'pageLength'
             }
@@ -260,10 +268,14 @@ function processWebSocketDHCPCurrentClients(data) {
             dhcp_static_ip += 1;
         }
 
-        external_link_symbol="🡕"
-        //external_link_symbol="⧉"
+        // Apparently not all browsers use fonts supporting the U+1F855 symbol... 
+        // E.g. my Android phone does not render it
+        //external_link_symbol="🡕" // https://www.compart.com/en/unicode/U+1F855
+
+        // hopefully the U+29C9 symbol is more commonly supported:
+        external_link_symbol="⧉" // https://www.compart.com/en/unicode/U+29C9
         if (item.evaluated_link) {
-            link_str = "<a href=\"" + item.evaluated_link + "\" target=\"_blank\">" + item.evaluated_link + "</a> " + external_link_symbol
+            link_str = "<a href=\"" + item.evaluated_link + "\" target=\"_blank\">" + item.evaluated_link + " " + external_link_symbol + "</a>"
         } else {
             link_str = "N/A"
         }
@@ -315,10 +327,10 @@ function updateDHCPStatus(data, dhcp_static_ip, dhcp_addresses_used, messageElem
     uptime_str = formatTimeSince(config["dhcpServerStartTime"])
 
     // update the message
-    messageElem.innerHTML = "<span class='boldText'>" + data.current_clients.length + " DHCP current clients</span> hold a DHCP lease.<br/>" + 
-                        dhcp_static_ip + " have a static IP address configuration.<br/>" +
-                        dhcp_addresses_used + " are within the DHCP pool. DHCP pool contains " + config["dhcpPoolSize"] + " IP addresses and its usage is at " + usagePerc + "%.<br/>" +
-                        "<span class='boldText'>" + data.past_clients.length + " DHCP past clients</span> contacted the server some time ago but failed to do so since last DHCP server restart, " + 
+    messageElem.innerHTML = "<span class='boldText'>" + data.current_clients.length + " clients</span> currently hold a DHCP lease.<br/>" + 
+                        dhcp_static_ip + " clients have a static IP address configuration.<br/>" +
+                        dhcp_addresses_used + " clients are within the DHCP pool. DHCP pool contains " + config["dhcpPoolSize"] + " IP addresses and its usage is at " + usagePerc + "%.<br/>" +
+                        "<span class='boldText'>" + data.past_clients.length + " past clients</span> contacted the server some time ago but failed to do so since last DHCP server restart, " + 
                         uptime_str + " hh:mm:ss ago.<br/>";
 }
 

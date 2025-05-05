@@ -23,6 +23,8 @@ import (
 	texttemplate "text/template"
 	"time"
 
+	human_duration "github.com/davidbanham/human_duration/v3"
+
 	"github.com/b0ch3nski/go-dnsmasq-utils/dnsmasq"
 	"github.com/gorilla/websocket"
 	"gopkg.in/yaml.v3"
@@ -175,6 +177,15 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 		currentClientsMacs = append(currentClientsMacs, c.Lease.MacAddr)
 	}
 
+	// if the dnsmasq-provided hostname is an asterisk *, that indicates that the DHCP client
+	// did not advertise his own hostname to the DHCP server.
+	// Make this more clear:
+	for _, c := range currentClients {
+		if c.Lease.Hostname == dnsmasqMarkerForMissingHostname {
+			c.Lease.Hostname = unknownHostnameHtmlString
+		}
+	}
+
 	// now get from the tracker DB some historical data about "dead DHCP clients"
 	deadClients, err := b.trackerDB.GetDeadDhcpClients(currentClientsMacs)
 	if err != nil {
@@ -198,6 +209,13 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 			if pastClients[i].HasStaticIP {
 				pastClients[i].FriendlyName = b.options.ipAddressReservationsByMAC[deadC.MacAddr.String()].Name
 			}
+		}
+
+		if pastClients[i].FriendlyName == "" {
+			pastClients[i].FriendlyName = "N/A"
+		}
+		if pastClients[i].PastInfo.Hostname == "" {
+			pastClients[i].PastInfo.Hostname = unknownHostnameHtmlString
 		}
 
 		// create note field
@@ -278,7 +296,14 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 
 // Broadcast updater: any update posted on the broadcastCh is broadcasted to all clients
 func (b *UIBackend) broadcastUpdatesToClients() {
-	ticker := time.NewTicker(10 * time.Second)
+	var tickerCh <-chan time.Time
+	if b.options.webUIRefreshInterval > 0 {
+		ticker := time.NewTicker(b.options.webUIRefreshInterval)
+		tickerCh = ticker.C
+	} else {
+		// refresh is disabled, create a channel that will never get a message
+		tickerCh = make(<-chan time.Time)
+	}
 
 	for {
 		select {
@@ -286,7 +311,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 			// if we get a message from this channel, it means the global list of
 			// current DHCP clients has changed
 
-		case <-ticker.C:
+		case <-tickerCh:
 			// let's refresh the websocket with whatever data we already have;
 			// this is done for 2 reasons:
 			// 1. trigger a refresh on the webpage (the JS client-side will recompute
@@ -389,7 +414,8 @@ func (b *UIBackend) renderPage(w http.ResponseWriter, r *http.Request) {
 		// we approximate the DHCP server start time with this app's start time;
 		// the reason is that inside the HA addon, dnsmasq is started at about the same
 		// time of this app
-		DHCPServerStartTime: b.startTimestamp.Unix(),
+		DHCPServerStartTime:        b.startTimestamp.Unix(),
+		DHCPForgetPastClientsAfter: human_duration.ShortString(b.options.forgetPastClientsAfter, human_duration.Minute),
 
 		// DNS config info
 		DnsEnabled: dnsEnableString,
@@ -558,7 +584,7 @@ func (b *UIBackend) readCurrentLeaseFile() error {
 	return nil
 }
 
-// readAddonOptions reads the configuration of this Home Assistant addon and converts it
+// readAddonOptions reads the OPTIONS of this Home Assistant addon and converts it
 // into maps and slices that get stored into the UIBackend instance
 func (b *UIBackend) readAddonOptions() error {
 	b.logger.Infof("Reading addon options file '%s'\n", defaultHomeAssistantOptionsFile)
@@ -586,12 +612,15 @@ func (b *UIBackend) readAddonOptions() error {
 	b.logger.Infof("Acquired %d DHCP network/ranges\n", len(b.options.dhcpRanges))
 	b.logger.Infof("Acquired %d IP address reservations\n", len(b.options.ipAddressReservationsByIP))
 	b.logger.Infof("Acquired %d friendly name definitions\n", len(b.options.friendlyNames))
-	b.logger.Infof("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
-		b.options.webUIPort, b.options.logWebUI, b.options.logDHCP)
+	b.logger.Infof("DHCP requests logging enabled=%t; cleanup threshold for past DHCP clients set to %s\n",
+		b.options.logDHCP, human_duration.ShortString(b.options.forgetPastClientsAfter, human_duration.Minute))
+	b.logger.Infof("Web server on port %d; Web UI logging enabled=%t; Web UI refresh interval=%s\n",
+		b.options.webUIPort, b.options.logWebUI, b.options.webUIRefreshInterval.String())
 
 	return nil
 }
 
+// readAddonConfig reads the CONFIG of this Home Assistant addon
 func (b *UIBackend) readAddonConfig() error {
 	b.logger.Infof("Reading addon config file '%s'\n", defaultHomeAssistantConfigFile)
 
@@ -628,6 +657,29 @@ func (b *UIBackend) readAddonConfig() error {
 
 	b.logger.Infof("Acquired addon version: %s\n", b.config.Version)
 	return nil
+}
+
+// forgetPastDhcpClients typically runs in a separate goroutine and removes past DHCP clients
+// above some configurable threshold
+func (b *UIBackend) forgetPastDhcpClients() {
+	for {
+		purgedClients, err := b.trackerDB.PurgeOldDeadClients(b.options.forgetPastClientsAfter)
+
+		if err != nil {
+			b.logger.Warnf("failed to purge past clients from tracker DB: %s", err.Error())
+		} else if len(purgedClients) > 0 {
+			desc := ""
+			for _, c := range purgedClients {
+				desc += fmt.Sprintf("%s, ", c.String())
+			}
+			b.logger.Infof("Purged %d past DHCP clients from tracker DB, last seen more than %s time ago: %s",
+				len(purgedClients), b.options.forgetPastClientsAfter, desc)
+		} /* else {
+			b.logger.Info("No past DHCP client to purge from tracker DB")
+		} */
+
+		time.Sleep(pastClientsCheckInterval) // wait some time before next check
+	}
 }
 
 // ListenAndServe is starting the whole UI backend:
@@ -677,6 +729,11 @@ func (b *UIBackend) ListenAndServe() error {
 
 	// Read from the broadcastCh chan and push to all Websocket clients
 	go b.broadcastUpdatesToClients()
+
+	// Check old tracker DB entries and delete them
+	if b.options.forgetPastClientsAfter > 0 {
+		go b.forgetPastDhcpClients()
+	}
 
 	// Start server
 	b.logger.Infof("Starting server to listen on port %d\n", b.options.webUIPort)

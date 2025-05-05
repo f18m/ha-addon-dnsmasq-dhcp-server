@@ -1,5 +1,7 @@
 package uibackend
 
+import "time"
+
 // the dnsmasq lease file is configured in the dnsmasq config file: the value
 // here has to match the server config file!
 var defaultDnsmasqLeasesFile = "/data/dnsmasq.leases"
@@ -17,6 +19,9 @@ var defaultDhcpClientTrackerDB = "/data/trackerdb.sqlite3"
 // to understand if they are stale or not
 var defaultStartEpoch = "/data/startepoch"
 
+// interval for checking past DHCP clients that need to be removed from the tracker DB
+var pastClientsCheckInterval = 5 * time.Minute
+
 // These absolute paths must be in sync with the Dockerfile
 var (
 	staticWebFilesDir = "/opt/web/static"
@@ -27,4 +32,5 @@ var (
 var (
 	dnsmasqMarkerForMissingHostname = "*"
 	websocketRelativeUrl            = "/ws"
+	unknownHostnameHtmlString       = "&lt;unknown&gt;"
 )

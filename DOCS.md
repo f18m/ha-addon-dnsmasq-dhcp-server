@@ -125,6 +125,14 @@ dhcp_server:
   # the old DHCP lease database is not useful and actually misleading.
   reset_dhcp_lease_database_on_reboot: false
 
+  # The addon keeps track of all "past DHCP clients", i.e. clients that connected in the past
+  # but missed to renew their DHCP lease. These are shown in the "Past DHCP Clients" tab in the web UI.
+  # This setting allows to cleanup that view after a certain amount of time. 
+  # The default value of 30 days means that you will see DHCP clients that connected up to 30days back,
+  # no more. If you set this option to ZERO, then the cleanup of old DHCP clients is disabled and the UI
+  # will show any client that has ever connected to the server.
+  forget_past_clients_after: 30d
+
   # Shall every DHCP request be logged?
   log_requests: true
 
@@ -231,6 +239,9 @@ web_ui:
   # provided as network.interface and will occupy a port there; the following parameter makes
   # that port configurable to avoid conflicts with other services
   port: 8976
+  # defines how frequently the tables in the web UI will refresh;
+  # if set to zero, table refresh is disabled
+  refresh_interval_sec: 10
 ```
 
 In case you want to enable the DNS server, you probably want to configure in the `dhcp_server`

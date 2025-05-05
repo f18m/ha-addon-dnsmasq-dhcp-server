@@ -13,15 +13,20 @@ the dnsmasq lease file contains the _current_ list of DHCP clients.
 Such file/database is persisted to disk (/data is persistent) but if a DHCP client fails to renew its lease
 or does not contact dnsmasq server after a dnsmasq restart, then its entry gets deleted from dnsmasq.leases file.
 The tracker DB instead is built to maintain an history of _any_ DHCP client that ever connected to the
-dnsmasq server. Entries only get added to the tracker DB, never deleted. Each entry is added with a
-"last_seen" timestamp and also a "start epoch" which identifies which particular instance
+dnsmasq server. Entries get added to the tracker DB everytime dnsmasq reports a new client and they
+get deleted on a configurable time-basis.
+Each entry is added with a "last_seen" timestamp and also a "start epoch" which identifies which particular instance
 of dnsmasq received traffic from that DHCP client.
-
-Q: What do
 
 Q: What do we use tracker DB for?
 A: To implement the "Past DHCP clients" feature of the addon web UI.
 Such feature allows to list any DHCP client that was present in the past but that did not contact
 the dnsmasq server since its last restart.
+
+Q: Where is the SQL insert/update that adds entries to the tracker DB?
+A: The SQL insert/update is done by the dnsmasq-dhcp-script.sh script.
+
+Q: Where is the SQL delete that removes entries from the tracker DB?
+A: The SQL delete is done in golang code, in this package.
 */
 package trackerdb
