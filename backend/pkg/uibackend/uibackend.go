@@ -645,6 +645,7 @@ func (b *UIBackend) readAddonConfig() error {
 func (b *UIBackend) forgetPastDhcpClients() {
 	for {
 		purgedClients, err := b.trackerDB.PurgeOldDeadClients(b.options.forgetPastClientsAfter)
+
 		if err != nil {
 			b.logger.Warnf("failed to purge past clients from tracker DB: %s", err.Error())
 		} else if len(purgedClients) > 0 {
@@ -654,9 +655,9 @@ func (b *UIBackend) forgetPastDhcpClients() {
 			}
 			b.logger.Infof("Purged %d past DHCP clients from tracker DB, last seen more than %s time ago: %s",
 				len(purgedClients), b.options.forgetPastClientsAfter, desc)
-		} else {
+		} /* else {
 			b.logger.Info("No past DHCP client to purge from tracker DB")
-		}
+		} */
 
 		time.Sleep(pastClientsCheckInterval) // wait some time before next check
 	}

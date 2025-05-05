@@ -1,16 +1,15 @@
 # Home Assistant Add-on: Dnsmasq as DNS and DHCP server
 
-Take control of your network!
+*Take control of your network!*
 If you want to
 
-* know which devices are connected to your LAN/Wifi network?
-* label each device in the way you like
-* quickly access each device control page (if any)
-* view connectivity details (IP, MAC addresses)
+* **know** which devices are connected to your LAN/Wifi network?
+* **label** each device in the way you like
+* quickly access each device **control page** (if any)
+* view **connectivity details** (IP, MAC addresses)
 
-... then this addon is what you're looking for.
+... then this addon is what you're looking for. This addon provides:
 
-This addon provides 
 * a DHCP server
 * a DNS server (optional)
 
@@ -21,7 +20,7 @@ Under the hood, the DNS/DHCP server is the well-known [dnsmasq](https://thekelle
 This is in contrast to several similar solutions that employ instead the [ISC dhcpd](https://www.isc.org/dhcp/) utility.
 Dnsmasq is on many aspects more feature-complete than the ISC DHCP server. Moreover ISC DHCP is discontinued since 2022.
 
-This addon also implements a basic UI to view the list of both current and past DHCP clients, showing for each client all relevant information that can be obtained through DHCP.
+This addon also implements an **handy UI to view the list of both current and past DHCP clients**, showing for each client all relevant information that can be obtained through DHCP.
 Some basic DNS statistic is available from the UI as well.
 
 ![Supports aarch64 Architecture][aarch64-shield] ![Supports amd64 Architecture][amd64-shield] ![Supports armv7 Architecture][armv7-shield] ![Supports i386 Architecture][i386-shield]
@@ -37,7 +36,7 @@ This addon setups and manages a `dnsmasq` instance configured to run both as a D
 
 ## Features
 
-* **Web-based UI** integrated in Home Assistant to view the list of all DHCP clients; the web UI is responsive and has nice rendering also from mobile phones (this is handy when you're e.g. installing a new Wifi or wired device in your network and you only have your mobile phone).
+* **Web-based UI** integrated in Home Assistant to view the list of all DHCP clients; the web UI is *responsive* and has nice rendering also from mobile phones (this is handy when you're e.g. installing a new Wifi or wired device in your network and you only have your mobile phone).
 * **UI Instant update**: no need to refresh the UI, whenever a new DHCP client connects to or leaves the network
   the UI gets instantly updated.
 * **IP address reservation** using the MAC address: you can associate a specific IP address (even outside

@@ -59,7 +59,7 @@ func parseDuration(s string) (time.Duration, error) {
 	}
 
 	re := regexp.MustCompile(`(\d*\.\d+|\d+)[^\d]*`)
-	unitMap := map[string]time.Duration{
+	unitMap := map[string]int{
 		"d": 24,
 		"D": 24,
 		"w": 7 * 24,
@@ -70,9 +70,13 @@ func parseDuration(s string) (time.Duration, error) {
 	}
 
 	strs := re.FindAllString(s, -1)
+	if len(strs) == 0 {
+		return 0, fmt.Errorf("invalid duration string: %s", s)
+	}
+
 	var sumDur time.Duration
 	for _, str := range strs {
-		var _hours time.Duration = 1
+		_hours := 1
 		for unit, hours := range unitMap {
 			if strings.Contains(str, unit) {
 				str = strings.ReplaceAll(str, unit, "h")
@@ -86,7 +90,7 @@ func parseDuration(s string) (time.Duration, error) {
 			return 0, err
 		}
 
-		sumDur += dur * _hours
+		sumDur += time.Duration(int(dur) * _hours)
 	}
 
 	if neg {
