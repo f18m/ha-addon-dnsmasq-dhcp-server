@@ -137,20 +137,30 @@ test-docker-image-live:
 #
 
 test-database-show:
-	sqlite3 test-db.sqlite3 'select * from dhcp_clients;'		
+	sqlite3 test-db.sqlite3 'select * from dhcp_clients;' | column -t -s'|'
+
+test-database-describe:
+	sqlite3 test-db.sqlite3 'PRAGMA table_info([dhcp_clients])'
 
 test-database-drop:
 	sqlite3 test-db.sqlite3 'drop table dhcp_clients;'
 
 # this target assumes that you launched 'test-docker-image-live' previously
-test-database-add-entry:
-	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "00:11:22:33:44:57" "192.168.1.250" "test-entry"
+test-database-add-entry1:
+	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "dd:ee:aa:dd:00:01" "192.168.1.250" "test-entry1"
 
 test-database-add-entry2:
-	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "aa:bb:cc:dd:ee:01" "192.168.1.251" "test-entry2"
+	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "dd:ee:aa:dd:00:02" "192.168.1.251" "test-entry2"
+
+test-database-add-entry3:
+	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "dd:ee:aa:dd:00:03" "192.168.1.252" "test-entry3"
 
 # NOTE:
-#    docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh del "00:11:22:33:44:57" "192.168.1.250" "test-entry"
-# won't work: there is no 'del' support... the only way to 
+#    docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh del "dd:ee:aa:dd:00:01" "192.168.1.250" "test-entry"
+# won't work: there is no 'del' support... the only way to delete entries is to go via SQL:
 test-database-del-entry:
-	sqlite3 test-db.sqlite3 "DELETE FROM dhcp_clients WHERE mac_addr = '00:11:22:33:44:57';"
+
+# by making the entry2 7 days older, it should be pruned by the backend from the trackerDB
+# because forget_past_clients_after=1w
+test-database-make-entry2-very-old:
+	sqlite3 test-db.sqlite3 "UPDATE dhcp_clients SET last_seen = strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-7 days') WHERE mac_addr = 'dd:ee:aa:dd:00:02';"

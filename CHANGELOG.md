@@ -1,6 +1,9 @@
 # Changelog
 
-For the changelog please check https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/releases
+For the changelog please check https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/releases.
+
+This file contains only migration instructions from a major version to the next major version.
+A new major version is released each time there is a backward-incompatible change in the config format.
 
 
 ## Migrating from version 2.0.x to 3.0

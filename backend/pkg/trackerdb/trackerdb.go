@@ -180,3 +180,64 @@ func (d *DhcpClientTrackerDB) GetDeadDhcpClients(aliveClients []net.HardwareAddr
 func parseTime(timeStr string) (time.Time, error) {
 	return time.Parse(time.RFC3339, timeStr)
 }
+
+// PurgeOldDeadClients removes DHCP clients from the database that have not been seen for a specified duration.
+// It returns the list of clients that were purged.
+func (d *DhcpClientTrackerDB) PurgeOldDeadClients(purgeThreshold time.Duration) ([]DhcpClient, error) {
+	// Step 1: Get the current time
+	currentTime := time.Now()
+
+	// Step 2: Calculate the threshold time
+	thresholdTime := currentTime.Add(-purgeThreshold)
+
+	// Step 3: Query to find clients that are older than the threshold
+	query := `SELECT mac_addr, hostname, last_seen FROM dhcp_clients WHERE last_seen < ?`
+	rows, err := d.DB.Query(query, thresholdTime.Format(time.RFC3339))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query dhcp_clients: %w", err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	// Step 4: Collect the clients to be purged
+	purgedClients := make([]DhcpClient, 0) // in case of errors, or zero results return an empty slice, not nil
+	for rows.Next() {
+		var client DhcpClient
+		var lastSeenStr string
+		var mac string
+
+		err := rows.Scan(&mac, &client.Hostname, &lastSeenStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		client.MacAddr, err = net.ParseMAC(mac)
+		if err != nil {
+			return nil, err
+		}
+
+		client.LastSeen, err = parseTime(lastSeenStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse LastSeen: %w", err)
+		}
+
+		purgedClients = append(purgedClients, client)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(purgedClients) == 0 {
+		return purgedClients, nil // no clients to purge
+	}
+
+	// Step 5: Delete the old clients from the database
+	deleteQuery := `DELETE FROM dhcp_clients WHERE last_seen < ?`
+	if _, err := d.DB.Exec(deleteQuery, thresholdTime.Format(time.RFC3339)); err != nil {
+		return nil, fmt.Errorf("failed to delete old clients: %w", err)
+	}
+
+	return purgedClients, nil
+}

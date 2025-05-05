@@ -278,7 +278,13 @@ func (b *UIBackend) handleWebSocketConn(w http.ResponseWriter, r *http.Request) 
 
 // Broadcast updater: any update posted on the broadcastCh is broadcasted to all clients
 func (b *UIBackend) broadcastUpdatesToClients() {
-	ticker := time.NewTicker(10 * time.Second)
+	var tickerCh <-chan time.Time
+	if b.options.webUIRefreshInterval > 0 {
+		ticker := time.NewTicker(b.options.webUIRefreshInterval)
+		tickerCh = ticker.C
+	} else {
+		tickerCh = make(<-chan time.Time)
+	}
 
 	for {
 		select {
@@ -286,7 +292,7 @@ func (b *UIBackend) broadcastUpdatesToClients() {
 			// if we get a message from this channel, it means the global list of
 			// current DHCP clients has changed
 
-		case <-ticker.C:
+		case <-tickerCh:
 			// let's refresh the websocket with whatever data we already have;
 			// this is done for 2 reasons:
 			// 1. trigger a refresh on the webpage (the JS client-side will recompute
@@ -586,8 +592,10 @@ func (b *UIBackend) readAddonOptions() error {
 	b.logger.Infof("Acquired %d DHCP network/ranges\n", len(b.options.dhcpRanges))
 	b.logger.Infof("Acquired %d IP address reservations\n", len(b.options.ipAddressReservationsByIP))
 	b.logger.Infof("Acquired %d friendly name definitions\n", len(b.options.friendlyNames))
-	b.logger.Infof("Web server on port %d; Web UI logging enabled=%t; DHCP requests logging enabled=%t\n",
-		b.options.webUIPort, b.options.logWebUI, b.options.logDHCP)
+	b.logger.Infof("DHCP requests logging enabled=%t; cleanup threshold for past DHCP clients set to %s\n",
+		b.options.logDHCP, b.options.forgetPastClientsAfter)
+	b.logger.Infof("Web server on port %d; Web UI logging enabled=%t; Web UI refresh interval=%s\n",
+		b.options.webUIPort, b.options.logWebUI, b.options.webUIRefreshInterval.String())
 
 	return nil
 }
@@ -677,6 +685,29 @@ func (b *UIBackend) ListenAndServe() error {
 
 	// Read from the broadcastCh chan and push to all Websocket clients
 	go b.broadcastUpdatesToClients()
+
+	// Check old tracker DB entries and delete them
+	if b.options.forgetPastClientsAfter > 0 {
+		go func() {
+			for {
+				purgedClients, err := b.trackerDB.PurgeOldDeadClients(b.options.forgetPastClientsAfter)
+				if err != nil {
+					b.logger.Warnf("failed to purge past clients from tracker DB: %s", err.Error())
+				} else if len(purgedClients) > 0 {
+					desc := ""
+					for _, c := range purgedClients {
+						desc += fmt.Sprintf("%s, ", c.String())
+					}
+					b.logger.Infof("Purged %d past DHCP clients from tracker DB, last seen more than %s time ago: %s",
+						len(purgedClients), b.options.forgetPastClientsAfter, desc)
+				} else {
+					b.logger.Info("No past DHCP client to purge from tracker DB")
+				}
+
+				time.Sleep(pastClientsCheckInterval) // wait some time before next check
+			}
+		}()
+	}
 
 	// Start server
 	b.logger.Infof("Starting server to listen on port %d\n", b.options.webUIPort)

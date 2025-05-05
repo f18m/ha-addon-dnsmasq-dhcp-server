@@ -30,6 +30,7 @@ options:
     default_lease: 1h
     address_reservation_lease: 1h
     reset_dhcp_lease_database_on_reboot: false
+    forget_past_clients_after: 30d
     log_requests: true
     dns_domain: lan
     dns_servers:
@@ -70,6 +71,7 @@ options:
   web_ui:
     log_activity: false
     port: 8976
+    refresh_interval_sec: 10s
 schema:
   interfaces:
     # we expect a list of valid network interfaces; the character "@" which typically appears in
@@ -80,6 +82,7 @@ schema:
     default_lease: str
     address_reservation_lease: str
     reset_dhcp_lease_database_on_reboot: bool
+    forget_past_clients_after: str
     log_requests: bool
     dns_servers:
       - str
@@ -114,6 +117,7 @@ schema:
   web_ui:
     log_activity: bool
     port: int
+    refresh_interval_sec: int
 startup: system
 privileged:
   - NET_ADMIN

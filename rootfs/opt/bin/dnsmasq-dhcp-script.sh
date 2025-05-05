@@ -18,7 +18,7 @@ START_TIME_THRESHOLD_SEC=3
 # (dnsmasq which launches this script seems to ignore its output).
 # Logging to a file implies also handling its rotation/cleanup...
 # so instead we log to a Unix socket and we have a basic 'socat' server 
-# that acts as log proxy; see the /etc/services.d/log-helper for more details.
+# that acts as log proxy; see the /etc/s6-overlay/s6-rc.d/log-helper for more details.
 #LOGFILE="/data/dnsmasq-dhcp-script.log"
 LOG_SOCKET=/tmp/dnsmasq-script-log-socket
 

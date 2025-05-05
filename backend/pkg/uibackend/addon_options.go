@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"regexp"
+	"strings"
 	texttemplate "text/template"
+	"time"
 )
 
 // AddonOptions contains the configuration provided by the user to the Home Assistant addon
@@ -24,11 +27,15 @@ type AddonOptions struct {
 	dhcpPool   ippool.Pool     // this type provide the Size() and Contains() methods
 	dhcpRanges []IpNetworkInfo // this type stores additional metadata for each network
 
+	forgetPastClientsAfter time.Duration
+
 	// Log this backend activities?
 	logDHCP  bool
 	logWebUI bool
 
-	webUIPort int
+	// web UI
+	webUIPort            int
+	webUIRefreshInterval time.Duration
 
 	// Lease times
 	defaultLease            string
@@ -40,9 +47,57 @@ type AddonOptions struct {
 	dnsPort   int
 }
 
+// ParseDuration parses a duration string.
+// examples: "10d", "-1.5w" or "3Y4M5d".
+// Add time units are "d"="D", "w"="W", "M", "y"="Y".
+// Taken from https://gist.github.com/xhit/79c9e137e1cfe332076cdda9f5e24699
+func parseDuration(s string) (time.Duration, error) {
+	neg := false
+	if len(s) > 0 && s[0] == '-' {
+		neg = true
+		s = s[1:]
+	}
+
+	re := regexp.MustCompile(`(\d*\.\d+|\d+)[^\d]*`)
+	unitMap := map[string]time.Duration{
+		"d": 24,
+		"D": 24,
+		"w": 7 * 24,
+		"W": 7 * 24,
+		"M": 30 * 24,
+		"y": 365 * 24,
+		"Y": 365 * 24,
+	}
+
+	strs := re.FindAllString(s, -1)
+	var sumDur time.Duration
+	for _, str := range strs {
+		var _hours time.Duration = 1
+		for unit, hours := range unitMap {
+			if strings.Contains(str, unit) {
+				str = strings.ReplaceAll(str, unit, "h")
+				_hours = hours
+				break
+			}
+		}
+
+		dur, err := time.ParseDuration(str)
+		if err != nil {
+			return 0, err
+		}
+
+		sumDur += dur * _hours
+	}
+
+	if neg {
+		sumDur = -sumDur
+	}
+	return sumDur, nil
+}
+
 // UnmarshalJSON reads the configuration of this Home Assistant addon and converts it
 // into maps and slices that get stored into the UIBackend instance
-func (b *AddonOptions) UnmarshalJSON(data []byte) error {
+func (o *AddonOptions) UnmarshalJSON(data []byte) error {
 	// JSON structure.
 	// This must be updated every time the config.yaml of the addon is changed;
 	// however this structure contains only fields that are relevant to the
@@ -66,6 +121,7 @@ func (b *AddonOptions) UnmarshalJSON(data []byte) error {
 			LogDHCP                 bool   `json:"log_requests"`
 			DefaultLease            string `json:"default_lease"`
 			AddressReservationLease string `json:"address_reservation_lease"`
+			ForgetPastClientsAfter  string `json:"forget_past_clients_after"`
 		} `json:"dhcp_server"`
 
 		DhcpPool []struct {
@@ -83,8 +139,9 @@ func (b *AddonOptions) UnmarshalJSON(data []byte) error {
 		} `json:"dns_server"`
 
 		WebUI struct {
-			Log  bool `json:"log_activity"`
-			Port int  `json:"port"`
+			Log                bool `json:"log_activity"`
+			Port               int  `json:"port"`
+			RefreshIntervalSec int  `json:"refresh_interval_sec"`
 		} `json:"web_ui"`
 	}
 	err := json.Unmarshal(data, &cfg)
@@ -124,8 +181,8 @@ func (b *AddonOptions) UnmarshalJSON(data []byte) error {
 		}
 
 		// all good: store the info
-		b.dhcpPool.Ranges = append(b.dhcpPool.Ranges, dhcpR)
-		b.dhcpRanges = append(b.dhcpRanges, ipNetInfo)
+		o.dhcpPool.Ranges = append(o.dhcpPool.Ranges, dhcpR)
+		o.dhcpRanges = append(o.dhcpRanges, ipNetInfo)
 	}
 
 	// ensure we have a valid port for web UI
@@ -163,8 +220,8 @@ func (b *AddonOptions) UnmarshalJSON(data []byte) error {
 			Link: linkTemplate,
 		}
 
-		b.ipAddressReservationsByIP[ipAddr] = ipReservation
-		b.ipAddressReservationsByMAC[macAddr.String()] = ipReservation
+		o.ipAddressReservationsByIP[ipAddr] = ipReservation
+		o.ipAddressReservationsByMAC[macAddr.String()] = ipReservation
 	}
 
 	// convert friendly names to a map of DhcpClientFriendlyName instances indexed by MAC address
@@ -182,22 +239,30 @@ func (b *AddonOptions) UnmarshalJSON(data []byte) error {
 			}
 		}
 
-		b.friendlyNames[macAddr.String()] = DhcpClientFriendlyName{
+		o.friendlyNames[macAddr.String()] = DhcpClientFriendlyName{
 			MacAddress:   macAddr,
 			FriendlyName: client.Name,
 			Link:         linkTemplate,
 		}
 	}
 
+	// parse time duration
+	o.forgetPastClientsAfter, err = parseDuration(cfg.DhcpServer.ForgetPastClientsAfter)
+	if err != nil {
+		return fmt.Errorf("invalid time duration found inside 'forget_past_clients_after': %s", cfg.DhcpServer.ForgetPastClientsAfter)
+	}
+
+	o.webUIRefreshInterval = time.Duration(cfg.WebUI.RefreshIntervalSec) * time.Second
+
 	// copy basic settings
-	b.logDHCP = cfg.DhcpServer.LogDHCP
-	b.logWebUI = cfg.WebUI.Log
-	b.webUIPort = cfg.WebUI.Port
-	b.defaultLease = cfg.DhcpServer.DefaultLease
-	b.addressReservationLease = cfg.DhcpServer.AddressReservationLease
-	b.dnsEnable = cfg.DnsServer.Enable
-	b.dnsDomain = cfg.DnsServer.DnsDomain
-	b.dnsPort = cfg.DnsServer.Port
+	o.logDHCP = cfg.DhcpServer.LogDHCP
+	o.logWebUI = cfg.WebUI.Log
+	o.webUIPort = cfg.WebUI.Port
+	o.defaultLease = cfg.DhcpServer.DefaultLease
+	o.addressReservationLease = cfg.DhcpServer.AddressReservationLease
+	o.dnsEnable = cfg.DnsServer.Enable
+	o.dnsDomain = cfg.DnsServer.DnsDomain
+	o.dnsPort = cfg.DnsServer.Port
 
 	return nil
 }

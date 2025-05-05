@@ -2,6 +2,7 @@ package trackerdb
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"time"
 
@@ -32,4 +33,8 @@ func (d DhcpClient) MarshalJSON() ([]byte, error) {
 		LastSeen:             d.LastSeen.Unix(),
 		DhcpServerStartEpoch: d.DhcpServerStartEpoch,
 	})
+}
+
+func (d DhcpClient) String() string {
+	return fmt.Sprintf("%s %s (LastSeen=%s) ", d.Hostname, d.MacAddr.String(), d.LastSeen.String())
 }
