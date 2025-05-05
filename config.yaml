@@ -71,7 +71,7 @@ options:
   web_ui:
     log_activity: false
     port: 8976
-    refresh_interval_sec: 10s
+    refresh_interval_sec: 10
 schema:
   interfaces:
     # we expect a list of valid network interfaces; the character "@" which typically appears in

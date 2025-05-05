@@ -239,6 +239,9 @@ web_ui:
   # provided as network.interface and will occupy a port there; the following parameter makes
   # that port configurable to avoid conflicts with other services
   port: 8976
+  # defines how frequently the tables in the web UI will refresh;
+  # if set to zero, table refresh is disabled
+  refresh_interval_sec: 10
 ```
 
 In case you want to enable the DNS server, you probably want to configure in the `dhcp_server`
