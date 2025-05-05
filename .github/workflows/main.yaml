@@ -10,7 +10,11 @@ on:
       - '**'
     tags:
       - '*'
-
+  # add a cron job to run every month -- ensure there's a valid CI build every month
+  # this is also useful to check if something breaks e.g. due to infrastructure changes (e.g. Ubuntu OS)
+  # and there are no commits for a long time on the project
+  schedule:
+    - cron: '0 0 1 * *'
 
 jobs:
   unit_tests:

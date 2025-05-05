@@ -1,5 +1,15 @@
 # Home Assistant Add-on: Dnsmasq as DNS and DHCP server
 
+Take control of your network!
+If you want to
+
+* know which devices are connected to your LAN/Wifi network?
+* label each device in the way you like
+* quickly access each device control page (if any)
+* view connectivity details (IP, MAC addresses)
+
+... then this addon is what you're looking for.
+
 This addon provides 
 * a DHCP server
 * a DNS server (optional)

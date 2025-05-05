@@ -260,8 +260,12 @@ function processWebSocketDHCPCurrentClients(data) {
             dhcp_static_ip += 1;
         }
 
-        external_link_symbol="🡕"
-        //external_link_symbol="⧉"
+        // Apparently not all browsers use fonts supporting the U+1F855 symbol... 
+        // E.g. my Android phone does not render it
+        //external_link_symbol="🡕" // https://www.compart.com/en/unicode/U+1F855
+
+        // hopefully the U+29C9 symbol is more commonly supported:
+        external_link_symbol="⧉" // https://www.compart.com/en/unicode/U+29C9
         if (item.evaluated_link) {
             link_str = "<a href=\"" + item.evaluated_link + "\" target=\"_blank\">" + item.evaluated_link + "</a> " + external_link_symbol
         } else {

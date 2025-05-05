@@ -95,6 +95,7 @@ DOCKER_RUN_OPTIONS:= \
 	-v $(shell pwd)/test-startepoch:/data/startepoch \
 	-v $(shell pwd)/backend:/app \
 	-v $(shell pwd)/frontend/index.templ.html:/opt/web/templates/index.templ.html \
+	-v $(shell pwd)/frontend/libs/dnsmasq-dhcp.js:/opt/web/static/dnsmasq-dhcp.js \
 	-v $(shell pwd)/rootfs/opt/bin/dnsmasq-dhcp-script.sh:/opt/bin/dnsmasq-dhcp-script.sh \
 	-e LOCAL_TESTING=1 \
 	--cap-add NET_ADMIN \
