@@ -177,6 +177,15 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 		currentClientsMacs = append(currentClientsMacs, c.Lease.MacAddr)
 	}
 
+	// if the dnsmasq-provided hostname is an asterisk *, that indicates that the DHCP client
+	// did not advertise his own hostname to the DHCP server.
+	// Make this more clear:
+	for _, c := range currentClients {
+		if c.Lease.Hostname == dnsmasqMarkerForMissingHostname {
+			c.Lease.Hostname = unknownHostnameHtmlString
+		}
+	}
+
 	// now get from the tracker DB some historical data about "dead DHCP clients"
 	deadClients, err := b.trackerDB.GetDeadDhcpClients(currentClientsMacs)
 	if err != nil {
@@ -200,6 +209,13 @@ func (b *UIBackend) generateWebSocketMessage() WebSocketMessage {
 			if pastClients[i].HasStaticIP {
 				pastClients[i].FriendlyName = b.options.ipAddressReservationsByMAC[deadC.MacAddr.String()].Name
 			}
+		}
+
+		if pastClients[i].FriendlyName == "" {
+			pastClients[i].FriendlyName = "N/A"
+		}
+		if pastClients[i].PastInfo.Hostname == "" {
+			pastClients[i].PastInfo.Hostname = unknownHostnameHtmlString
 		}
 
 		// create note field

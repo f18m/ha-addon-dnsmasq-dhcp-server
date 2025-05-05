@@ -155,6 +155,9 @@ test-database-add-entry2:
 test-database-add-entry3:
 	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "dd:ee:aa:dd:00:03" "192.168.1.252" "test-entry3"
 
+test-database-add-entry4:
+	docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh add "dd:ee:aa:dd:00:04" "192.168.1.253" ""
+
 # NOTE:
 #    docker exec -ti $(TEST_CONTAINER_NAME) /opt/bin/dnsmasq-dhcp-script.sh del "dd:ee:aa:dd:00:01" "192.168.1.250" "test-entry"
 # won't work: there is no 'del' support... the only way to delete entries is to go via SQL:

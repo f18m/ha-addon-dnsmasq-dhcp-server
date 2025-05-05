@@ -32,4 +32,5 @@ var (
 var (
 	dnsmasqMarkerForMissingHostname = "*"
 	websocketRelativeUrl            = "/ws"
+	unknownHostnameHtmlString       = "&lt;unknown&gt;"
 )
