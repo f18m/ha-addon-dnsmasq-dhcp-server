@@ -61,6 +61,10 @@ body {
     color: var(--text-color); // Use the variable
 }
 
+.liveIndicator {
+    text-align: right;
+}
+
 .solidBorder {
     border: 1px solid;
 }

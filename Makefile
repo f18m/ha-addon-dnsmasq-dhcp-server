@@ -32,13 +32,16 @@ build-frontend:
 		sass scss/dnsmasq-dhcp.scss libs/dnsmasq-dhcp.css
 
 DART_SASS_VERSION=1.87.0
+#DART_ARCH:=linux-x64-musl
+DART_ARCH:=linux-x64
 
 install-dart-sass:
-	wget https://github.com/sass/dart-sass/releases/download/$(DART_SASS_VERSION)/dart-sass-$(DART_SASS_VERSION)-linux-x64-musl.tar.gz && \
-		tar -xzf dart-sass-$(DART_SASS_VERSION)-linux-x64-musl.tar.gz && \
-		rm dart-sass-$(DART_SASS_VERSION)-linux-x64-musl.tar.gz 
+	rm -rf dart-sass
+	wget https://github.com/sass/dart-sass/releases/download/$(DART_SASS_VERSION)/dart-sass-$(DART_SASS_VERSION)-$(DART_ARCH).tar.gz && \
+		tar -xzf dart-sass-$(DART_SASS_VERSION)-$(DART_ARCH).tar.gz && \
+		rm dart-sass-$(DART_SASS_VERSION)-$(DART_ARCH).tar.gz 
 	dart-sass/sass --version
-	dart-sass/sass scss/dnsmasq-dhcp.scss libs/dnsmasq-dhcp.css
+	dart-sass/sass frontend/scss/dnsmasq-dhcp.scss frontend/libs/dnsmasq-dhcp.css
 
 INPUT_SCSS:=$(shell pwd)/frontend/scss/
 OUTPUT_CSS:=$(shell pwd)/frontend

@@ -49,6 +49,7 @@ COPY --from=builder /app/frontend/external-libs/*.js /opt/web/static/
 COPY --from=builder /app/frontend/external-libs/*.css /opt/web/static/
 COPY --from=builder /app/frontend/libs/*.css /opt/web/static/
 COPY frontend/libs/*.js /opt/web/static/
+COPY frontend/images/*.png /opt/web/static/
 
 # Copy backend binary
 COPY --from=builder /backend /opt/bin/

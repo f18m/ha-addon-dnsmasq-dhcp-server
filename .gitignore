@@ -9,3 +9,5 @@ frontend/external-libs/
 
 .docker-image
 test-db.sqlite3
+
+dart-sass/

@@ -234,10 +234,12 @@ function setConfig(webSocketURI, dhcpServerStartTime, dhcpPoolSize) {
 
     backend_ws.onclose = function (event) {
         console.log("Websocket connection closed", event.code, event.reason, event.wasClean)
+        updateLiveIndicator(false)
     }
 
     backend_ws.onerror = function (event) {
         console.log("Websocket connection closed due to error", event.code, event.reason, event.wasClean)
+        updateLiveIndicator(false)
     }
 
     backend_ws.onmessage = function (event) {
@@ -362,6 +364,14 @@ function updateDNSStatus(data, messageElem) {
         ;
 }
 
+function updateLiveIndicator(isLive) {
+    var liveElem = document.getElementById("websocket_conn_status");
+
+    // change the source image for the live indicator
+    liveElem.src = isLive ? "/static/ok.png" : "/static/ko.png";
+    console.log("Updated live indicator to " + liveElem.src);
+}
+
 function processWebSocketEvent(event) {
 
     try {
@@ -405,6 +415,9 @@ function processWebSocketEvent(event) {
 
         // process DNS
         updateDNSStatus(data, dnsMsgElem)
+
+        // update live update indicator
+        updateLiveIndicator(true)
     }
 }
 
