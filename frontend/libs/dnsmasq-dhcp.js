@@ -434,7 +434,7 @@ function updateLiveIndicator(isLive) {
     var liveElem = document.getElementById("websocket_conn_status");
 
     // change the source image for the live indicator
-    liveElem.src = isLive ? "/static/ok.png" : "/static/ko.png";
+    liveElem.src = isLive ? "static/ok.png" : "static/ko.png";
     console.log("Updated live indicator to " + liveElem.src);
 }
 
