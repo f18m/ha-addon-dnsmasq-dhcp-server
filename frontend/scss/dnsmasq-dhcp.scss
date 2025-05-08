@@ -124,6 +124,7 @@ a[href*="http"]::after {
     margin: 0;
     position: relative;
     width: 30px;
+    vertical-align: middle;
   }
 
   .checkbox-wrapper .modernCheckbox::before {

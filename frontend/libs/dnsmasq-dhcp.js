@@ -16,6 +16,7 @@ var table_current = null;
 var table_past = null;
 var table_dns_upstreams = null;
 var backend_ws = null;
+var num_updates = 0;
 
 
 /* FORMATTING FUNCTIONS */
@@ -251,15 +252,44 @@ function setConfig(webSocketURI, dhcpServerStartTime, dhcpPoolSize) {
 
 /* DYNAMIC UPDATES PROCESSING FUNCTIONS */
 
+function compareArraysIgnoringColumns(a, b, columnsToIgnore) {
+    //console.log("ARRAY A:", a.toString());
+    //console.log("ARRAY B:", b.toString());
+    //return a.toString() === b.toString();
+
+    if (a.length !== b.length) {
+        return false;
+    } else {
+      // This is a 2D array: first go through rows
+      for (var i = 0; i < a.length; i++) {
+
+        // then go through columns
+        for (var j = 0; j < a[i].length; j++) {
+
+            if (columnsToIgnore.includes(j)) {
+                continue; // Skip the columns to ignore
+            }
+            if (a[i][j] !== b[i][j]) {
+                console.log("DIFFERENT AT ROW" + i + " COLUMN" + j + ": A=" + a[i][j] + " B=" + b[i][j]);
+                return false;
+            }
+        }
+      }
+      
+      return true;
+    }
+}
+  
 function processWebSocketDHCPCurrentClients(data) {
     console.log("Websocket connection: received " + data.current_clients.length + " current DHCP clients from websocket");
 
     // rerender the CURRENT table
-    tableData = [];
+    newData = [];
+    newTimeLeftColumn = [];
     dhcp_addresses_used = 0;
     dhcp_static_ip = 0;
     data.current_clients.forEach(function (item, index) {
-        console.log(`CurrentItem ${index + 1}:`, item);
+        // console.log(`CurrentItem ${index + 1}:`, item);
 
         if (item.is_inside_dhcp_pool)
             dhcp_addresses_used += 1;
@@ -283,12 +313,29 @@ function processWebSocketDHCPCurrentClients(data) {
         }
 
         // append new row
-        tableData.push([index + 1,
+        time_left_str = formatTimeLeft(item.lease.expires)
+        newData.push([index + 1,
             item.friendly_name, item.lease.hostname, link_str,
             item.lease.ip_addr, item.lease.mac_addr, 
-            formatTimeLeft(item.lease.expires), static_ip_str]);
+            time_left_str, static_ip_str]);
+        newTimeLeftColumn.push(time_left_str);
     });
-    table_current.clear().rows.add(tableData).draw(false /* do not reset page position */);
+
+    var index_of_time_left_column = 6;
+    var currentData = table_current.data().toArray();
+    if (compareArraysIgnoringColumns(currentData, newData, [index_of_time_left_column])) {
+        console.log("No change in current DHCP clients, updating only the time-left column");
+
+        // selective update to avoid unwanted resets of the current position (this is specially annoying
+        // when using the responsive plugin and the user has expanded a collapsed row!!)
+        for (var i = 0; i < currentData.length; i++) {
+            table_current.cell(i, index_of_time_left_column).data(newTimeLeftColumn[i]);
+        }
+        table_current.draw(false);
+    } else {
+        console.log("There are changes for the current DHCP clients, refreshing the table");
+        table_current.clear().rows.add(newData).draw(false /* do not reset page position */);
+    }
 
     return [dhcp_static_ip, dhcp_addresses_used]
 }
@@ -297,9 +344,10 @@ function processWebSocketDHCPPastClients(data) {
     console.log("Websocket connection: received " + data.past_clients.length + " past DHCP clients from websocket");
 
     // rerender the PAST table
-    tableData = [];
+    newData = [];
+    newLastSeenColumn = [];
     data.past_clients.forEach(function (item, index) {
-        console.log(`PastItem ${index + 1}:`, item);
+        // console.log(`PastItem ${index + 1}:`, item);
 
         static_ip_str = "NO";
         if (item.has_static_ip) {
@@ -307,12 +355,30 @@ function processWebSocketDHCPPastClients(data) {
         }
 
         // append new row
-        tableData.push([index + 1,
+        last_seen_str = formatTimeSince(item.past_info.last_seen)
+        newData.push([index + 1,
             item.friendly_name, item.past_info.hostname, 
             item.past_info.mac_addr, static_ip_str, 
-            formatTimeSince(item.past_info.last_seen), item.notes]);
+            last_seen_str, item.notes]);
+        newLastSeenColumn.push(last_seen_str);
     });
-    table_past.clear().rows.add(tableData).draw(false /* do not reset page position */);
+
+    var index_of_time_last_seen_column = 5;
+    var currentData = table_past.data().toArray();
+    if (compareArraysIgnoringColumns(currentData, newData, [index_of_time_last_seen_column])) {
+        console.log("No change in past DHCP clients, updating only the last-seen column");
+
+        // selective update to avoid unwanted resets of the current position (this is specially annoying
+        // when using the responsive plugin and the user has expanded a collapsed row!!)
+        for (var i = 0; i < currentData.length; i++) {
+            table_past.cell(i, index_of_time_last_seen_column).data(newLastSeenColumn[i]);
+        }
+        table_past.draw(false);
+
+    } else {
+        console.log("There are changes for the past DHCP clients, refreshing the table");
+        table_past.clear().rows.add(newData).draw(false /* do not reset page position */);
+    }
 }
 
 function updateDHCPStatus(data, dhcp_static_ip, dhcp_addresses_used, messageElem) {
@@ -407,6 +473,8 @@ function processWebSocketEvent(event) {
 
     } else {
         // console.log("DEBUG:" + JSON.stringify(data))
+        num_updates += 1
+        console.log("****** Update " + num_updates + " ******");
 
         // process DHCP 
         [dhcp_static_ip, dhcp_addresses_used] = processWebSocketDHCPCurrentClients(data)
