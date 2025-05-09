@@ -52,6 +52,13 @@
     <h1 class="topLevel">Dnsmasq-DHCP addon</h1>
     <h2 class="topLevel">Take control of your network... with DHCP & DNS servers for HomeAssistant</h3>
 
+    <div class="uiSettings">
+      <p class="liveIndicator">
+        <img id="websocket_conn_status" src="static/ko.png" height="20px" alt="WebSocket Connection Status"/>
+        LIVE UPDATES
+      </p>
+    </div>
+      
     <div class="container">
         <div class="tabs">
           <div class="tabs__pills">
@@ -137,9 +144,11 @@
         </div>
     </div>
 
+    <!-- Note that it's important to open in a new window when this UI is running 
+         embedded into HomeAssistant UI -->
     <div class="footer">
         Dnsmasq-DHCP addon version {{ .AddonVersion }}<br/>
-        <a href="https://github.com/f18m/ha-addon-dnsmasq-dhcp/">Project Homepage</a>
+        <a href="https://github.com/f18m/ha-addon-dnsmasq-dhcp/" target="_blank">Project Homepage</a>
     </div>
 </body>
 </html>
