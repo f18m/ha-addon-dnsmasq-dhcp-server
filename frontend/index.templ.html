@@ -57,15 +57,7 @@
         <img id="websocket_conn_status" src="static/ko.png" height="20px" alt="WebSocket Connection Status"/>
         LIVE UPDATES
       </p>
-
-      <!--
-      <div class="checkbox-wrapper">
-        <input type="checkbox" class="modernCheckbox">
-        TABLE REFRESH
-      </div>
-        -->
     </div>
-    
       
     <div class="container">
         <div class="tabs">
@@ -152,6 +144,8 @@
         </div>
     </div>
 
+    <!-- Note that it's important to open in a new window when this UI is running 
+         embedded into HomeAssistant UI -->
     <div class="footer">
         Dnsmasq-DHCP addon version {{ .AddonVersion }}<br/>
         <a href="https://github.com/f18m/ha-addon-dnsmasq-dhcp/" target="_blank">Project Homepage</a>
