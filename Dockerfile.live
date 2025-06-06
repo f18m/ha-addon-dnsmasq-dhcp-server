@@ -2,7 +2,7 @@
 # for live debugging/development
 
 # IMPORTANT: as of May 2025, we must stick to golang 1.23.8 because air does not support higher golang versions yet
-FROM golang:1.23.8-alpine
+FROM golang:1.24.4-alpine
 
 # Add env
 ENV LANG=C.UTF-8
