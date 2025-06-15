@@ -8,6 +8,8 @@ slug: dnsmasq-dhcp
 name: Dnsmasq-DHCP
 description: A DHCP server based on dnsmasq
 url: https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/tree/main
+# advanced true means that the HA user can see this addon only if it's flagged as 'advanced' in the
+# Home Assistant UI
 advanced: true
 arch:
   - armhf
@@ -15,9 +17,12 @@ arch:
   - aarch64
   - amd64
   - i386
+# host network is required to allow dnsmasq to bind to (all) network interfaces specfied in the config
 host_network: true
 image: ghcr.io/f18m/{arch}-addon-dnsmasq-dhcp
+# init false because this addon uses s6-overlay
 init: false
+# enable the ingress feature for this addon, see https://developers.home-assistant.io/docs/add-ons/presentation#ingress
 ingress: true
 ingress_port: 8100
 panel_icon: mdi:ip-network-outline
@@ -118,6 +123,11 @@ schema:
     log_activity: bool
     port: int
     refresh_interval_sec: int
+
+# categorize this addon as a "system" addon
 startup: system
+
 privileged:
+  # NET_ADMIN is required to allow dnsmasq to bind to (all) network interfaces specified in the config
+  # and bind to the DNS port 53 and the DHCP port 67
   - NET_ADMIN
