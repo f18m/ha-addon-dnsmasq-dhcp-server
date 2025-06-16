@@ -45,16 +45,6 @@ options:
       - 1.europe.pool.ntp.org
       - 2.europe.pool.ntp.org
     dnsmasq_customizations:
-      # See https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html as reference for this section.
-      # This option allows you to add ANY custom dnsmasq option that you want.
-      # With such power comes great responsibility, so please be careful, as might end up into
-      # invalid dnsmasq configuration preventing the addon from starting.
-      # Remember that all dnsmasq options written here must _not_ start with the leading "--" dash.
-      # You typically want to provide a YAML multiline string here like this:
-      # dnsmasq_customizations: |
-      #   dhcp-option=option:vendor-class-identifier,HomeAssistant
-      #   dhcp-option=option:vendor-info,HomeAssistant
-      #   dhcp-option=option:domain-search,lan
   dhcp_pools:
     - interface: enp1s0
       start: 192.168.1.50

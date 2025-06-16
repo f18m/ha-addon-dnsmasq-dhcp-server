@@ -39,7 +39,8 @@
       "1.europe.ntp.pool.org",
       "2.europe.ntp.pool.org",
       "1.2.3.4"
-    ]
+    ],
+    "dnsmasq_customizations": "dhcp-vendorclass=set:printers,Hewlett-Packard JetDirect\ndhcp-option=tag:printers,3,192.168.4.4\n"
   },
   "dhcp_pools": [
     {
