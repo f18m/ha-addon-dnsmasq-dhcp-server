@@ -44,7 +44,7 @@ options:
       - 0.europe.pool.ntp.org
       - 1.europe.pool.ntp.org
       - 2.europe.pool.ntp.org
-    dnsmasq_customizations:
+    dnsmasq_customizations: ""
   dhcp_pools:
     - interface: enp1s0
       start: 192.168.1.50
