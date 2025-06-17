@@ -3,9 +3,9 @@
 # as reported by the Github Action workflow 'publish.yaml', so that you can force HomeAssistant
 # to use the docker image of that feature branch instead of the docker image of 'main', by pointing
 # HomeAssistant to that feature branch
-version: beta
-slug: dnsmasq-dhcp-beta
-name: Dnsmasq-DHCP BETA
+version: 3.3.0
+slug: dnsmasq-dhcp
+name: Dnsmasq-DHCP
 description: A DHCP server based on dnsmasq
 url: https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/tree/main
 # advanced true means that the HA user can see this addon only if it's flagged as 'advanced' in the
