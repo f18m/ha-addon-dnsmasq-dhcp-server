@@ -1,8 +1,8 @@
 # Docker image mimicking the actual addon docker image
 # for live debugging/development
 
-# IMPORTANT: as of May 2025, we must stick to golang 1.23.8 because air does not support higher golang versions yet
-FROM golang:1.23.8-alpine
+# air 1.62.0 (June 2025) supports golang 1.24
+FROM golang:1.24.4-alpine
 
 # Add env
 ENV LANG=C.UTF-8
