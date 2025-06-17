@@ -172,7 +172,7 @@ jobs:
         uses: home-assistant/builder@master
         with:
           args: |
-            --amd64 --aarch64 \
+            --amd64 \
             --target myaddon \
             --docker-hub ghcr.io/f18m \
             --version ${{ steps.meta.outputs.version }} \

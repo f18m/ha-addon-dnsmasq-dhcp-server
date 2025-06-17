@@ -275,8 +275,10 @@ instead of its actual IP address.
 The _beta_ version of `Dnsmasq-DHCP` is where most bugfixes are first deployed and tested.
 Only if they are working fine, they will be merged in the _stable_ version.
 
-Since the beta version of `Dnsmasq-DHCP` does not use a real version scheme, to make sure you're running
-the latest build of the beta, please run:
+Please note that as of now the Beta version is provided only for the `amd64` architecture.
+
+Since the _beta_ version of `Dnsmasq-DHCP` does not use a real version scheme, to make sure you're running
+the latest build of the _beta_, please run:
 
 ```sh
 docker pull ghcr.io/f18m/amd64-addon-dnsmasq-dhcp:beta
