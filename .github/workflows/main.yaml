@@ -136,7 +136,7 @@ jobs:
         if: ${{ needs.check_tag.outputs.is_tag == 'true' }}
         
       - name: Docker build and push (tag builds)
-        uses: home-assistant/builder@master
+        uses: home-assistant/builder@2025.03.0
         with:
           args: |
             --armv7 --amd64 --aarch64 --i386 \
@@ -169,7 +169,7 @@ jobs:
       # notice the additional --version and --no-latest flags
       # compared to the variant for TAG builds:
       - name: Docker build and push (non-tag builds)
-        uses: home-assistant/builder@master
+        uses: home-assistant/builder@2025.03.0
         with:
           args: |
             --amd64 \
