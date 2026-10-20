@@ -6,7 +6,7 @@
 #    this is used just for local development and debugging !!
 
 # air 1.62.0 (June 2025) supports golang 1.24
-FROM golang:1.27.1-alpine
+FROM golang:1.27.3-alpine
 
 # Add env
 ENV LANG=C.UTF-8
