@@ -1,5 +1,59 @@
 #!/usr/bin/with-contenv bashio
 CONFIG="/etc/dnsmasq.conf"
+RUNTIME_CONFIG="/tmp/dnsmasq.runtime.conf"
+RETRY_INTERVAL_SEC=30
+
+# Returns 0 if the given network interface currently exists
+function iface_exists() {
+    # interface aliases like "eth0:1" are backed by the "eth0" device
+    [[ -e "/sys/class/net/${1%%:*}" ]]
+}
+
+# Configured interfaces, as written by dnsmasq-init in the "interface=" line
+CONFIGURED_IFACES=$(sed -n 's/^interface=//p' "${CONFIG}" | tr ',' ' ')
+
+AVAILABLE=()
+MISSING=()
+for iface in ${CONFIGURED_IFACES}; do
+    if iface_exists "${iface}"; then
+        AVAILABLE+=("${iface}")
+    else
+        MISSING+=("${iface}")
+    fi
+done
+
+if [[ ${#MISSING[@]} -gt 0 ]]; then
+    bashio::log.warning "Network interface(s) not available: ${MISSING[*]}. DHCP/DNS will not be served on them until they appear; retrying every ${RETRY_INTERVAL_SEC}s."
+    if [[ ${#AVAILABLE[@]} -eq 0 ]]; then
+        bashio::log.warning "No configured network interface is available yet; waiting..."
+        while true; do
+            sleep "${RETRY_INTERVAL_SEC}"
+            for iface in "${MISSING[@]}"; do
+                iface_exists "${iface}" && exit 0   # service gets restarted
+            done
+        done
+    fi
+
+    # drop the missing interfaces from the config actually used by dnsmasq
+    NEW_LINE="interface=$(IFS=,; echo "${AVAILABLE[*]}")"
+    sed "s|^interface=.*|${NEW_LINE}|" "${CONFIG}" > "${RUNTIME_CONFIG}"
+
+    # watchdog: restart dnsmasq as soon as one of the missing interfaces shows up
+    DNSMASQ_PID=$$
+    (
+        while kill -0 "${DNSMASQ_PID}" 2>/dev/null; do
+            sleep "${RETRY_INTERVAL_SEC}"
+            for iface in "${MISSING[@]}"; do
+                if iface_exists "${iface}"; then
+                    bashio::log.info "Network interface ${iface} is now available: restarting dnsmasq"
+                    kill -TERM "${DNSMASQ_PID}"
+                    exit 0
+                fi
+            done
+        done
+    ) < /dev/null &
+    CONFIG="${RUNTIME_CONFIG}"
+fi
 
 # Run dnsmasq
 bashio::log.info "Starting dnsmasq..."
