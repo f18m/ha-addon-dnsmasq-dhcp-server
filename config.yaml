@@ -21,10 +21,10 @@ url: https://github.com/f18m/ha-addon-dnsmasq-dhcp-server/tree/main
 #   name: Dnsmasq-DHCP BETA
 #   stage: experimental
 
-version: 5.1.1
-slug: dnsmasq-dhcp
-name: Dnsmasq-DHCP
-stage: stable
+version: beta
+slug: dnsmasq-dhcp-beta
+name: Dnsmasq-DHCP BETA
+stage: experimental
 arch:
   - aarch64
   - amd64
