@@ -1,6 +1,7 @@
 #!/usr/bin/with-contenv bashio
 CONFIG="/etc/dnsmasq.conf"
-RUNTIME_CONFIG="/tmp/dnsmasq.runtime.conf"
+CONFIG_RESOLVED="/data/options.resolved.json"
+RUNTIME_JSON="/tmp/options.runtime.json"
 RETRY_INTERVAL_SEC=30
 
 # Returns 0 if the given network interface currently exists
@@ -9,8 +10,8 @@ function iface_exists() {
     [[ -e "/sys/class/net/${1%%:*}" ]]
 }
 
-# Configured interfaces, as written by dnsmasq-init in the "interface=" line
-CONFIGURED_IFACES=$(sed -n 's/^interface=//p' "${CONFIG}" | tr ',' ' ')
+# Configured interfaces, from the authoritative resolved JSON config
+CONFIGURED_IFACES=$(jq --raw-output '.interfaces[]?' "${CONFIG_RESOLVED}")
 
 AVAILABLE=()
 MISSING=()
@@ -34,9 +35,10 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
         done
     fi
 
-    # drop the missing interfaces from the config actually used by dnsmasq
-    NEW_LINE="interface=$(IFS=,; echo "${AVAILABLE[*]}")"
-    sed "s|^interface=.*|${NEW_LINE}|" "${CONFIG}" > "${RUNTIME_CONFIG}"
+    # keep only the available interfaces in the config actually used by dnsmasq
+    jq --argjson ifaces "$(printf '%s\n' "${AVAILABLE[@]}" | jq --raw-input . | jq --slurp .)" \
+        '.interfaces = $ifaces' "${CONFIG_RESOLVED}" > "${RUNTIME_JSON}"
+    CONFIG_RESOLVED="${RUNTIME_JSON}"
 
     # watchdog: restart dnsmasq as soon as one of the missing interfaces shows up
     DNSMASQ_PID=$$
@@ -52,8 +54,19 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
             done
         done
     ) < /dev/null &
-    CONFIG="${RUNTIME_CONFIG}"
 fi
+
+bashio::log.info "Generating dnsmasq config..."
+tempio \
+    -conf "${CONFIG_RESOLVED}" \
+    -template /usr/share/tempio/dnsmasq.config \
+    -out "${CONFIG}"
+
+# make the config file a bit more compact by removing empty lines
+sed -i '/^$/d' "${CONFIG}"
+
+bashio::log.info "Full dnsmasq config:"
+cat -n "${CONFIG}"
 
 # Run dnsmasq
 bashio::log.info "Starting dnsmasq..."
