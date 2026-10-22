@@ -131,6 +131,27 @@ test-docker-image-live:
 
 
 #####################################################################################
+# Automated integration tests (docker compose; see tests/integration/README.md)
+#####################################################################################
+
+IT_COMPOSE:=ADDON_IMAGE=$(IMAGETAG):localtest docker compose -f tests/integration/docker-compose.yml
+
+# requires the docker image $(IMAGETAG):localtest, built by 'make FAST=1 build-docker-image'
+test-integration:
+	$(IT_COMPOSE) up --build --abort-on-container-exit --exit-code-from tests; \
+		rc=$$?; $(IT_COMPOSE) down -v; exit $$rc
+
+# re-generate tests/integration/fixtures/dnsmasq.leases from the lease file written by the real dnsmasq
+test-integration-record-fixtures:
+	$(IT_COMPOSE) up --build --abort-on-container-exit --exit-code-from tests; \
+		rc=$$?; \
+		$(IT_COMPOSE) cp addon:/data/dnsmasq.leases tests/integration/fixtures/dnsmasq.leases; \
+		$(IT_COMPOSE) down -v; exit $$rc
+
+test-integration-clean:
+	$(IT_COMPOSE) down -v
+
+#####################################################################################
 # More (manual) testing targets
 #####################################################################################
 
