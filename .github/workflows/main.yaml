@@ -38,6 +38,7 @@ jobs:
 
       - name: Install test dependencies
         run: |
+          sudo apt-get update
           sudo apt install -y dnsmasq
 
       - name: Run unit tests
