@@ -136,14 +136,16 @@ test-docker-image-live:
 
 IT_COMPOSE:=ADDON_IMAGE=$(IMAGETAG):localtest docker compose -f tests/integration/docker-compose.yml
 
+# NOTE: 'compose run' is used instead of 'up --abort-on-container-exit' because the DHCP client
+# containers are expected to exit (successfully) and that would abort/kill the 'tests' container (exit 137)
 # requires the docker image $(IMAGETAG):localtest, built by 'make FAST=1 build-docker-image'
 test-integration:
-	$(IT_COMPOSE) up --build --abort-on-container-exit --exit-code-from tests; \
+	$(IT_COMPOSE) run --build --rm tests; \
 		rc=$$?; $(IT_COMPOSE) down -v; exit $$rc
 
 # re-generate tests/integration/fixtures/dnsmasq.leases from the lease file written by the real dnsmasq
 test-integration-record-fixtures:
-	$(IT_COMPOSE) up --build --abort-on-container-exit --exit-code-from tests; \
+	$(IT_COMPOSE) run --build --rm tests; \
 		rc=$$?; \
 		$(IT_COMPOSE) cp addon:/data/dnsmasq.leases tests/integration/fixtures/dnsmasq.leases; \
 		$(IT_COMPOSE) down -v; exit $$rc

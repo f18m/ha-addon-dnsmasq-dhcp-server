@@ -56,7 +56,7 @@ jobs:
       - name: Run integration tests
         working-directory: tests/integration
         run: |
-          docker compose up --build --abort-on-container-exit --exit-code-from tests
+          docker compose run --build --rm tests
       - name: Dump logs on failure
         if: failure()
         working-directory: tests/integration
