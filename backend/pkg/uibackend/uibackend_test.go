@@ -507,7 +507,7 @@ func TestRecoverUnexpectedEmptyLeaseUpdate(t *testing.T) {
 		_ = os.Remove(tmpFile.Name())
 	}()
 
-	content := "1790195704 aa:bb:cc:dd:ee:03 192.168.1.57 hostname4 *\n1790195704 aa:bb:cc:dd:ee:02 192.168.1.56 dynamic1 *\n"
+	content := "1790195704 aa:bb:cc:dd:ee:03 192.168.1.57 dynamic2 *\n1790195704 aa:bb:cc:dd:ee:02 192.168.1.56 dynamic1 *\n"
 	if err := os.WriteFile(tmpFile.Name(), []byte(content), 0o600); err != nil {
 		t.Fatalf("failed to write temp lease file: %v", err)
 	}

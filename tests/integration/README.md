@@ -18,6 +18,9 @@ make test-integration             # exit code is the one of the pytest run
 make test-integration-clean       # remove leftover containers/volumes
 ```
 
+If the tests fail, `make test-integration` prints the Compose container status and
+timestamped service logs before cleaning up, in addition to pytest's failure output.
+
 Requirements: docker with the compose plugin; the host must allow DHCP broadcasts and
 UDP/53 traffic between containers on a bridge network (true on standard GitHub runners).
 

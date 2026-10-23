@@ -74,7 +74,7 @@ services:
     mac_address: "aa:bb:cc:dd:ee:02"
   client-unknown:
     <<: *dhcp-client
-    command: ["hostname4"]
+    command: ["dynamic2"]
     mac_address: "aa:bb:cc:dd:ee:03"
   client-blocked:
     <<: *dhcp-client
