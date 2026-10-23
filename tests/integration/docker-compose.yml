@@ -1,0 +1,116 @@
+# Integration tests for the addon: the real addon image runs with a real dnsmasq,
+# a fake Home Assistant Supervisor, and several real DHCP clients on a docker bridge network.
+# Run with: make test-integration   (see tests/integration/README.md)
+name: dnsmasq-dhcp-it
+
+x-dhcp-client: &dhcp-client
+  image: alpine:3.22
+  entrypoint: ["/dhcp-client.sh"]
+  volumes:
+    - ./dhcp-client.sh:/dhcp-client.sh:ro
+    - results:/results
+  networks:
+    - lan
+  depends_on:
+    addon:
+      condition: service_healthy
+
+services:
+  supervisor:
+    image: python:3.12-alpine
+    command: ["python", "-u", "/supervisor_mock.py", "/options.json"]
+    volumes:
+      - ./supervisor_mock.py:/supervisor_mock.py:ro
+      - ./options.json:/options.json:ro
+    networks:
+      lan:
+        ipv4_address: 172.28.0.3
+    # bashio contacts the host named "supervisor"
+    hostname: supervisor
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1/supervisor/ping')"]
+      interval: 1s
+      timeout: 3s
+      retries: 20
+
+  addon:
+    image: ${ADDON_IMAGE:-addon-dnsmasq-dhcp:localtest}
+    cap_add: [NET_ADMIN]
+    environment:
+      SUPERVISOR_TOKEN: test-token
+    # the init scripts reach the mock Supervisor through the "supervisor" hostname:
+    extra_hosts:
+      - "supervisor:172.28.0.3"
+    volumes:
+      - ./options.json:/data/options.json:ro
+      - addon-data:/data
+    networks:
+      lan:
+        ipv4_address: 172.28.0.2
+    depends_on:
+      supervisor:
+        condition: service_healthy
+    healthcheck:
+      test: >-
+        pidof dnsmasq &&
+        wget -q -O /dev/null --header 'X-Ingress-Path: /test' http://127.0.0.1:8976/
+      interval: 2s
+      timeout: 3s
+      retries: 40
+      start_period: 3s
+
+  # MACs / hostnames below must be kept in sync with options.json and tests/test_*.py
+  client-reserved1:
+    <<: *dhcp-client
+    command: ["first-reserved"]
+    mac_address: "aa:bb:cc:dd:ee:00"
+  client-reserved2:
+    <<: *dhcp-client
+    command: ["second-reserved"]
+    mac_address: "aa:bb:cc:dd:ee:01"
+  client-dynamic1:
+    <<: *dhcp-client
+    command: ["dynamic1"]
+    mac_address: "aa:bb:cc:dd:ee:02"
+  client-unknown:
+    <<: *dhcp-client
+    command: ["dynamic2"]
+    mac_address: "aa:bb:cc:dd:ee:03"
+  client-blocked:
+    <<: *dhcp-client
+    command: ["blocked-guy"]
+    mac_address: "de:ad:be:ef:ca:fe"
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+    command: ["pytest", "-v", "-p", "no:cacheprovider", "/tests"]
+    environment:
+      ADDON_HOST: 172.28.0.2
+    volumes:
+      - ./tests:/tests:ro
+      - results:/results:ro
+      - addon-data:/addon-data:ro
+    networks:
+      - lan
+    depends_on:
+      client-reserved1: {condition: service_completed_successfully}
+      client-reserved2: {condition: service_completed_successfully}
+      client-dynamic1: {condition: service_completed_successfully}
+      client-unknown: {condition: service_completed_successfully}
+      client-blocked: {condition: service_completed_successfully}
+
+volumes:
+  results:
+  addon-data:
+
+networks:
+  lan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+          gateway: 172.28.0.1
+          # docker-assigned addresses must not overlap with the DHCP pool nor the reservations
+          ip_range: 172.28.0.192/26

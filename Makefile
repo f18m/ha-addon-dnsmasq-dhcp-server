@@ -96,6 +96,8 @@ DOCKER_RUN_OPTIONS:= \
 
 #####################################################################################
 # Manual test targets
+# These are mostly useful only to test the web UI changes
+# For functional tests of the backend and addon logic, the AUTOMATED integration tests should be used instead
 #####################################################################################
 
 # when using the 'test-docker-image' target it's normal to see messages like
@@ -131,7 +133,46 @@ test-docker-image-live:
 
 
 #####################################################################################
-# More (manual) testing targets
+# Automated integration tests (docker compose; see tests/integration/README.md)
+#####################################################################################
+
+IT_COMPOSE:=ADDON_IMAGE=$(IMAGETAG):localtest docker compose -f tests/integration/docker-compose.yml
+
+# NOTE: 'compose run' is used instead of 'up --abort-on-container-exit' because the DHCP client
+# containers are expected to exit (successfully) and that would abort/kill the 'tests' container (exit 137)
+# requires the docker image $(IMAGETAG):localtest, built by 'make FAST=1 build-docker-image'
+test-integration:
+	$(IT_COMPOSE) run --build --rm tests; \
+		rc=$$?; \
+		if [ $$rc -ne 0 ]; then \
+			printf '\nIntegration tests failed (exit %s). Container status:\n' "$$rc"; \
+			$(IT_COMPOSE) ps -a || true; \
+			printf '\nIntegration service logs:\n'; \
+			$(IT_COMPOSE) logs --no-color --timestamps || true; \
+		fi; \
+		$(IT_COMPOSE) down -v; \
+		cleanup_rc=$$?; \
+		if [ $$rc -eq 0 ]; then rc=$$cleanup_rc; fi; \
+		exit $$rc
+
+# re-generate tests/integration/fixtures/dnsmasq.leases from the lease file written by the real dnsmasq
+test-integration-record-fixtures:
+	$(IT_COMPOSE) run --build --rm tests; \
+		rc=$$?; \
+		if [ $$rc -eq 0 ]; then \
+			mkdir -p tests/integration/fixtures && \
+			$(IT_COMPOSE) cp addon:/data/dnsmasq.leases tests/integration/fixtures/dnsmasq.leases || rc=$$?; \
+		fi; \
+		$(IT_COMPOSE) down -v; \
+		cleanup_rc=$$?; \
+		if [ $$rc -eq 0 ]; then rc=$$cleanup_rc; fi; \
+		exit $$rc
+
+test-integration-clean:
+	$(IT_COMPOSE) down -v
+
+#####################################################################################
+# More (manual) testing targets (OBSOLETE -- REPLACED BY AUTOMATED TESTS ABOVE)
 #####################################################################################
 
 # overwrite test-leases.leases with 3 dnsmasq-compliant entries expiring in 10 minutes
@@ -145,7 +186,7 @@ test-current-dhcp-leases:
 	printf "%s aa:bb:cc:dd:ee:00 192.168.1.15 hostname1 *\n" "$$expiry" > test-leases.leases; \
 	printf "%s aa:bb:cc:dd:ee:01 192.168.1.55 hostname2 *\n" "$$expiry" >> test-leases.leases; \
 	printf "%s aa:bb:cc:dd:ee:02 192.168.1.56 hostname3 *\n" "$$expiry" >> test-leases.leases; \
-	printf "%s aa:bb:cc:dd:ee:03 192.168.1.57 hostname4 *\n" "$$expiry" >> test-leases.leases
+	printf "%s aa:bb:cc:dd:ee:03 192.168.1.57 dynamic2 *\n" "$$expiry" >> test-leases.leases
 
 test-past-leases-show:
 	sqlite3 test-db.sqlite3 'select * from dhcp_clients;' | column -t -s'|'
