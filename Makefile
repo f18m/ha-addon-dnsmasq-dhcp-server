@@ -147,8 +147,14 @@ test-integration:
 test-integration-record-fixtures:
 	$(IT_COMPOSE) run --build --rm tests; \
 		rc=$$?; \
-		$(IT_COMPOSE) cp addon:/data/dnsmasq.leases tests/integration/fixtures/dnsmasq.leases; \
-		$(IT_COMPOSE) down -v; exit $$rc
+		if [ $$rc -eq 0 ]; then \
+			mkdir -p tests/integration/fixtures && \
+			$(IT_COMPOSE) cp addon:/data/dnsmasq.leases tests/integration/fixtures/dnsmasq.leases || rc=$$?; \
+		fi; \
+		$(IT_COMPOSE) down -v; \
+		cleanup_rc=$$?; \
+		if [ $$rc -eq 0 ]; then rc=$$cleanup_rc; fi; \
+		exit $$rc
 
 test-integration-clean:
 	$(IT_COMPOSE) down -v

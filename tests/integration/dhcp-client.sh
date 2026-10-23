@@ -19,7 +19,7 @@ chmod +x /tmp/udhcpc-script.sh
 export NAME MAC RESULT
 # -B: ask the server to reply in broadcast, since the client has no IP address assigned yet
 # -n: exit if no lease; -q: quit after obtaining lease; -t/-T: retries / timeout
-if udhcpc -i eth0 -B -n -q -t 3 -T 2 -x "hostname:${NAME}" -s /tmp/udhcpc-script.sh; then
+if udhcpc -i eth0 -B -n -q -t 10 -T 2 -x "hostname:${NAME}" -s /tmp/udhcpc-script.sh; then
     echo "dhcp-client ${NAME}: lease obtained"
 else
     echo "dhcp-client ${NAME}: no lease obtained"

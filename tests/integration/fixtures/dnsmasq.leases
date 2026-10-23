@@ -1,0 +1,4 @@
+1792802204 aa:bb:cc:dd:ee:02 172.28.0.100 dynamic1 01:aa:bb:cc:dd:ee:02
+1792845404 aa:bb:cc:dd:ee:00 172.28.0.10 first-reserved 01:aa:bb:cc:dd:ee:00
+1792845404 aa:bb:cc:dd:ee:01 172.28.0.105 second-reserved 01:aa:bb:cc:dd:ee:01
+1792802204 aa:bb:cc:dd:ee:03 172.28.0.101 hostname4 01:aa:bb:cc:dd:ee:03
