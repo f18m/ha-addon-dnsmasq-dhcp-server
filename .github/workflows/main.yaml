@@ -56,7 +56,7 @@ jobs:
           # and we need to ensure compatibility between the two
           # IMPORTANT: this should be kept in sync with the version of the "golang" image
           # used in the build step of the Dockerfile 
-          go-version: '1.27.1'
+          go-version: '1.27.3'
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
