@@ -1,5 +1,72 @@
 #!/usr/bin/with-contenv bashio
 CONFIG="/etc/dnsmasq.conf"
+CONFIG_RESOLVED="/data/options.resolved.json"
+RUNTIME_JSON="/tmp/options.runtime.json"
+RETRY_INTERVAL_SEC=30
+
+# Returns 0 if the given network interface currently exists
+function iface_exists() {
+    # interface aliases like "eth0:1" are backed by the "eth0" device
+    [[ -e "/sys/class/net/${1%%:*}" ]]
+}
+
+# Configured interfaces, from the authoritative resolved JSON config
+CONFIGURED_IFACES=$(jq --raw-output '.interfaces[]?' "${CONFIG_RESOLVED}")
+
+AVAILABLE=()
+MISSING=()
+for iface in ${CONFIGURED_IFACES}; do
+    if iface_exists "${iface}"; then
+        AVAILABLE+=("${iface}")
+    else
+        MISSING+=("${iface}")
+    fi
+done
+
+if [[ ${#MISSING[@]} -gt 0 ]]; then
+    bashio::log.warning "Network interface(s) not available: ${MISSING[*]}. DHCP/DNS will not be served on them until they appear; retrying every ${RETRY_INTERVAL_SEC}s."
+    if [[ ${#AVAILABLE[@]} -eq 0 ]]; then
+        bashio::log.warning "No configured network interface is available yet; waiting..."
+        while true; do
+            sleep "${RETRY_INTERVAL_SEC}"
+            for iface in "${MISSING[@]}"; do
+                iface_exists "${iface}" && exit 0   # service gets restarted
+            done
+        done
+    fi
+
+    # keep only the available interfaces in the config actually used by dnsmasq
+    jq --argjson ifaces "$(printf '%s\n' "${AVAILABLE[@]}" | jq --raw-input . | jq --slurp .)" \
+        '.interfaces = $ifaces' "${CONFIG_RESOLVED}" > "${RUNTIME_JSON}"
+    CONFIG_RESOLVED="${RUNTIME_JSON}"
+
+    # watchdog: restart dnsmasq as soon as one of the missing interfaces shows up
+    DNSMASQ_PID=$$
+    (
+        while kill -0 "${DNSMASQ_PID}" 2>/dev/null; do
+            sleep "${RETRY_INTERVAL_SEC}"
+            for iface in "${MISSING[@]}"; do
+                if iface_exists "${iface}"; then
+                    bashio::log.info "Network interface ${iface} is now available: restarting dnsmasq"
+                    kill -TERM "${DNSMASQ_PID}"
+                    exit 0
+                fi
+            done
+        done
+    ) < /dev/null &
+fi
+
+bashio::log.info "Generating dnsmasq config..."
+tempio \
+    -conf "${CONFIG_RESOLVED}" \
+    -template /usr/share/tempio/dnsmasq.config \
+    -out "${CONFIG}"
+
+# make the config file a bit more compact by removing empty lines
+sed -i '/^$/d' "${CONFIG}"
+
+bashio::log.info "Full dnsmasq config:"
+cat -n "${CONFIG}"
 
 # Run dnsmasq
 bashio::log.info "Starting dnsmasq..."
