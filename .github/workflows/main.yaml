@@ -64,7 +64,7 @@ jobs:
           docker compose logs --no-color > compose.log
       - name: Upload logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: integration-tests-logs
           path: tests/integration/compose.log
