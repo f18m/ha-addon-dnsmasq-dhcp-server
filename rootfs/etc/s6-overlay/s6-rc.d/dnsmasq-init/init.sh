@@ -7,7 +7,6 @@
 ADDON_DHCP_SERVER_START_EPOCH="/data/startepoch"
 ADDON_CONFIG="/data/options.json"
 ADDON_CONFIG_RESOLVED="/data/options.resolved.json"
-DNSMASQ_CONFIG="/etc/dnsmasq.conf"
 DNSMASQ_LEASE_DATABASE="/data/dnsmasq.leases"
 
 # 5min is a reasonable threshold
@@ -179,16 +178,4 @@ resolve_ntp_servers
 log_info "Processing DHCP DNS server list..."
 process_dns_servers
 
-log_info "Configuring dnsmasq..."
-tempio \
-    -conf ${ADDON_CONFIG_RESOLVED} \
-    -template /usr/share/tempio/dnsmasq.config \
-    -out "${DNSMASQ_CONFIG}"
-
-# make the config file a bit more compact by removing empty lines
-sed -i '/^$/d' $DNSMASQ_CONFIG
-
-log_info "Full dnsmasq config:"
-cat -n $DNSMASQ_CONFIG
-
-log_info "Successfully completed dnsmasq configuration."
+log_info "Successfully completed dnsmasq configuration pre-processing."
